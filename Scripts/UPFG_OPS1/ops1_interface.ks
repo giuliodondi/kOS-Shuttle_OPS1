@@ -284,9 +284,9 @@ FUNCTION dataViz {
 	LOCAL stg IS get_stage().
 	
 	
-	PRINTPLACE(" " + j + " ",12,19,vehloc).
-	PRINTPLACE(ROUND(thrust[0]/1000,1) + " kN",12,19,vehloc+1).
-	PRINTPLACE(" " + ROUND(thrust[0]/(1000*SHIP:MASS*g0),2) + " ",12,19,vehloc+2).
+	PRINTPLACE(" " + vehiclestate["cur_stg"] + " ",12,19,vehloc).
+	PRINTPLACE(ROUND(vehiclestate["avg_thr"]:average()/1000,1) + " kN",12,19,vehloc+1).
+	PRINTPLACE(" " + ROUND(get_TWR(),2) + " ",12,19,vehloc+2).
 	PRINTPLACE(sectotime(stg["Tstage"]),12,19,vehloc+3).
 	PRINTPLACE(stg["staging"]["type"],12,19,vehloc+4).
 	PRINTPLACE(ROUND(THROTTLE*100,1) + " %",12,19,vehloc+5).
@@ -340,9 +340,9 @@ FUNCTION dataViz {
 		SET loglex["Time"] TO TIME:SECONDS - vehicle["ign_t"].
 		SET loglex["Altitude"] TO SHIP:ALTITUDE/1000.
 		SET loglex["Dwnrg Dst"] TO downrangedist(launchpad,SHIP:GEOPOSITION ).
-		SET loglex["Stage"] TO j.
+		SET loglex["Stage"] TO vehiclestate["cur_stg"].
 		SET loglex["Mass"] TO stg["m_initial"].
-		SET loglex["TWR"] TO thrust[0]/(1000*SHIP:MASS*g0).
+		SET loglex["TWR"] TO get_TWR().
 		SET loglex["Throt"] TO stg["Throttle"]*100.
 		SET loglex["AZ(cmd)"] TO surfacestate["hdir"].
 		SET loglex["HAOA"] TO compass_for(v,SHIP:GEOPOSITION ) - compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ).

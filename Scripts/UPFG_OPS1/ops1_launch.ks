@@ -60,33 +60,22 @@ function launch{
 	//generic variables
 	
 	GLOBAL ops_mode IS 0.
-	GLOBAL staginginprogress IS FALSE.
 	
 
 	//Nav variables
 	GLOBAL launchpad IS SHIP:GEOPOSITION.
-	GLOBAL P_refVec IS v(0,0,0).
-	GLOBAL P_steer IS LOOKDIRUP(SHIP:FACING:FOREVECTOR, SHIP:FACING:TOPVECTOR).	
-	GLOBAL attitude IS LIST(90,0).
+	
 	GLOBAL surfacestate IS  LEXICON("MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0).
 	GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0). 
+	GLOBAL control Is LEXICON(
+		"launch_az",0,
+		"steerdir", LOOKDIRUP(SHIP:FACING:FOREVECTOR, SHIP:FACING:TOPVECTOR),
+		"refvec", v(0,0,0)
+	).
 	
-
 	
-	
-	
-	initialise_vehicle().
-	prepare_launch().
-	
-	//IF (DEFINED TALAbort) {
-	//	UNSET TALAbort.
-	//}
-	//SET orbitstate["radius"] TO rodrigues(vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)*(BODY:RADIUS + 118000),-target_orbit["normal"],5).
-	//
-	////TAL_tgt_vec(orbitstate["radius"]).
-	//
-	//setup_TAL().
-	
+	initialise_shuttle().
+	prepare_launch().	
 	countdown().
 	open_loop_ascent().
 	closed_loop_ascent().
@@ -98,8 +87,6 @@ function launch{
 declare function countdown{
 
 
-	
-	LOCK STEERING TO P_steer.
 	LOCK THROTTLE to throttleControl().
 	SAS OFF.
 	local line is 30.
@@ -122,8 +109,10 @@ declare function countdown{
 	
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
+	LOCK STEERING TO control["steerdir"].
 	stage.	
 	wait until ship:unpacked and ship:loaded.
+	
 }
 
 
@@ -134,23 +123,17 @@ declare function open_loop_ascent{
 	addMessage("LIFT-OFF!").
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][j]["Throttle"].
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 	
 	
 	get_mass_bias().
 	getState().
 
-	
-	//until false {print vehicle["stages"].}
-		
-	IF (vehicle["handover"]:HASKEY("time")) {
-		SET vehicle["handover"]["time"] to vehicle["ign_t"] + vehicle["handover"]["time"].
-	}
-	SET P_steer TO LOOKDIRUP(-SHIP:ORBIT:BODY:POSITION, SHIP:FACING:TOPVECTOR).
+	SET control["steerdir"] TO LOOKDIRUP(-SHIP:ORBIT:BODY:POSITION, SHIP:FACING:TOPVECTOR).
 		
 	local steer_flag IS false.
 	
-	SET P_refVec TO HEADING(attitude[1] + 180, 0):VECTOR.
+	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.
 	LOCAL scale IS MIN(0.2,0.15*( (target_orbit["radius"]:MAG - BODY:RADIUS)/250000 - 1)).																				   
 	
 	SET ops_mode TO 1.
@@ -161,8 +144,7 @@ declare function open_loop_ascent{
 		SET steer_flag TO true.
 	}
 	
-	LOCAL targetspeed IS 85 + ((45 - 90)/(1.5-1))*(thrust[0]/(g0*vehicle["stages"][j]["m_initial"]) - 1).	
-	local aimVec is HEADING(attitude[1],attitude[0]):VECTOR.
+	LOCAL targetspeed IS 55 + ((45 - 90)/(1.5-1))*(get_TWR() - 1).	
 	
 	WHEN SHIP:VERTICALSPEED > targetspeed THEN { 
 		addMessage("PITCHING DOWNRANGE").
@@ -175,22 +157,19 @@ declare function open_loop_ascent{
 		monitor_abort().
 		
 		IF (vehicle["handover"]:HASKEY("time")) {
-			IF TIME:SECONDS >= (vehicle["handover"]["time"] ) {BREAK.}
+			IF ( (TIME:SECONDS - vehicle["ign_t"]) >= vehicle["handover"]["time"] ) {BREAK.}
 		}
 		ELSE {
-			IF j=vehicle["handover"]["stage"] {
-				vehicle["handover"]:ADD("time", TIME:SECONDS ).
+			IF vehiclestate["cur_stg"]=vehicle["handover"]["stage"] {
+				vehicle["handover"]:ADD("time", TIME:SECONDS - vehicle["ign_t"] ).
 				BREAK.
 			}
 		}
+		
+		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,targetspeed,scale)):VECTOR.
 
 		
-		SET attitude[0] TO pitch(SHIP:VELOCITY:SURFACE:MAG,targetspeed,scale).
-		
-		SET aimVec TO HEADING(attitude[1],attitude[0]):VECTOR.
-
-		
-		IF steer_flag { set P_steer TO aimAndRoll(aimVec,P_refVec,vehicle["roll"]). }
+		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec,control["refvec"],vehicle["roll"]). }
 		
 		dataViz().
 		WAIT 0.
@@ -207,7 +186,7 @@ declare function closed_loop_ascent{
 		//hard-coded time shift of 5 minutes
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
 	}													 
-	SET P_refVec TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	addMessage("RUNNING UPFG ALGORITHM").
 	drawUI().
 	getState().
@@ -221,7 +200,7 @@ declare function closed_loop_ascent{
 	GLOBAL usc IS x[1].
 	
 	SET usc["lastvec"] TO vecYZ(thrust_vec()).
-	SET usc["lastthrot"] TO vehicle["stages"][j]["Throttle"].
+	SET usc["lastthrot"] TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 
 	dataViz().
 
@@ -283,11 +262,11 @@ declare function closed_loop_ascent{
 			
 		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
-		IF NOT staginginprogress { //AND usc["conv"]=1
-			SET P_steer TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED,P_refVec,vehicle["roll"]).										
+		IF NOT vehiclestate["staging_in_progress"] { //AND usc["conv"]=1
+			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED,control["refvec"],vehicle["roll"]).										
 		} 
-		IF vehicle["stages"][j]["mode"] <> 2 {
-			SET vehicle["stages"][j]["Throttle"] TO usc["lastthrot"].		
+		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
+			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		
 		}
 		dataViz().
 		WAIT 0.
@@ -303,11 +282,9 @@ declare function closed_loop_ascent{
 		//LOCAL rightvec IS VCRS(upvec, pitchdownvec ).
 		//SET pitchdownvec TO rodrigues(pitchdownvec,rightvec,2).
 		//local aimv IS VXCL(rightvec,SHIP:FACING:FOREVECTOR).
-		//SET P_steer TO aimAndRoll(pitchdownvec:NORMALIZED,upvec,0).	
+		//SET control["steerdir"] TO aimAndRoll(pitchdownvec:NORMALIZED,upvec,0).	
 		
 		LOCK STEERING TO LOOKDIRUP(pitchdownvec, upvec).
-		
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
 		
 		addMessage("POWERED PITCH-DOWN").
 
@@ -339,8 +316,8 @@ declare function closed_loop_ascent{
 	//just in case it hasn't been done previously
 	LOCK THROTTLE to 0.
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-	SET P_steer TO SHIP:FACING.
-	LOCK STEERING TO P_steer.
+	SET control["steerdir"] TO SHIP:FACING.
+	LOCK STEERING TO control["steerdir"].
 	LIST ENGINES IN Eng.
 	FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
 	UNLOCK THROTTLE.
@@ -348,7 +325,7 @@ declare function closed_loop_ascent{
 	SAS ON.
 	RCS ON.
 	
-	SET staginginprogress TO TRUE.	//so that vehicle perf calculations are skipped in getState
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 	
 	
 	//ET sep loop

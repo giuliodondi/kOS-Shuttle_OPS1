@@ -485,7 +485,7 @@ FUNCTION prepare_launch {
 	}
 	IF timeToOrbitIntercept < vehicle["launchTimeAdvance"] { SET liftoffTime TO liftoffTime + SHIP:BODY:ROTATIONPERIOD. }
 	PRINT " CALCULATING LAUNCH AZIMUTH" AT (0,21).		
-	set attitude[1] to launchAzimuth().	
+	set control["launch_az"] to launchAzimuth().	
 		
 	warp_window(liftoffTime).
 	

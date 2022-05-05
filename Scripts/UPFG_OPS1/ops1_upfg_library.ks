@@ -99,7 +99,7 @@ FUNCTION upfg_wrapper {
 	}
 	
 	
-	LOCAL out IS upfg(currentIterationTime , vehicle["stages"]:SUBLIST(j,vehicle:LENGTH-j) , target_orbit , upfgInternal , usc["itercount"]=0 , usc["terminal"] ).
+	LOCAL out IS upfg(currentIterationTime , vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]) , target_orbit , upfgInternal , usc["itercount"]=0 , usc["terminal"] ).
 	
 	
 	
@@ -111,7 +111,7 @@ FUNCTION upfg_wrapper {
 		IF usc["conv"]<1 {SET usc["itercount"] TO usc["itercount"]+1.}
 		
 		LOCAL iterationDeltaTime IS ABS(currentIterationTime - usc["lastiter"]).
-		IF stagingInProgress {
+		IF vehiclestate["staging_in_progress"] {
 			SET iterationDeltaTime TO 0.
 			SET upfgOutput["time"] TO upfgInternal["time"].
 		}
@@ -126,7 +126,7 @@ FUNCTION upfg_wrapper {
 					SET usc["conv"] TO usc["conv"]+1.
 				}
 			} ELSE { //something is wrong, reset
-				IF NOT staginginprogress {
+				IF NOT vehiclestate["staging_in_progress"] {
 					SET upfgOutput TO resetUPFG(upfgOutput).
 		    	}
 		    }
@@ -149,6 +149,7 @@ FUNCTION upfg_wrapper {
 		//dissipation and flyback trigger logic
 		IF (NOT RTLSAbort["flyback_flag"] ) {
 			IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
+				SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
 				//dissipation thrust vector
 				//SET RTLSAbort["C1"] TO  VXCL(target_orbit["normal"],RTLSAbort["C1"]).
 				SET usc["lastvec"] TO RTLSAbort["C1"].
@@ -166,12 +167,11 @@ FUNCTION upfg_wrapper {
 					SET RTLSAbort["flyback_conv"] TO MIN( 1, RTLSAbort["flyback_conv"] + 1).
 				}
 				
-				SET P_refVec TO SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+				SET control["refvec"] TO SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 				SET vehicle["roll"] TO 0.
 				
-				IF (( upfgOutput["Tc"] <= 3) AND (RTLSAbort["flyback_conv"] = 1)) {
+				IF (( upfgOutput["Tc"] <= 1) AND (RTLSAbort["flyback_conv"] = 1)) {
 					addMessage("POWERED PITCH-AROUND TRIGGERED").
-					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
 					SET RTLSAbort["pitcharound"]["ref_t"] TO TIME:SECONDS.
 					SET upfgInternal TO resetUPFG(upfgInternal).
@@ -188,14 +188,14 @@ FUNCTION upfg_wrapper {
 					
 					SET usc["lastvec"] TO rodrigues(RTLSAbort["C1"], RTLSAbort["pitcharound"]["refvec"],theta). 
 					
-					SET P_refVec TO VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
+					SET control["refvec"] TO VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
 					
 					IF (VANG(RTLSAbort["pitcharound"]["target"], usc["lastvec"]) < 15) {
-						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.35.
 						SET RTLSAbort["pitcharound"]["triggered"] TO FALSE.
 						SET RTLSAbort["flyback_flag"] TO TRUE.
 						SET upfgOutput["flyback_flag"] TO TRUE.
-						SET P_refVec TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+						SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 						
 					}	
 			}
@@ -541,7 +541,7 @@ FUNCTION upfg {
 			//LOCAL throtgain IS -dt*2.5e-6.
 			//LOCAL newKk IS Kk + throtgain*SIGN(dmbo)*SQRT(ABS(dmbo)).
 			
-			LOCAL throtgain IS -dt*4e-4.
+			LOCAL throtgain IS -dt*5e-4.
 			//LOCAL throtgain IS -dt*1e-3.
 			
 			LOCAL newKk IS Kk + throtgain*SIGN(Tc)*SQRT(ABS(Tc)).

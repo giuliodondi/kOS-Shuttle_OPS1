@@ -35,7 +35,7 @@ FUNCTION monitor_abort {
 	IF abort_detect {
 		addMessage("ENGINE OUT DETECTED.").
 		SET abort_modes["triggered"] TO TRUE.
-		SET abort_modes["t_abort"] TO MAX( current_t + 1, 135 ).
+		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 8 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
 	}
 
@@ -457,6 +457,43 @@ FUNCTION GRTLS {
 	LOCAL aimvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
 	LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	LOCAL rightvec IS VCRS(upvec, aimvec ).
+	
+	LOCAL flap_control IS LEXICON(
+						"deflection",0,
+						"pitch_control",average_value_factory(4),
+						"parts", LIST(
+							LEXICON(
+									"flapmod",SHIP:PARTSDUBBED("ShuttleElevonL")[0]:getmodule("FARControllableSurface"),
+									"min_defl",-14,
+									"max_defl",20
+							),
+							LEXICON(
+									"flapmod",SHIP:PARTSDUBBED("ShuttleElevonR")[0]:getmodule("FARControllableSurface"),
+									"min_defl",-25,
+									"max_defl",20
+							),
+							LEXICON(
+									"flapmod",SHIP:PARTSDUBBED("ShuttleBodyFlap")[0]:getmodule("FARControllableSurface"),
+									"min_defl",-25,
+									"max_defl",20
+							)
+						)
+	).
+	
+	LISt ENGINES IN englist.
+	LOCAL gimbals IS 0.
+	FOR e IN englist {
+		IF e:HASSUFFIX("gimbal") {
+			SET gimbals TO e:GIMBAL.
+			BREAK.
+		}
+	}
+	gimbals:DOACTION("free gimbal", TRUE).
+	//gg:DOEVENT("Show actuation toggles").
+	gimbals:DOACTION("toggle gimbal roll", TRUE).
+	gimbals:DOACTION("toggle gimbal yaw", TRUE).
+	
+	activate_flaps(flap_control["parts"]).
 
 	SET aimvec TO rodrigues(aimvec,rightvec,-pitch0).
 	
@@ -510,12 +547,16 @@ FUNCTION GRTLS {
 	
 	
 	UNTIL FALSE {
+		
 	
 		LOCAL prev_nz IS NZHOLD["cur_nz"].
 		
 		SET NZHOLD TO update_g_force(NZHOLD).
 		
 		IF (ops_mode >= 6 ) {
+		
+			flap_control["pitch_control"]:update(-gimbals:PITCHANGLE).
+			SET flap_control TO flaptrim_control( flap_control).
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
 				set_target_nz().
@@ -542,24 +583,6 @@ FUNCTION GRTLS {
 		}
 		
 
-		GRTLS_dataViz().
-		WAIT 0.05.
-	}
-
-	
-	
-	
-	//steer to an initial roll angle to speed up convergence during entry guidance
-	SET rollv TO firstroll*SIGN(az_error(SHIP:GEOPOSITION,abort_modes["RTLS"]["tgt_site"],SHIP:VELOCITY:SURFACE)).
-	
-	
-	UNTIL FALSE {
-		IF ( firstroll - ABS(get_roll()) < 0.5 ) {
-			BREAK.
-		}
-	
-		update_g_force(NZHOLD).
-		
 		GRTLS_dataViz().
 		WAIT 0.05.
 	}
