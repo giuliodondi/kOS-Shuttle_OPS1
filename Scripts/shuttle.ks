@@ -17,14 +17,7 @@ GLOBAL target_orbit IS LEXICON (
 //change this to the best suitable site based on launch inclination
 GLOBAL TAL_site is "Zaragoza".
 
-
-
-
-
 GLOBAL logdata Is false.
-
-//CD("0:/UPFG_latest").
-//run upfg_launch.
 
 CD("0:/UPFG_OPS1").
 run ops1_launch.
