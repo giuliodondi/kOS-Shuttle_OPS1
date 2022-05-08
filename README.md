@@ -26,7 +26,7 @@ You will find one folder:
 
 Put the contents of the Scripts folder inside Ship/Scripts so that kOS can see all the files.
 In particular, there wil be only one script to run:
-- **shuttle.ks** to launch the Shuttle from the launchpad
+- **shuttle.ks** to launch the Shuttle from the launchpad (read on to learn about mission setup).
 
 
 # Setup  
@@ -73,7 +73,25 @@ Most events are of the "action" type, where the action is specified as a piece o
 
 # Mission profiles
 
-As mentioned, the mission is started by running **shuttle.ks**
+## Nominal launch
+
+As mentioned, the mission is started by running **shuttle.ks**. In the nominal case this will program the launch a few seconds after runnign the script. It is possiblre to launch in the orbital plane of a ship in orbit by selecting it as a target in the map view **BEFORE** running the script. This will override the launch inclination to match and warp to the right time to launch.  
+The script will guide the shuttle during first stage atmospheric flight, then use closed-loop PEG guidance for the second stage phase until MECO. 
+After MECO the script wil automatically:
+- trigger ET sep
+- command an RCS vertical translation manoeuvre
+- close the umbilical doors
+- disable SSME gimballing
+
+The script then enters an infinite loop displaying the results of an orbital analysis, calculating the erros with respect to the desired orbit. At this point you can halt the script with ctrl+C in the script window.
+**Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform mamually an OMS bun to circularise.** 
+
+## RTLs abort
+
+RTLS can be triggered automatically with an event contained in the vessel file or manually by shutting down an engine during flight. If the failure happens during stage 1 guidance will not kick in until after SRB separation, if the failure occurs during stage 2 it will be triggered immediately.  
+I tested early aborts (MET 80s) all the way to 
+
+The last RTLS opportunity is at MET 220s (3m 40s), which is late enough into the flight that the fuel dissipation phase shouldn't even be performed. 
 
 
 
