@@ -2,8 +2,8 @@
 
 //Launch Settings
 
-//GLOBAL vesselfilename is "Discovery".     //this is the name of the vessel file to load
-GLOBAL vesselfilename is "Discovery - RTLS".     //this is the name of the vessel file to load
+GLOBAL vesselfilename is "Discovery".     //this is the name of the vessel file to load
+//GLOBAL vesselfilename is "Discovery - RTLS".     //this is the name of the vessel file to load
 //GLOBAL vesselfilename is "Discovery - TAL".     //this is the name of the vessel file to load
 
 GLOBAL target_orbit IS LEXICON (	
@@ -23,7 +23,7 @@ GLOBAL TAL_site is "Zaragoza".
 
 
 
-GLOBAL logdata Is true.
+GLOBAL logdata Is false.
 
 //CD("0:/UPFG_latest").
 //run upfg_launch.
