@@ -5,7 +5,7 @@ GLOBAL abort_modes IS LEXICON(
 					"t_abort",0,
 					"abort_v",0,
 					"RTLS",LEXICON(
-							"boundary",210,
+							"boundary",221,
 							"active",TRUE,
 							"tgt_site", get_RTLS_site()
 							),
@@ -35,7 +35,7 @@ FUNCTION monitor_abort {
 	IF abort_detect {
 		addMessage("ENGINE OUT DETECTED.").
 		SET abort_modes["triggered"] TO TRUE.
-		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 8 ).
+		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 5 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
 	}
 
@@ -116,7 +116,7 @@ FUNCTION RTLS_dissip_theta_time {
 						LIST(60,59),
 						LIST(90,58),
 						LIST(120,51),
-						LIST(150,43),
+						LIST(150,42),
 						LIST(180,39),
 						LIST(210,35),
 						LIST(240,31)
@@ -167,8 +167,8 @@ FUNCTION RTLS_C1 {
 FUNCTION RTLS_rvline {
 	PARAMETER rng.
 	
-	RETURN 0.00250*rng + 1000.
-	//RETURN 0.00250*rng + 800.
+	RETURN 0.0032*rng + 650.
+	//RETURN 0.00250*rng + 1000.
 	//RETURN 0.00242*rng + 768.7.
 	
 }
@@ -447,9 +447,9 @@ FUNCTION GRTLS {
 	SET STEERINGMANAGER:YAWPID:KD TO 0.05.
 	SET STEERINGMANAGER:ROLLPID:KD TO 0.05.
 
-	LOCAL pitch0 IS 45.
-	LOCAL pitchf IS 20.
-	LOCAL tgt_hdot IS -75.
+	LOCAL pitch0 IS 40.
+	LOCAL pitchf IS 15.
+	LOCAL tgt_hdot IS -150.
 	LOCAL firstroll IS 28.
 	
 	LOCAL t_grtls IS TIME:SECONDS.
@@ -538,7 +538,7 @@ FUNCTION GRTLS {
 	
 	LOCAL deltanz IS  -  NZHOLD["tgt_nz"].
 	
-	WHEN ( SHIP:ALTITUDE < 55000 OR (NZHOLD["cur_nz"] <0 AND NZHOLD["cur_nz"] > -2 AND SHIP:ALTITUDE < 70000) ) THEN {
+	WHEN ( SHIP:ALTITUDE < 60000 OR (NZHOLD["cur_nz"] <0 AND NZHOLD["cur_nz"] > -2 AND SHIP:ALTITUDE < 70000) ) THEN {
 		SET ops_mode TO 6.
 	}
 	
@@ -590,8 +590,8 @@ FUNCTION GRTLS {
 	
 	//prepare entry guidance
 	GLOBAL pitchprof_segments IS LIST(
-								LIST(350,10),
-								LIST(1800,20)
+								LIST(350,8),
+								LIST(1800,18)
 								).
 								
 	GLOBAL sim_end_conditions IS LEXICON(
@@ -618,7 +618,7 @@ FUNCTION GRTLS {
 //hard-coded selector of TAL sites based on inclination
 FUNCTION get_TAL_site {
 
-	RETURN ldgsiteslex["Zaragoza"]["position"].
+	RETURN ldgsiteslex[TAL_site]["position"].
 
 }
 
@@ -701,7 +701,7 @@ FUNCTION TAL_tgt_vec {
 	
 	//get the angle between the two
 	//clamp this angle so that the crossrange is within a certain value
-	LOCAL max_xrange IS 650.	//in km
+	LOCAL max_xrange IS 600.	//in km
 	LOCAL abeam_angle IS signed_angle(shifted_site,shifted_site_proj,abeam_norm,0).
 	SET abeam_angle TO SIGN(abeam_angle)*CLAMP(ABS(abeam_angle),0,max_xrange*1000*180/(CONSTANT:PI*BODY:RADIUS)).
 	
