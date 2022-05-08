@@ -11,8 +11,6 @@ GLOBAL target_orbit IS LEXICON (
 								"apoapsis",220,
 								"inclination",40,
 								"Cutoff Altitude",112,
-								//"Longitude of Periapsis",-120		//if circular orbit will be set to arbitrary value
-																	// set it 2 or 3 degrees to the EAST of its intended long because of the earth's rotation.
 								"end",0								//don't remove this
 ).
 
