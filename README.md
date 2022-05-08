@@ -89,9 +89,14 @@ The script then enters an infinite loop displaying the results of an orbital ana
 ## RTLs abort
 
 RTLS can be triggered automatically with an event contained in the vessel file or manually by shutting down an engine during flight. If the failure happens during stage 1 guidance will not kick in until after SRB separation, if the failure occurs during stage 2 it will be triggered immediately.  
-I tested early aborts (MET 80s) all the way to 
+The script performs automatically all three phases of RTLS:
+- dissipation, flying outbound for a certain time to waste fuel. The script uses its guidanced program to estimate the right time to turn around.
+- flyback, where the shuttle points back to the launch site and the outbound trajectory is slowly reversed to bring it home. The script is programmed to cut off the engines at 78 km and at a variable distance from the launch site, at a velocity that depends on MECO distance.
+- glide-RTLS, where the Shuttle performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory
 
-The last RTLS opportunity is at MET 220s (3m 40s), which is late enough into the flight that the fuel dissipation phase shouldn't even be performed. 
+At the end of these phases the Shuttle will be at around 30km descending gently. The entry script will automatically be called and from there on you take over like a normal reentry.  
+I tested early aborts (MET 80s) all the way to negative return (MET 220s). The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
+The script is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort
 
 
 
