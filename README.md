@@ -15,7 +15,7 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 - Kerbal Operating System
 - DECQ's Space Shuttle System mod, this fork seems to be the most up-to-date : https://github.com/DylanSemrau/Space-Shuttle-System
 - RO configs that come with the Realism Overhaul package
-- **My Shuttle entry script https://github.com/giuliodondi/kOS-ShuttleEntrySim required by RTLS and TAL aborts**
+- **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
 **CAVEAT** 
 I'm aware that there is a more up-to-date Shuttle version made by SpaceODY, I never tested my scripts with his version, there may be different part configurations so, once again, **YMMV**
