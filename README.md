@@ -114,3 +114,6 @@ The TAL abort is triggered if an engine is shut down between MET 220s and MET 36
 Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
 The Shuttle **usually** manages to steer the entry trajectory towards the landing site without issue.
 
+## ATO abort
+
+Not yet implemented. The ATO abort will be detected and triggered but the vessel will proceed with the nominal mission and probably fail to achieve the PEG targets.
