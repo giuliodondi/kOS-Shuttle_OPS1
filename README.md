@@ -72,7 +72,8 @@ A shuttle flight is a sequence of three stages: time-limited SRB phase (first st
 The initialisation function will build everything by itselv, provided that a few parameters are provided:
 - "m_initial" for the first stage corresponds to the **fully-fueled vehicle with no payload or launch towers/clamps** 
 - "m_final" for stage1 and "m_initial" for stage " are placeholder values which you can leave alone, the script will update those measurements
-- "Tstage" is the trigger for SRB separation and should be adjusted so that the SRB are jettisoned when their TWR is below 1. IF the RO configs ever change, this value should also be updated.
+- "m_final" for stage 2 is the orbiter mass + RCS fuel + empty External Tank, with no payload
+- "Tstage" for stage 1 is the trigger for SRB separation and should be adjusted so that the SRB are jettisoned when their TWR is below 1. IF the RO configs ever change, this value should also be updated.
 
 Finally, the vessel config file contains an "events" definition, which is how we tell the script to make certain things happen during launch aside from staging events. An event is specified by time (in seconds MET), the type of event and some additional information depending on the type of event.
 Most events are of the "action" type, where the action is specified as a piece of code within brackets {} in the event structure. For instance, there is an event to toggle AG1, modify the kOS steering gains and throttle the engines down/up during first stage. The **Discovery - RTLS.ks** and **Discovery - TAL.ks** vessel files provided also contain an event to trigger automatically an engine shutdown (more about aborts later on).
