@@ -309,7 +309,7 @@ FUNCTION aimAndRoll {
 	SET steerVec TO steerVec + thrustrot(steerVec,topVec).
 	
 
-	RETURN LOOKDIRUP(aimVec, topVec).
+	RETURN LOOKDIRUP(steerVec, topVec).
 }
 
 //given current vehicle fore vector, computes where the thrust is pointing
