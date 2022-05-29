@@ -270,19 +270,51 @@ declare function t_to_eta {
 //VEHICLE-SPECIFIC FUNCTIONS
 
 
-//get current vehicle roll angle 
-FUNCTION get_roll {
+//get current vehicle roll angle around the surface prograde vector 
+FUNCTION get_roll_prograde {
 	LOCAL progvec IS SHIP:srfprograde:vector:NORMALIZED.
 	LOCAL shiptopvec IS VXCL(progvec,SHIP:FACING:FOREVECTOR:NORMALIZED):NORMALIZED.
 	LOCAL surftopvec IS VXCL(progvec,-SHIP:ORBIT:BODY:POSITION:NORMALIZED):NORMALIZED.
 	RETURN signed_angle(shiptopvec,surftopvec,progvec,0).
 }
-//get current pitch angles
-FUNCTION get_pitch {
-	RETURN signed_angle(SHIP:srfprograde:vector:NORMALIZED,SHIP:FACING:VECTOR,VCRS(SHIP:srfprograde:vector:NORMALIZED,SHIP:FACING:VECTOR),0).
+//get current pitch angles from the surface prograde vector
+FUNCTION get_pitch_prograde {
+	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	LOCAL progvec IS SHIP:srfprograde:vector:NORMALIZED.
+	LOCAL facingvec IS SHIP:FACING:FOREVECTOR:NORMALIZED.
+	LOCAL sidevec IS VCRS(progvec,topvec).
+	RETURN signed_angle(
+						progvec,
+						facingvec,
+						sidevec,
+						0
+	).
 
 }
 
+//get current vehicle roll angle wrt local horizontal and vertical
+FUNCTION get_roll_lvlh {
+	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	LOCAL horiz_facing IS VXCL(topvec,SHIP:FACING:FOREVECTOR:NORMALIZED):NORMALIZED.
+	LOCAL shiptopvec IS VXCL(horiz_facing,SHIP:FACING:TOPVECTOR:NORMALIZED):NORMALIZED.
+	
+	RETURN signed_angle(shiptopvec,topvec,horiz_facing,0).
+}
+
+
+//get current vehicle pitch angle wrt local horizontal and vertical
+FUNCTION get_pitch_lvlh {
+	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	LOCAL facingvec IS SHIP:FACING:FOREVECTOR:NORMALIZED.
+	LOCAL horiz_facing IS VXCL(topvec,facingvec):NORMALIZED.
+	LOCAL sidevec IS VCRS(horiz_facing,topvec).
+	RETURN signed_angle(
+						horiz_facing,
+						facingvec,
+						sidevec,
+						0
+	).
+}
 
 //returns the current flight path angle with respect to the local horizontal
 function get_fpa {
