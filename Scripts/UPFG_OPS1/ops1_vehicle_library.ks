@@ -292,26 +292,26 @@ FUNCTION aimAndRoll {
 	DECLARE PARAMETER rollAng.	//	Expects a scalar
 	
 	
-	//clearvecdraws().
-	//arrow(upVec,"upvec",v(0,0,0),10,0.05).
+	clearvecdraws().
+	arrow(upVec,"upvec",v(0,0,0),10,0.05).
 	
-	SET upVec TO VXCL(aimVec,upVec):NORMALIZED.
-	SET upVec TO rodrigues(upVec, aimVec, rollAng).
+	
+	LOCAL steerVec IS aimVec.
+	
+	LOCAL topVec IS VXCL(steerVec,upVec):NORMALIZED.
+	SET topVec TO rodrigues(topVec, steerVec, rollAng).
 	
 	//print "      " at (2,45).
 	//print rollAng at (2,45).
 	
-	
-	//arrow(aimVec,"forevec",v(0,0,0),10,0.05).
-	//arrow(upVec,"topvec",v(0,0,0),10,0.05).
-	
-	LOCAL current_up IS VXCL(aimVec,SHIP:FACING:TOPVECTOR):NORMALIZED.
-	//arrow(current_up,"current_up",v(0,0,0),10,0.05).
-
-	SET aimVec TO aimVec + thrustrot(aimVec,upVec).
+	arrow(steerVec,"forevec",v(0,0,0),10,0.05).
+	arrow(topVec,"topvec",v(0,0,0),10,0.05).
 	
 
-	RETURN LOOKDIRUP(aimVec, upVec).
+	SET steerVec TO steerVec + thrustrot(steerVec,topVec).
+	
+
+	RETURN LOOKDIRUP(aimVec, topVec).
 }
 
 //given current vehicle fore vector, computes where the thrust is pointing

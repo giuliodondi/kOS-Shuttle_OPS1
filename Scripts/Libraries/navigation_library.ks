@@ -292,6 +292,16 @@ FUNCTION get_pitch_prograde {
 
 }
 
+//legacy wrapper
+FUNCTION get_roll{
+	RETURN get_roll_prograde().
+}
+
+//legacy wrapper
+FUNCTION get_pitch {
+	RETURN get_pitch_prograde().
+}
+
 //get current vehicle roll angle wrt local horizontal and vertical
 FUNCTION get_roll_lvlh {
 	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
