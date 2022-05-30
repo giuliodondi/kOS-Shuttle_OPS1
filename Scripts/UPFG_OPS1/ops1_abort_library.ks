@@ -10,12 +10,12 @@ GLOBAL abort_modes IS LEXICON(
 							"tgt_site", get_RTLS_site()
 							),
 					"TAL",LEXICON(
-							"boundary",360,
+							"boundary",321,
 							"active",FALSE,
 							"tgt_site", get_TAL_site()
 							),
 					"ATO",LEXICON(
-							"boundary",600,	//should never be reached
+							"boundary",421,
 							"active",FALSE
 							)
 							
@@ -39,24 +39,28 @@ FUNCTION monitor_abort {
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
 	}
 
+
 	IF (NOT abort_modes["triggered"]) {
 		//set the correct abort mode to active and print information
-		IF ( current_t >= abort_modes["RTLS"]["boundary"]  ) {
-			IF (abort_modes["RTLS"]["active"] ) {
+		
+		IF abort_modes["RTLS"]["active"] {
+			IF ( current_t >= abort_modes["RTLS"]["boundary"]  ) {
 				SET abort_modes["RTLS"]["active"] TO FALSE.
+				SET abort_modes["TAL"]["active"] TO TRUE.
 				addMessage("NEGATIVE RETURN").
 			}
-			SET abort_modes["TAL"]["active"] TO TRUE.
-			
-		} ELSE IF ( current_t >= abort_modes["TAL"]["boundary"]  ) { 
-			IF (abort_modes["TAL"]["active"] ) {
+		} ELSE IF abort_modes["TAL"]["active"] {
+			IF ( current_t >= abort_modes["TAL"]["boundary"]  ) {
 				SET abort_modes["TAL"]["active"] TO FALSE.
+				SET abort_modes["ATO"]["active"] TO TRUE.
 				addMessage("PRESS TO ATO.").
 			}
-			SET abort_modes["ATO"]["active"] TO TRUE.
-			
+		} ELSE IF abort_modes["ATO"]["active"] {
+			IF ( current_t >= abort_modes["ATO"]["boundary"]  ) {
+				SET abort_modes["ATO"]["active"] TO FALSE.
+				addMessage("PRESS TO MECO.").
+			}
 		}
-		
 	
 	} ELSE {
 		//check if conditions are right to setup the abort
@@ -65,7 +69,7 @@ FUNCTION monitor_abort {
 				addMessage("ABORT RTLS AT "+sectotime(abort_modes["t_abort"])).
 			}
 		
-			//need to heck the time becase we wait for second stage RTLS
+			//need to check the time becase we wait for second stage for RTLS
 			IF ( current_t >= abort_modes["t_abort"] ) {
 				SET abort_modes["RTLS"]["active"] TO FALSE.
 				setup_RTLS().
@@ -74,9 +78,17 @@ FUNCTION monitor_abort {
 			IF abort_detect {
 				addMessage("ABORT TAL AT "+sectotime(abort_modes["t_abort"])).
 			}
-			//no need to chedk the time for TAL
+			//no need to check the time for TAL
 			SET abort_modes["TAL"]["active"] TO FALSE.
 			setup_TAL().
+		}  ELSE IF (abort_modes["ATO"]["active"] ) {
+			IF abort_detect {
+				addMessage("ABORT ATO / AOA AT "+sectotime(abort_modes["t_abort"])).
+			}
+			//no need to check the time for ATO / AOA
+			SET abort_modes["ATO"]["active"] TO FALSE.
+			setup_ATO().
+		
 		}
 	
 	}
@@ -95,7 +107,12 @@ FUNCTION monitor_abort {
 //to be called before launch, will fin the closest landing site 
 //to the launchpad
 FUNCTION get_RTLS_site {
-	LOCAL closest_out IS get_closest_site(ldgsiteslex).
+	LOCAL reduced_sites_lex IS LEXICON(
+									"KSC",ldgsiteslex["KSC"],
+									"Edwards",ldgsiteslex["Edwards"]
+	
+	).
+	LOCAL closest_out IS get_closest_site(reduced_sites_lex).
 	RETURN closest_out[1].
 }
 
@@ -111,11 +128,11 @@ FUNCTION RTLS_dissip_theta_time {
 	PARAMETER abort_t.
 	
 	LOCAL theta_vs_t IS LIST(
-						LIST(0,62),
-						LIST(30,60),
-						LIST(60,59),
-						LIST(90,58),
-						LIST(120,51),
+						LIST(0,83),
+						LIST(30,80),
+						LIST(60,75),
+						LIST(90,68),
+						LIST(120,52),
 						LIST(150,42),
 						LIST(180,39),
 						LIST(210,35),
@@ -402,7 +419,7 @@ FUNCTION nz_update_pitch {
 	PARAMETER cur_pch.
 
 
-	LOCAL deltapch IS - 0.85*NZHOLD["dt"].
+	LOCAL deltapch IS - 0.9*NZHOLD["dt"].
 	print deltapch At (0,10).
 	SET cur_pch TO cur_pch + deltapch.
 	
@@ -448,7 +465,7 @@ FUNCTION GRTLS {
 	SET STEERINGMANAGER:ROLLPID:KD TO 0.05.
 
 	LOCAL pitch0 IS 40.
-	LOCAL pitchf IS 15.
+	LOCAL pitchf IS 10.
 	LOCAL tgt_hdot IS -150.
 	LOCAL firstroll IS 28.
 	
@@ -590,8 +607,8 @@ FUNCTION GRTLS {
 	
 	//prepare entry guidance
 	GLOBAL pitchprof_segments IS LIST(
-								LIST(350,8),
-								LIST(1800,18)
+								LIST(350,5),
+								LIST(1800,10)
 								).
 								
 	GLOBAL sim_end_conditions IS LEXICON(
@@ -669,7 +686,7 @@ FUNCTION TAL_tgt_vec {
 	LOCAL sitevec IS TAL_tgt_site_vector().
 	//find the ttue anomaly of the current position based on the current orbital params
 	LOCAL eta_cur IS (target_orbit["SMA"]*(1-target_orbit["ecc"]^2)/posvec:MAG - 1)/target_orbit["ecc"].
-	SET eta_cur TO ARCCOS(eta_cur).
+	SET eta_cur TO ARCCOS(limitarg(eta_cur)).
 	
 	LOCAL d_eta IS 30.
 	LOCAL shifted_site IS v(0,0,0).
@@ -782,7 +799,7 @@ FUNCTION setup_TAL {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
-	
+	//the dump will actually stop at MECO
 	toggle_dump("oms").
 	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 540) ) THEN {
 		toggle_dump("oms").
@@ -796,11 +813,78 @@ FUNCTION setup_TAL {
 	
 	
 	
+//		ATO / AOA FUNCTIONS 
 	
 	
+FUNCTION ATO_MECO_targets {
+	PARAMETER tgt_orb.
+	
+	//lower apoapsis (not too low)
+	SET tgt_orb["apoapsis"] TO MIN(160, 0.8*tgt_orb["apoapsis"]).
+	//lower cutoff altitude
+	SET tgt_orb["radius"] TO target_orbit["radius"]:NORMALIZED * (105*1000 + BODY:RADIUS).
+	//force cutoff altitude, free true anomaly
+	SET tgt_orb["mode"] TO 1.
+	
+	//set inclination to the current one
+	
+	//set LAN to the current one 
+	SET tgt_orb["LAN"] TO ORBIT:LAN.
+	SET tgt_orb["inclination"] TO ORBIT:INCLINATION.
+	SET target_orbit["normal"] TO targetNormal(target_orbit["inclination"], target_orbit["LAN"]).
+	
+	
+	LOCAL pe IS tgt_orb["periapsis"]*1000 + SHIP:BODY:RADIUS.
+	LOCAL ap IS tgt_orb["apoapsis"]*1000 + SHIP:BODY:RADIUS.
+	SET tgt_orb["SMA"] TO (pe+ap) / 2.
+	SET tgt_orb["ecc"] TO (ap - pe)/(ap + pe).
+	
+	RETURN cutoff_params(tgt_orb,tgt_orb["radius"],0).
+}
 	
 
+FUNCTION setup_ATO {
 
+	IF (DEFINED ATOAbort) {
+		RETURN.
+	}
+	
+	// declare it to signal that ATO has been initialised
+	GLOBAL ATOAbort IS LEXICON (
+		"t_abort",TIME:SECONDS
+	).
+	
+	//UPFG mode is the nominal one, only change MECO targets
+	SET target_orbit TO ATO_MECO_targets(target_orbit).
+	
+	
+	//need to take care of the stages, contrary to RTLS and TAL we might already be in constant-G mode
+	IF (vehiclestate["cur_stg"]=2) {
+		SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
+		SET vehicle["stages"][2]["mode"] TO 1.
+		SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
+		SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
+		vehicle["stages"][2]:REMOVE("glim").
+		vehicle["stages"]:REMOVE(3).
+	} ELSe IF (vehiclestate["cur_stg"]=3) {
+		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
+		SET vehicle["stages"][3]["mode"] TO 1.
+		SET vehicle["stages"][3]["Throttle"] TO 1.
+		vehicle["stages"][3]:REMOVE("glim").
+	} 
+	
+	SET upfgInternal TO resetUPFG(upfgInternal).
+	
+	
+	//the dump will actually stop at MECO
+	toggle_dump("oms").
+	WHEN ( TIME:SECONDS > (ATOAbort["t_abort"] + 540) ) THEN {
+		toggle_dump("oms").
+		addMessage("OMS DUMP COMPLETE").
+	}
+	
+	drawUI().
+}
 
 
 
