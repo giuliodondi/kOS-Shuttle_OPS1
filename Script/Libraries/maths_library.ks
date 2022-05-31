@@ -97,12 +97,18 @@ FUNCTION INTPLIN {
 	PARAMETER points.
 	PARAMETER x0.
 	
+	LOCAL listlen IS points:LENGTH.
+	
+	//if the x point is outside the points tange, clamp it to the nearest y value
+	IF (x0 < points[0][0]) {RETURN points[0][1].}
+	ELSE IF (x0 > points[listlen-1][0]) {RETURN points[listlen-1][1].}
+	
 	LOCAL k IS 1.
-	FROM {SET k TO 1.} UNTIL k >= points:LENGTH STEP {set k to k+1.} DO {
+	FROM {SET k TO 1.} UNTIL k >= (listlen) STEP {set k to k+1.} DO {
 		IF ( x0 < points[k][0] ) {BREAK.}
 	}	
 	
-	SET k TO MIN(k,points:LENGTH-1).
+	SET k TO MIN(k,listlen-1).
 
 	LOCAL alph IS (points[k][1] - points[k-1][1])/(points[k][0] - points[k-1][0]).
 	RETURN alph*(x0 - points[k-1][0]) + points[k-1][1].
@@ -211,7 +217,7 @@ FUNCTION project_angle {
 	//SET out TO 2*ARCSIN( limitarg(out) ).
 	
 	
-	LOCAL out IS TAN(ABS(alphaa))/COS(ABS(betaa)).
+	LOCAL out IS TAN(ABS(alphaa))*COS(ABS(betaa)).
 	//SET out TO ARCTAN(limitarg(out)).
 	SET out TO ARCTAN(out).
 	
