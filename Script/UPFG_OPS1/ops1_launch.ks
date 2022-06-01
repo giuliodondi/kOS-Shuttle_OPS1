@@ -220,7 +220,7 @@ declare function closed_loop_ascent{
 		}  
 		ELSE {			
 			IF (DEFINED RTLSAbort) {
-				IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 40 ) ) ) {
+				IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 60 ) ) ) {
 					SET ops_mode TO 3.
 					SET usc["terminal"] TO TRUE.
 					BREAK.
