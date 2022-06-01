@@ -24,11 +24,9 @@ GLOBAL vehicle IS LEXICON(
 ).
 GLOBAL events IS LIST(
 					LEXICON("time",1,"type", "action","action",{TOGGLE AG1.}),	//activates fuel cells
-					LEXICON("time",1,"type", "action","action",{ SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.9.}),
 					LEXICON("time",35,"type", "action","action",{ addMessage("THROTTLING DOWN").SET vehicle["stages"][1]["Throttle"] TO 0.75.}),
 					LEXICON("time",60,"type", "action","action",{addMessage("THROTTLING UP"). SET vehicle["stages"][1]["Throttle"] TO 1.}),
-					LEXICON("time",122,"type", "action","action",{ SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.8.}),
-					LEXICON("time",120,"type", "action","action",{LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME"). englist[ROUND(RANDOM(),0)]:SHUTDOWN.}),
+					LEXICON("time",220,"type", "action","action",{LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME"). englist[ROUND(RANDOM(),0)]:SHUTDOWN.}),
 					LEXICON("time",350,"type", "roll","angle",0)
 ).
 

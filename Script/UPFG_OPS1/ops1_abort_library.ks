@@ -5,7 +5,7 @@ GLOBAL abort_modes IS LEXICON(
 					"t_abort",0,
 					"abort_v",0,
 					"RTLS",LEXICON(
-							"boundary",221,
+							"boundary",235,
 							"active",TRUE,
 							"tgt_site", get_RTLS_site()
 							),
@@ -257,10 +257,8 @@ FUNCTION setup_RTLS {
 		RETURN.
 	}
 	
-	SET upfgConvergenceTgo TO 0.8.
+	SET upfgConvergenceTgo TO 1.
 	SET upfgFinalizationTime TO 15.
-
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.6.
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
 	
@@ -322,9 +320,9 @@ FUNCTION setup_RTLS {
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
 	
-	toggle_dump("oms").
+	OMS_dump("oms","start").
 	WHEN ( TIME:SECONDS > (RTLSAbort["t_abort"] + 540) ) THEN {
-		toggle_dump("oms").
+		OMS_dump("oms","stop").
 		addMessage("OMS DUMP COMPLETE").
 	}
 
@@ -420,7 +418,6 @@ FUNCTION nz_update_pitch {
 
 
 	LOCAL deltapch IS - 0.9*NZHOLD["dt"].
-	print deltapch At (0,10).
 	SET cur_pch TO cur_pch + deltapch.
 	
 	 
@@ -618,6 +615,9 @@ FUNCTION GRTLS {
 	).
 	GLOBAL start_guid_flag IS TRUE.
 	
+	SET TERMINAL:WIDTH TO 50.
+	SET TERMINAL:HEIGHT TO 30.
+	
 	SAS ON.
 	UNLOCK STEERING.
 	RUN "0:/entry".
@@ -800,9 +800,9 @@ FUNCTION setup_TAL {
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
 	//the dump will actually stop at MECO
-	toggle_dump("oms").
+	OMS_dump("oms","start").
 	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 540) ) THEN {
-		toggle_dump("oms").
+		OMS_dump("oms","stop").
 		addMessage("OMS DUMP COMPLETE").
 	}
 
@@ -877,9 +877,9 @@ FUNCTION setup_ATO {
 	
 	
 	//the dump will actually stop at MECO
-	toggle_dump("oms").
+	OMS_dump("oms","start").
 	WHEN ( TIME:SECONDS > (ATOAbort["t_abort"] + 540) ) THEN {
-		toggle_dump("oms").
+		OMS_dump("oms","stop").
 		addMessage("OMS DUMP COMPLETE").
 	}
 	

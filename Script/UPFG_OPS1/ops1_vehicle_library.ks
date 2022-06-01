@@ -853,21 +853,18 @@ FUNCTION close_umbilical {
 
 
 
-FUNCTION toggle_dump {
+FUNCTION OMS_dump {
 	PARAMETER type.
+	PARAMETER state.
 	
 	IF (type = "oms") {
 		FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
-			IF (oms:IGNITION) {
-				oms:SHUTDOWN.
-			} ELSE {
+			IF (state="start") {
 				oms:ACTIVATE.
+			} ELSE IF (state="stop") {
+				oms:SHUTDOWN.
 			}
 		}
-	} ELSE IF (type = "valve") {
-		FOR p IN SHIP:PARTSDUBBED("km.valve2") {
-		p:GETMODULE("valve"):DOEVENT("toggle").
-	}
 	}
 
 }

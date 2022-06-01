@@ -122,6 +122,8 @@ declare function open_loop_ascent{
 	drawUI().
 	addMessage("LIFT-OFF!").
 	
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.9.
+	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 	
@@ -182,6 +184,8 @@ declare function closed_loop_ascent{
 	
 	
 	SET ops_mode TO 2.
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.4.
+	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).

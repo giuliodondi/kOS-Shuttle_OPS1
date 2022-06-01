@@ -149,7 +149,7 @@ FUNCTION upfg_wrapper {
 		//dissipation and flyback trigger logic
 		IF (NOT RTLSAbort["flyback_flag"] ) {
 			IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
-				SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+				SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.6.
 				//dissipation thrust vector
 				//SET RTLSAbort["C1"] TO  VXCL(target_orbit["normal"],RTLSAbort["C1"]).
 				SET usc["lastvec"] TO RTLSAbort["C1"].
