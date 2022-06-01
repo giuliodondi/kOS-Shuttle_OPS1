@@ -3,8 +3,9 @@
 //Launch Settings
 
 //GLOBAL vesselfilename is "Discovery".     //this is the name of the vessel file to load
-GLOBAL vesselfilename is "Discovery - RTLS".     //this is the name of the vessel file to load
+//GLOBAL vesselfilename is "Discovery - RTLS".     //this is the name of the vessel file to load
 //GLOBAL vesselfilename is "Discovery - TAL".     //this is the name of the vessel file to load
+GLOBAL vesselfilename is "Discovery - ATO".     //this is the name of the vessel file to load
 
 GLOBAL target_orbit IS LEXICON (	
 								"periapsis",30,

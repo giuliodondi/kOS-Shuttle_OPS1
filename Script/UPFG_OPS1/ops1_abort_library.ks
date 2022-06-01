@@ -10,7 +10,7 @@ GLOBAL abort_modes IS LEXICON(
 							"tgt_site", get_RTLS_site()
 							),
 					"TAL",LEXICON(
-							"boundary",321,
+							"boundary",341,
 							"active",FALSE,
 							"tgt_site", get_TAL_site()
 							),
@@ -814,32 +814,52 @@ FUNCTION setup_TAL {
 	
 	
 //		ATO / AOA FUNCTIONS 
+
+//find new normal vector for ATO targeting
+//find the plane containing the current pos vector ( in UPFG coords!!) and vel vector
+FUNCTION ATO_normal {
+
+	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION).
+	LOCAL cur_vel IS vecYZ(SHIP:VELOCITY:ORBIT).
+
+	LOCAL tgtnorm IS -VCRS(cur_pos,cur_vel):NORMALIZED.
 	
+	clearvecdraws().
+	arrow_body(vecYZ(cur_pos),"cur_pos").
+	arrow_body(vecYZ(cur_vel),"cur_vel").
+	arrow_body(vecYZ(tgtnorm*BODY:RADIUS),"tgtnorm").
 	
-FUNCTION ATO_MECO_targets {
-	PARAMETER tgt_orb.
+	RETURN tgtnorm.
+}
+
+//basically the same as normal cutoff params for mode 1 except we force normal vector in-plane
+FUNCTION ATO_cutoff_params {
+	PARAMETER target.
+	PARAMETER cutoff_r.
 	
-	//lower apoapsis (not too low)
-	SET tgt_orb["apoapsis"] TO MIN(160, 0.8*tgt_orb["apoapsis"]).
-	//lower cutoff altitude
-	SET tgt_orb["radius"] TO target_orbit["radius"]:NORMALIZED * (105*1000 + BODY:RADIUS).
-	//force cutoff altitude, free true anomaly
-	SET tgt_orb["mode"] TO 1.
+	SET tgt_orb["normal"] TO ATO_normal().
+	SET tgt_orb["Inclination"] TO VANG(tgt_orb["normal"],v(0,0,1)).
+
+	LOCAL etaa IS 0.
+	local r is cutoff_r:MAG.
+	IF target["ecc"]=0 {set etaa to  0.}
+	ELSE {		
+		set etaa to (target["SMA"]*(1-target["ecc"]^2)/r - 1)/target["ecc"].
+		set etaa to ARCCOS(etaa).
+	}
+	local x is  1 + target["ecc"]*COS(etaa).
 	
-	//set inclination to the current one
+	local v is SQRT(SHIP:BODY:MU * (2/r - 1/target["SMA"])).
+		
+	local phi is target["ecc"]*sin(etaa)/x.
+	set phi to ARCTAN(phi).
 	
-	//set LAN to the current one 
-	SET tgt_orb["LAN"] TO ORBIT:LAN.
-	SET tgt_orb["inclination"] TO ORBIT:INCLINATION.
-	SET target_orbit["normal"] TO targetNormal(target_orbit["inclination"], target_orbit["LAN"]).
+	set target["radius"] to cutoff_r:NORMALIZED*r.
+	set target["velocity"] to v.
+	set target["angle"] to phi.
+	set target["eta"] to etaa.
 	
-	
-	LOCAL pe IS tgt_orb["periapsis"]*1000 + SHIP:BODY:RADIUS.
-	LOCAL ap IS tgt_orb["apoapsis"]*1000 + SHIP:BODY:RADIUS.
-	SET tgt_orb["SMA"] TO (pe+ap) / 2.
-	SET tgt_orb["ecc"] TO (ap - pe)/(ap + pe).
-	
-	RETURN cutoff_params(tgt_orb,tgt_orb["radius"],0).
+	RETURN target.
 }
 	
 
@@ -855,7 +875,20 @@ FUNCTION setup_ATO {
 	).
 	
 	//UPFG mode is the nominal one, only change MECO targets
-	SET target_orbit TO ATO_MECO_targets(target_orbit).
+	//lower apoapsis (not too low)
+	SET target_orbit["apoapsis"] TO MIN(160, 0.8*target_orbit["apoapsis"]).
+	//lower cutoff altitude
+	SET target_orbit["radius"] TO target_orbit["radius"]:NORMALIZED * (105*1000 + BODY:RADIUS).
+	//force cutoff altitude, free true anomaly
+	SET target_orbit["mode"] TO 7.
+	
+	
+	LOCAL pe IS target_orbit["periapsis"]*1000 + SHIP:BODY:RADIUS.
+	LOCAL ap IS target_orbit["apoapsis"]*1000 + SHIP:BODY:RADIUS.
+	SET target_orbit["SMA"] TO (pe+ap) / 2.
+	SET target_orbit["ecc"] TO (ap - pe)/(ap + pe).
+	
+	SET target_orbit TO ATO_cutoff_params(target_orbit,target_orbit["radius"]).
 	
 	
 	//need to take care of the stages, contrary to RTLS and TAL we might already be in constant-G mode

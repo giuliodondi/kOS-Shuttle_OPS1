@@ -494,6 +494,7 @@ FUNCTION upfg {
 	
 	LOCAL vd IS v(0,0,0).
 	
+	//some code duplication but helps readability
 	IF s_mode=5 {
 		LOCAL out IS RTLS_cutoff_params(tgt_orb,rp).
 		SET tgt_orb TO out[0].
@@ -507,6 +508,15 @@ FUNCTION upfg {
 		SET tgt_orb TO TAL_cutoff_params(tgt_orb,rd).
 		SET rd TO tgt_orb["radius"]:MAG*ix.	
 		SET vd TO iz*tgt_orb["velocity"].
+	
+	} ELSE IF s_mode=7 {
+		LOCAL ix IS rp:NORMALIZED.
+		SET iz TO VCRS(ix,iy):NORMALIZED.
+		
+		SET tgt_orb TO ATO_cutoff_params(tgt_orb,rd).
+		SET rd TO tgt_orb["radius"]:MAG*ix.	
+		
+		SET vd TO rodrigues(iz,iy, tgt_orb["angle"]):NORMALIZED*tgt_orb["velocity"].	
 	
 	} ELSE {
 		LOCAL ix IS rp:NORMALIZED.
