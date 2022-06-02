@@ -837,8 +837,8 @@ FUNCTION ATO_cutoff_params {
 	PARAMETER target.
 	PARAMETER cutoff_r.
 	
-	SET tgt_orb["normal"] TO ATO_normal().
-	SET tgt_orb["Inclination"] TO VANG(tgt_orb["normal"],v(0,0,1)).
+	SET target["normal"] TO ATO_normal().
+	SET target["Inclination"] TO VANG(target["normal"],v(0,0,1)).
 
 	LOCAL etaa IS 0.
 	local r is cutoff_r:MAG.
