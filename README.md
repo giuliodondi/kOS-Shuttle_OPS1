@@ -39,9 +39,9 @@ In the VAB, make sure the vessel staging is as follows (from the first stage onw
 - SSMEs
 - SRBs and any launch clamps
 - SRB decouplers and separation motors (both nosecone and skirt)
-- External tank
-- OMS and RCS actuators
-- anything in the payload bay
+- External tank separation plus OMS engines and RCS actuators
+- Anything in the payload bay
+- Tail parachute
 
 In addition, set Action Group 1 so that it activates the Fuel Cells . AG1 will be triggered right after liftoff so you may place anything else you might want here
 
