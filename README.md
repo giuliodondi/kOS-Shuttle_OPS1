@@ -22,9 +22,9 @@ I'm aware that there is a more up-to-date Shuttle version made by SpaceODY, I ne
 
 
 You will find one folder: 
-- **Scripts**
+- **Script**
 
-Put the contents of the Scripts folder inside Ship/Scripts so that kOS can see all the files.
+Put the contents of the Scripts folder inside Ship/Script so that kOS can see all the files.
 In particular, there wil be only one script to run:
 - **shuttle.ks** to launch the Shuttle from the launchpad (read on to learn about mission setup).
 
