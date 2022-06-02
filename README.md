@@ -45,7 +45,7 @@ In the VAB, make sure the vessel staging is as follows (from the first stage onw
 
 In addition, set Action Group 1 so that it activates the Fuel Cells . AG1 will be triggered right after liftoff so you may place anything else you might want here
 
-Don't forget to set the FAR control surface settings as required by the Entry script README.
+### Don't forget to set the FAR control surface settings as required by the Entry script README.
 
 Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). Make sure you select the same version for all three SSMEs. Whatever version you choose write down the following numbers:
 - Vacuum Thrust in kN
