@@ -13,12 +13,9 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 **Required mods:**
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. Confrmed to work with FAR 0.16.0.1, should now also work with 0.16.0.4
 - Kerbal Operating System
-- DECQ's Space Shuttle System mod, this fork seems to be the most up-to-date : https://github.com/DylanSemrau/Space-Shuttle-System
+- Space Shuttle System mod, SpaceODY's version seems to be the most up-to-date : https://github.com/SpaceODY/Space-Shuttle-System-Expanded
 - RO configs that come with the Realism Overhaul package
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
-
-**CAVEAT** 
-I'm aware that there is a more up-to-date Shuttle version made by SpaceODY, I never tested my scripts with his version, there may be different part configurations so, once again, **YMMV**
 
 
 You will find one folder: 
