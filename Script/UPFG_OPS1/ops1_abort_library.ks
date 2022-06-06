@@ -128,10 +128,10 @@ FUNCTION RTLS_dissip_theta_time {
 	PARAMETER abort_t.
 	
 	LOCAL theta_vs_t IS LIST(
-						LIST(0,83),
-						LIST(30,80),
-						LIST(60,75),
-						LIST(90,68),
+						LIST(0,66),
+						LIST(30,64),
+						LIST(60,62),
+						LIST(90,58),
 						LIST(120,52),
 						LIST(150,42),
 						LIST(180,39),
@@ -184,7 +184,7 @@ FUNCTION RTLS_C1 {
 FUNCTION RTLS_rvline {
 	PARAMETER rng.
 	
-	RETURN 0.0032*rng + 650.
+	RETURN 0.0032*rng + 600.
 	//RETURN 0.00250*rng + 1000.
 	//RETURN 0.00242*rng + 768.7.
 	
@@ -257,7 +257,7 @@ FUNCTION setup_RTLS {
 		RETURN.
 	}
 	
-	SET upfgConvergenceTgo TO 1.
+	SET upfgConvergenceTgo TO 1.5.
 	SET upfgFinalizationTime TO 15.
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
@@ -271,7 +271,7 @@ FUNCTION setup_RTLS {
 								"pitcharound",LEXICON(
 													"refvec",v(0,0,0),
 													"triggered",FALSE,
-													"ref_t",0,
+													"complete",FALSE,
 													"target",v(0,0,0)
 													
 												),
@@ -294,9 +294,6 @@ FUNCTION setup_RTLS {
 							"inclination",target_orbit["inclination"],
 							"eta",0,
 							"LAN",target_orbit["LAN"]
-							
-	
-	
 	
 	).
 	
@@ -311,11 +308,14 @@ FUNCTION setup_RTLS {
 	SET vehicle["stages"][2]["mode"] TO 1.
 	SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
 	SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
+	LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
+	SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.
 	vehicle["stages"][2]:REMOVE("glim").
 	vehicle["stages"]:REMOVE(3).
 	
 	vehicle:ADD("mbod",0).
 	
+	RTLS_burnout_mass().				 
 
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	

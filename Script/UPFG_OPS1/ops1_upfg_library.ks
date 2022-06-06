@@ -144,22 +144,17 @@ FUNCTION upfg_wrapper {
 		//arrow(vecyz(upfgOutput["steering"]),"iF2",v(0,0,0),50,0.05).
 		//arrow(vecYZ(target_orbit["normal"]:NORMALIZED),"norm",v(0,0,0),50,0.05).
 		
-		SET RTLSAbort["pitcharound"]["refvec"] TO VCRS( RTLSAbort["C1"], vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)).
-		
 		//dissipation and flyback trigger logic
-		IF (NOT RTLSAbort["flyback_flag"] ) {
+		IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
 			IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
-				SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.6.
+			
 				//dissipation thrust vector
 				//SET RTLSAbort["C1"] TO  VXCL(target_orbit["normal"],RTLSAbort["C1"]).
 				SET usc["lastvec"] TO RTLSAbort["C1"].
-				SET usc["lastthrot"] TO upfgOutput["throtset"].
 				
+				SET RTLSAbort["pitcharound"]["refvec"] TO VCRS( RTLSAbort["C1"], vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)).
 				
-				
-				LOCAL theta IS VANG(RTLSAbort["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)).
-				//SET RTLSAbort["pitcharound"]["target"] TO rodrigues(RTLSAbort["C1"], RTLSAbort["pitcharound"]["refvec"],2*theta).
-				SET RTLSAbort["pitcharound"]["target"] TO VXCL(target_orbit["normal"],upfgOutput["steering"]).
+				SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"],upfgOutput["steering"]).
 				
 				IF (upfgOutput["Tc"] > RTLSAbort["Tc"]) {
 					SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
@@ -172,30 +167,32 @@ FUNCTION upfg_wrapper {
 				
 				IF (( upfgOutput["Tc"] <= 1) AND (RTLSAbort["flyback_conv"] = 1)) {
 					addMessage("POWERED PITCH-AROUND TRIGGERED").
+					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
-					SET RTLSAbort["pitcharound"]["ref_t"] TO TIME:SECONDS.
-					SET upfgInternal TO resetUPFG(upfgInternal).
+					SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
+					SET RTLSAbort["flyback_flag"] TO TRUE.
+					SET upfgOutput["flyback_flag"] TO TRUE.
+					//SET upfgInternal TO resetUPFG(upfgInternal).
 					drawUI().
 				} 
 				
 			} 
 			ELSE {
-					//powered pitcharound
-					//rotate usc_lastvec on the plane between
-					//the usc vector (flyback guidance command) and C1 at a constant rate
-					
-					LOCAL theta IS 10*( TIME:SECONDS - RTLSAbort["pitcharound"]["ref_t"]).
-					
-					SET usc["lastvec"] TO rodrigues(RTLSAbort["C1"], RTLSAbort["pitcharound"]["refvec"],theta). 
+					//powered pitcharound					
+					//get the current thrust vector, project in the plane containing the usc vector (flyback guidance command) and C1,
+					//rotate ahead by a few degrees
 					
 					SET control["refvec"] TO VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
 					
-					IF (VANG(RTLSAbort["pitcharound"]["target"], usc["lastvec"]) < 15) {
-						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.35.
-						SET RTLSAbort["pitcharound"]["triggered"] TO FALSE.
-						SET RTLSAbort["flyback_flag"] TO TRUE.
-						SET upfgOutput["flyback_flag"] TO TRUE.
+					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
+								
+					SET usc["lastvec"] TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"],15). 
+					
+					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
+						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
+						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
 						SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+						SET usc["lastthrot"] TO upfgOutput["throtset"].
 						
 					}	
 			}
@@ -305,12 +302,13 @@ FUNCTION upfg {
 	LOCAL Tc IS 0.
 	LOCAL burnout_m IS 0.
 	LOCAL mbo_T IS 0.
+	LOCAL RTLSthrotflag IS tgo>60.
 	
 	IF (s_mode = 5) {
 		SET mbod TO  previous["mbod"].
 		SET flyback_flag TO previous["flyback_flag"].
 		IF (NOT flyback_flag ) {
-			SET Kk TO 1.//0.995.
+			SET Kk TO 0.99.
 		}
 	}
 
@@ -499,6 +497,11 @@ FUNCTION upfg {
 		LOCAL out IS RTLS_cutoff_params(tgt_orb,rp).
 		SET tgt_orb TO out[0].
 		SET vd TO  out[1].
+		
+		IF (t40flag) {
+			SET tgt_orb["radius"] TO rp.
+		}
+		
 		SET rd TO tgt_orb["radius"].
 	
 	} ELSE IF s_mode=6 {
@@ -543,22 +546,17 @@ FUNCTION upfg {
 	IF (s_mode = 5) {
 		LOCAL dmbo IS burnout_m - mbod.
 		
-		//print mbo_T at (0,49).
 		SET Tc TO mbo_T - tgo.
+		print "Tc : " + Tc at (0,49).
 		
-		IF (NOT flyback_flag) {
-			SET Kk TO 1.
-		} ELSE {
-			//LOCAL throtgain IS -dt*2.5e-6.
-			//LOCAL newKk IS Kk + throtgain*SIGN(dmbo)*SQRT(ABS(dmbo)).
+		IF (flyback_flag AND RTLSthrotflag) {
 			
-			LOCAL throtgain IS -dt*5e-4.
-			//LOCAL throtgain IS -dt*1e-3.
+			LOCAL throtgain IS -dt*1e-3.
 			
-			LOCAL newKk IS Kk + throtgain*SIGN(Tc)*SQRT(ABS(Tc)).
+			LOCAL newKk IS Kk + throtgain*Tc.
 			SET Kk TO MAX(0,MIN(1,newKk)).
 		}
-		//print Kk at (0,50).
+		print "KK : " + Kk at (0,50).
 	}
 	
 	//	RETURN - build new internal state instead of overwriting the old one
