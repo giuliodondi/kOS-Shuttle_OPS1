@@ -141,9 +141,7 @@ declare function open_loop_ascent{
 	SET ops_mode TO 1.
 	getState().
 	
-	GLOBAL rollrefspeed IS 36.	
-	
-	WHEN SHIP:VERTICALSPEED >=rollrefspeed THEN {
+	WHEN SHIP:VERTICALSPEED >= 36 THEN {
 		addMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 	}
@@ -164,7 +162,7 @@ declare function open_loop_ascent{
 			}
 		}
 		
-		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,rollrefspeed,scale)):VECTOR.
+		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,25,scale)):VECTOR.
 
 		
 		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec,control["refvec"],vehicle["roll"]). }
@@ -184,10 +182,10 @@ declare function closed_loop_ascent{
 	drawUI().
 	getState().
 	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.4.
-	SET STEERINGMANAGER:ROLLTS TO 40.
-	SET STEERINGMANAGER:YAWTS TO 4.
-	SET STEERINGMANAGER:YAWPID:KD TO 0.1.
-	SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
+	SET STEERINGMANAGER:ROLLTS TO 30.
+	//SET STEERINGMANAGER:YAWTS TO 4.
+	//SET STEERINGMANAGER:YAWPID:KD TO 0.1.
+	//SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
 	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
