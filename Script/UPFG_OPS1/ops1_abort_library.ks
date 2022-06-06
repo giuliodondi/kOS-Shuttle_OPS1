@@ -794,6 +794,8 @@ FUNCTION setup_TAL {
 	SET vehicle["stages"][2]["mode"] TO 1.
 	SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
 	SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
+	LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
+	SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.											   
 	vehicle["stages"][2]:REMOVE("glim").
 	vehicle["stages"]:REMOVE(3).
 	
@@ -824,10 +826,10 @@ FUNCTION ATO_normal {
 
 	LOCAL tgtnorm IS -VCRS(cur_pos,cur_vel):NORMALIZED.
 	
-	clearvecdraws().
-	arrow_body(vecYZ(cur_pos),"cur_pos").
-	arrow_body(vecYZ(cur_vel),"cur_vel").
-	arrow_body(vecYZ(tgtnorm*BODY:RADIUS),"tgtnorm").
+	//clearvecdraws().
+	//arrow_body(vecYZ(cur_pos),"cur_pos").
+	//arrow_body(vecYZ(cur_vel),"cur_vel").
+	//arrow_body(vecYZ(tgtnorm*BODY:RADIUS),"tgtnorm").
 	
 	RETURN tgtnorm.
 }
@@ -838,7 +840,7 @@ FUNCTION ATO_cutoff_params {
 	PARAMETER cutoff_r.
 	
 	SET target["normal"] TO ATO_normal().
-	SET target["Inclination"] TO VANG(target["normal"],v(0,0,1)).
+	SET target["Inclination"] TO VANG(target["normal"],v(0,0,1)).	//needs fixing
 
 	LOCAL etaa IS 0.
 	local r is cutoff_r:MAG.
@@ -854,7 +856,6 @@ FUNCTION ATO_cutoff_params {
 	local phi is target["ecc"]*sin(etaa)/x.
 	set phi to ARCTAN(phi).
 	
-	set target["radius"] to cutoff_r:NORMALIZED*r.
 	set target["velocity"] to v.
 	set target["angle"] to phi.
 	set target["eta"] to etaa.
@@ -878,7 +879,7 @@ FUNCTION setup_ATO {
 	//lower apoapsis (not too low)
 	SET target_orbit["apoapsis"] TO MIN(160, 0.8*target_orbit["apoapsis"]).
 	//lower cutoff altitude
-	SET target_orbit["radius"] TO target_orbit["radius"]:NORMALIZED * (105*1000 + BODY:RADIUS).
+	SET target_orbit["radius"] TO target_orbit["radius"]*0.985.
 	//force cutoff altitude, free true anomaly
 	SET target_orbit["mode"] TO 7.
 	
@@ -897,12 +898,16 @@ FUNCTION setup_ATO {
 		SET vehicle["stages"][2]["mode"] TO 1.
 		SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
 		SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
+		LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
+		SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.										
 		vehicle["stages"][2]:REMOVE("glim").
 		vehicle["stages"]:REMOVE(3).
 	} ELSe IF (vehiclestate["cur_stg"]=3) {
 		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
+		LOCAL red_flow IS vehicle["stages"][3]["engines"]["thrust"]/(vehicle["stages"][3]["engines"]["isp"]*g0).
+		SET vehicle["stages"][3]["Tstage"] TO vehicle["stages"][3]["m_burn"]/red_flow.							
 		vehicle["stages"][3]:REMOVE("glim").
 	} 
 	
