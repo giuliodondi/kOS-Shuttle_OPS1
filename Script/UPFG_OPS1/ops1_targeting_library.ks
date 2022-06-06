@@ -58,7 +58,7 @@ FUNCTION cutoff_params {
 		IF target["ecc"]=0 {set etaa to  0.}
 		ELSE {		
 			set etaa to (target["SMA"]*(1-target["ecc"]^2)/r - 1)/target["ecc"].
-			set etaa to ARCCOS(etaa).
+			set etaa to ARCCOS(limitarg(etaa)).
 		}
 		set x to 1 + target["ecc"]*COS(etaa).
 	}

@@ -847,7 +847,7 @@ FUNCTION ATO_cutoff_params {
 	IF target["ecc"]=0 {set etaa to  0.}
 	ELSE {		
 		set etaa to (target["SMA"]*(1-target["ecc"]^2)/r - 1)/target["ecc"].
-		set etaa to ARCCOS(etaa).
+		set etaa to ARCCOS(limitarg(etaa)).
 	}
 	local x is  1 + target["ecc"]*COS(etaa).
 	
@@ -879,7 +879,7 @@ FUNCTION setup_ATO {
 	//lower apoapsis (not too low)
 	SET target_orbit["apoapsis"] TO MIN(160, 0.8*target_orbit["apoapsis"]).
 	//lower cutoff altitude
-	SET target_orbit["radius"] TO target_orbit["radius"]*0.985.
+	SET target_orbit["radius"] TO target_orbit["radius"]:NORMALIZED*((target_orbit["radius"]:MAG - SHIP:BODY:RADIUS)*0.985 + SHIP:BODY:RADIUS).
 	//force cutoff altitude, free true anomaly
 	SET target_orbit["mode"] TO 7.
 	
