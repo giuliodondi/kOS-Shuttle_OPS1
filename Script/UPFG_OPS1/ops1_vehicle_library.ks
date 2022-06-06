@@ -199,6 +199,11 @@ declare function initialise_shuttle{
 
 	WHEN vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3 THEN {STAGING().}
 	
+	WHEN (SHIP:Q > 0.28) THEN {
+		addMessage("THROTTLING DOWN").
+		SET vehicle["stages"][1]["Throttle"] TO 0.75.
+	}
+	
 	PRINT " INITIALISATION COMPLETE" AT (0,3).
 	
 	//debug_vehicle().
@@ -596,7 +601,7 @@ FUNCTION getState {
 	SET surfacestate["vs"] TO SHIP:VERTICALSPEED.
 	SET surfacestate["hs"] TO SHIP:VELOCITY:SURFACE:MAG.
 	
-	IF (surfacestate:HASKEY("q") ) {
+	IF (surfacestate:HASKEY("q") AND surfacestate["alt"] > 100 ) {
 		check_maxq(SHIP:Q).
 	}
 	
@@ -816,9 +821,14 @@ FUNCTION check_maxq {
 	} ELSE {
 		addMessage("VEHICLE HAS REACHED MAX-Q").
 		surfacestate:REMOVE("q").
+		WHEN (SHIP:Q < 0.95*newq) THEN {
+			addMessage("THROTTLING UP").
+			SET vehicle["stages"][1]["Throttle"] TO 1.
+		}
 	}
 
 }
+
 
 
 
