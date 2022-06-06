@@ -526,6 +526,7 @@ FUNCTION upfg {
 	 
 		IF tgt_orb["mode"]=2 {								
 			//recompute cutoff true anomaly
+			SET tgt_orb["perivec"] TO target_perivec().
 			SET  eta TO signed_angle(tgt_orb["perivec"],rp,-iy,1).	
 		}
 		 

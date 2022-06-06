@@ -45,7 +45,7 @@ FUNCTION cutoff_params {
 	
 	LOCAL mode IS target["mode"].
 	
-
+	SET target["normal"] TO targetNormal(target["inclination"], target["LAN"]).
 	
 	local x is 1 + target["ecc"]*COS(etaa).
 	
