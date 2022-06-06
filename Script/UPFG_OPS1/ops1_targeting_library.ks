@@ -276,8 +276,8 @@ FUNCTION prepare_launch {
 							),
 							"Vandenberg",LEXICON(
 									"position",LATLNG(34.67974,-120.53102),
-									"min_az",142,	//158
-									"max_az",250	//201
+									"min_az",147,
+									"max_az",201	//250
 							)
 		
 		).
@@ -289,7 +289,7 @@ FUNCTION prepare_launch {
 			//apply its range restrictions
 			IF downrangedist(sitepos,shippos) < 100 {
 				SET out TO CLAMP(out,s["min_az"],s["max_az"]).
-			
+				BREAK.
 			}
 		
 		}
