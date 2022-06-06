@@ -154,13 +154,12 @@ declare function initialise_shuttle{
 	SET new_stg_2["m_final"] TO x[1].
 	SET new_stg_2["m_burn"] TO new_stg_2["m_initial"] - x[1].
 	
-	SET vehicle["stages"][2] TO new_stg_2.
 	
 	
 	LOCAL new_stg_3 IS LEXICON(
 		"m_initial",	x[1],
-		"m_final",	new_stg_2["m_final"],
-		"m_burn", x[1] - new_stg_2["m_final"],
+		"m_final",	stg2["m_final"]*1000,
+		"m_burn", x[1] - stg2["m_final"]*1000,
 		"staging", LEXICON (
 					"stg_action",{},
 					"type","depletion",
@@ -171,7 +170,7 @@ declare function initialise_shuttle{
 		"glim",new_stg_2["glim"],
 		"ign_t", 0,
 		"Tstage",0,
-		"Throttle",new_stg_2["minThrottle"],
+		"Throttle",1,
 		"minThrottle",new_stg_2["minThrottle"],
 		"throt_mult",0,
 		"engines",	new_stg_2["engines"],
@@ -180,6 +179,7 @@ declare function initialise_shuttle{
 	).
 	
 	SET new_stg_3["Tstage"] TO glim_stg_time(new_stg_3).
+	SET vehicle["stages"][2] TO new_stg_2.								   
 	vehicle["stages"]:INSERT(3, new_stg_3).
 
 
@@ -201,9 +201,19 @@ declare function initialise_shuttle{
 	
 	PRINT " INITIALISATION COMPLETE" AT (0,3).
 	
+	//debug_vehicle().
+	
+}
 
+FUNCTION debug_vehicle {
+	IF EXISTS(vehicledump.txt)=TRUE {
+		DELETEPATH(vehicledump.txt).
+	}
+	log vehicle to vehicledump.txt.
 	
-	
+	until false{
+		wait 0.1.
+	}
 }
 
 
@@ -257,6 +267,8 @@ FUNCTION thrustrot {
 
 	PARAMETER ref_fore.
 	PARAMETER ref_up.
+	
+	local norm is VCRS(ref_fore,ref_up).
 
 	LOCAL thrvec IS v(0,0,0).
 	local offs is v(0,0,0).
@@ -276,9 +288,9 @@ FUNCTION thrustrot {
 	set thrvec to (offs/thr):NORMALIZED .
 	local ship_fore IS SHIP:FACING:VECTOR:NORMALIZED.
 	
-	local out is ship_fore - thrvec.
+	LOCAL newthrvec IS rodrigues(ref_fore,norm,-VANG(ship_fore,thrvec)):NORMALIZED*thrvec:MAG.
 	
-	RETURN out.
+	RETURN ref_fore - newthrvec.
 }
 
 
@@ -290,31 +302,41 @@ FUNCTION aimAndRoll {
 	DECLARE PARAMETER aimVec.	//	Expects a vector
 	DECLARE PARAMETER upVec.	//	Expects a vector
 	DECLARE PARAMETER rollAng.	//	Expects a scalar
-	
-	
-	//clearvecdraws().
-	//arrow(upVec,"upvec",v(0,0,0),10,0.05).
-	
+			 
 	LOCAL steerVec IS aimVec.
 	
 	LOCAL topVec IS VXCL(steerVec,upVec):NORMALIZED.
 	SET topVec TO rodrigues(topVec, steerVec, rollAng).
 	
-	//print rollAng at (2,45).
+	//if the target aiming vector is too far away in yaw calculate an intermediate vector
+	//project the target vector in the ship vertical plane, rotate this towards the target by 3 degrees in the yaw plane
+	//LOCAL thrustvec IS thrust_vec().
+	//IF VANG(thrustvec,steerVec) > 5 {
+	//	LOCAL steerVecproj IS VXCL(SHIP:FACING:STARVECTOR,steerVec).
+	//	
+	//	LOCAL aimnorm Is VCRS(steerVec, steerVecproj).
+	//	
+	//	SET steerVec TO rodrigues(steerVecproj,aimnorm,-5).
+	//
+	//}
 	
-	//arrow(steerVec,"forevec",v(0,0,0),10,0.05).
-	//arrow(topVec,"topvec",v(0,0,0),10,0.05).
+	LOCAL thrustCorr IS thrustrot(steerVec,topVec).
 	
+	LOCAL outdir IS LOOKDIRUP(steerVec + thrustCorr, topVec).
 
-	SET steerVec TO steerVec + thrustrot(steerVec,topVec).
-	
 
-	RETURN LOOKDIRUP(steerVec, topVec).
+	//clearvecdraws().
+	//arrow(topVec,"topVec",v(0,0,0),30,0.05).
+	//arrow(aimVec,"aimVec",v(0,0,0),30,0.05).
+	//arrow(steerVec,"steerVec",v(0,0,0),30,0.05).
+	//arrow(thrustCorr,"thrustCorr",v(0,0,0),30,0.05).
+
+	RETURN outdir.
 }
 
 //given current vehicle fore vector, computes where the thrust is pointing
 FUNCTION thrust_vec {
-	RETURN SHIP:FACING:VECTOR:NORMALIZED - thrustrot(v(0,0,0),v(0,0,0)).
+	RETURN SHIP:FACING:VECTOR:NORMALIZED - thrustrot(SHIP:FACING:FOREVECTOR,SHIP:FACING:TOPVECTOR).
 }
 
 
@@ -332,10 +354,8 @@ FUNCTION throttleControl {
 	}
 	
 	IF stg["mode"] = 2   {
-		//SET minthrot TO stg["minThrottle"].
 		SET throtval TO stg["throt_mult"]*SHIP:MASS*1000.
 		SET usc["lastthrot"] TO throtval.
-		SET stg["Throttle"] tO throtval.
 	}
 	
 	SET throtval TO MIN(1,(throtval - minthrot)/(1 - minthrot)).			
@@ -346,7 +366,7 @@ FUNCTION throttleControl {
 		IF stg["mode"] = 2 {
 			SET stg["mode"] TO 1.
 			SET usc["lastthrot"] TO stg["minThrottle"].
-			
+			SET stg["Throttle"] TO stg["minThrottle"].
 		}
 	}
 	
@@ -651,26 +671,13 @@ FUNCTION getState {
 			
 			SET stg["m_burn"] TO res_left.
 			
-			
-			
-			local thrustfortime IS stg["engines"]["thrust"].
-			
-			IF NOT (ops_mode=2) AND  (avg_thrust>0) {
-					SET stg["engines"]["isp"] TO avg_isp/avg_thrust.
-					SET thrustfortime TO avg_thrust.
+			IF stg["mode"]=1 {
+				LOCAL red_flow IS stg["engines"]["thrust"]*stg["throttle"]/(stg["engines"]["isp"]*g0).
+				SET stg["Tstage"] TO stg["m_burn"]/red_flow.					 
 			}
-			SET thrustfortime TO thrustfortime*stg["Throttle"].
-			
-			IF thrustfortime>0 AND stg["engines"]["isp"]>0 {	
-							
-				local tt is 0.
-				IF stg["mode"]=1 {
-					SET stg["engines"]["flow"] TO  thrustfortime/(stg["engines"]["isp"]*g0).
-					SET stg["Tstage"] TO (stg["m_burn"])/stg["engines"]["flow"].
-				}
-				ELSE IF stg["mode"]=2 {
-					SET stg["Tstage"] TO glim_stg_time(stg).
-				}
+			ELSE IF stg["mode"]=2 {
+				SET stg["Tstage"] TO glim_stg_time(stg).
+	 
 			}
 		}
 	}	
@@ -897,3 +904,11 @@ FUNCTION SSME_out {
 	RETURN FALSE.
 }
 
+FUNCTION SSME_flameout {
+	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
+		IF e:FLAMEOUT {
+			RETURN true.
+		}
+	}
+	RETURN FALSE.
+}
