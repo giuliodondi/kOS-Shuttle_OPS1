@@ -141,15 +141,11 @@ declare function open_loop_ascent{
 	SET ops_mode TO 1.
 	getState().
 	
-	WHEN ALT:RADAR >=200 THEN {
-		addMessage("BEGINNING ROLL PROGRAM").	
+	GLOBAL rollrefspeed IS 36.	
+	
+	WHEN SHIP:VERTICALSPEED >=rollrefspeed THEN {
+		addMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
-	}
-	
-	LOCAL targetspeed IS 55 + ((45 - 90)/(1.5-1))*(get_TWR() - 1).	
-	
-	WHEN SHIP:VERTICALSPEED > targetspeed THEN { 
-		addMessage("PITCHING DOWNRANGE").
 	}
 	
 	
@@ -168,7 +164,7 @@ declare function open_loop_ascent{
 			}
 		}
 		
-		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,targetspeed,scale)):VECTOR.
+		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,rollrefspeed,scale)):VECTOR.
 
 		
 		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec,control["refvec"],vehicle["roll"]). }
@@ -184,16 +180,20 @@ declare function closed_loop_ascent{
 	
 	
 	SET ops_mode TO 2.
+	
+	drawUI().
+	getState().
 	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.4.
+	SET STEERINGMANAGER:ROLLTS TO 40.
+	SET STEERINGMANAGER:YAWTS TO 4.
+	SET STEERINGMANAGER:YAWPID:KD TO 0.1.
+	SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
 	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
 	}													 
 	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	addMessage("RUNNING UPFG ALGORITHM").
-	drawUI().
-	getState().
 	IF (DEFINED RTLSAbort) {
 		RTLS_burnout_mass().
 	} ELSE {
@@ -202,6 +202,7 @@ declare function closed_loop_ascent{
 	LOCAL x IS setupUPFG(target_orbit).
 	GLOBAL upfgInternal IS x[0].
 	GLOBAL usc IS x[1].
+	addMessage("RUNNING UPFG ALGORITHM").
 	
 	SET usc["lastvec"] TO vecYZ(thrust_vec()).
 	SET usc["lastthrot"] TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
@@ -221,24 +222,11 @@ declare function closed_loop_ascent{
 		ELSE {			
 			IF (DEFINED RTLSAbort) {
 				IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 60 ) ) ) {
-					SET ops_mode TO 3.
-					SET usc["terminal"] TO TRUE.
 					BREAK.
 				}
 			} ELSE {
 				IF (usc["conv"]=1 AND (upfgInternal["tgo"] < upfgFinalizationTime AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
-					IF ops_mode=2 {
-						SET ops_mode TO 3.
-						SET usc["terminal"] TO TRUE.
-						addMessage("WAITING FOR MECO").
-						WHEN SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] THEN {
-							LOCK STEERING TO "kill".
-							LOCK THROTTLE to 0.
-							SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-							LIST ENGINES IN Eng.
-							FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
-						}
-					}
+					BREAK.
 				}
 			}
 			
@@ -257,12 +245,6 @@ declare function closed_loop_ascent{
 		//andthen adjusted to the current fuel mass
 		monitor_abort().
 		getState().
-		
-		//do them here bc the bo mass must be updated the first time only
-		//after getstate had upated the stage burn times
-		IF (DEFINED RTLSAbort) {
-			RTLS_burnout_mass().
-		}
 			
 		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
@@ -275,33 +257,43 @@ declare function closed_loop_ascent{
 		dataViz().
 		WAIT 0.
 	}
-	
-	
+	SET ops_mode TO 3.
+ 
+	SET usc["terminal"] TO TRUE.
 	
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {
-		LOCAL pitchdownvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
+		LOCAL pitchdowntgtvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
 		LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
-		//LOCAL rightvec IS VCRS(upvec, pitchdownvec ).
-		//SET pitchdownvec TO rodrigues(pitchdownvec,rightvec,2).
-		//local aimv IS VXCL(rightvec,SHIP:FACING:FOREVECTOR).
-		//SET control["steerdir"] TO aimAndRoll(pitchdownvec:NORMALIZED,upvec,0).	
-		
-		LOCK STEERING TO LOOKDIRUP(pitchdownvec, upvec).
+		LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.								  
 		
 		addMessage("POWERED PITCH-DOWN").
-
+		
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
+		
+		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 0.65.		
+		
+		LOCAL steervec IS SHIP:FACING:FOREVECTOR.
 		
 		UNTIL FALSE{
 			getState().
+			
+			IF (VANG(steervec, pitchdowntgtvec) > 10) {
+				SET steervec tO rodrigues(SHIP:FACING:FOREVECTOR, rotvec,10).
+				SET steervec TO VXCL(rotvec,steervec).
+			} ELSE {
+				SET steervec TO pitchdowntgtvec.
+			}
+			LOCK STEERING TO LOOKDIRUP(steervec, upvec).
+			
 			
 			//to update tgo and vgo figures, not really critical
 			SET upfgInternal TO upfg_wrapper(upfgInternal).
 			
 			LOCAL cur_horV IS VXCL(upvec,SHIP:VELOCITY:ORBIT):MAG.
 			
-			IF (cur_horV >= target_orbit["velocity"]) {
+			IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
 				LOCK STEERING TO "kill".
 				LOCK THROTTLE to 0.
 				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -314,8 +306,25 @@ declare function closed_loop_ascent{
 			dataViz().
 			WAIT 0.
 		}
+	} ELSE {
+		
+		addMessage("WAITING FOR MECO").
+	
+		UNTIL FALSE {
+			getState().
+			IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
+				LOCK STEERING TO "kill".
+				LOCK THROTTLE to 0.
+				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+				LIST ENGINES IN Eng.
+				FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
+				BREAK.
+			}
+			dataViz().
+			WAIT 0.
+		}
+	
 	}
-
 	
 	//just in case it hasn't been done previously
 	LOCK THROTTLE to 0.
