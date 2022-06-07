@@ -122,6 +122,17 @@ FUNCTION RTLS_tgt_site_vector {
 	RETURN vecYZ(pos2vec(abort_modes["RTLS"]["tgt_site"])).
 }
 
+//takes in a dt parameter, positive values shift the target EAST
+FUNCTION RTLS_shifted_tgt_site_vector {
+	PARAMETER dt.
+
+	LOCAL pos_earth_fixed IS pos2vec(abort_modes["RTLS"]["tgt_site"]).
+	
+	LOCAL shifted_pos IS R(0, BODY:angularvel:mag * (-dt)* constant:RadToDeg, 0)*pos_earth_fixed.
+	
+	RETURN vecYZ(shifted_pos).
+}
+
 
 //dissipation angle as function of abort time
 FUNCTION RTLS_dissip_theta_time {
@@ -196,7 +207,7 @@ FUNCTION RTLS_normal {
 
 	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
 		
-	//find the position vector of the target site
+	//find the current position vector of the target site
 	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
 	
 	//construct the plane of rtls
@@ -207,29 +218,31 @@ FUNCTION RTLS_normal {
 
 }
 
-
 FUNCTION RTLS_cutoff_params {
 	PARAMETER tgt_orb.
 	PARAMETER cutoff_r.
 	
-	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
-	
-	LOCAL vEarth IS (constant:pi/43200)*VCRS( v(0,0,1),tgtsitevec).
-	
-
+	//first calculate the cutoff reference frame pointing to the target site right now
 	LOCAL iy IS RTLS_normal().
 	LOCAL ix IS cutoff_r:NORMALIZED.
 	LOCAL iz IS VCRs(ix,iy).
 	
 	SET tgt_orb["radius"] TO ix* tgt_orb["radius"]:MAG.
 	
+	//calculate range to go and cutoff velocity using the RV line 
+	//need to use a fixed position to make the calculation stable
+	
+	//this is the launch site position when the abort was triggered
+	LOCAL tgtsitevec IS RTLS_shifted_tgt_site_vector(RTLSAbort["t_abort"] - TIME:SECONDS).
+	
 	LOCAL newrange IS VANG(tgtsitevec,ix).
-	SET newrange TO newrange*(constant:pi*SHIP:BODY:RADIUS)/180.
+	SET newrange TO newrange*(constant:pi*SHIP:BODY:RADIUS)/180 + RTLSAbort["MECO_range_shift"].
 	SET tgt_orb["range"] TO newrange.
 	
 	LOCAL rv_vel IS RTLS_rvline(newrange).
 	
 	LOCAL vel IS rodrigues(iz,iy, tgt_orb["angle"]):NORMALIZED*rv_vel.
+	LOCAL vEarth IS (constant:pi/43200)*VCRS( v(0,0,1),tgtsitevec).
 	SET vel TO vel + vEarth.
 	
 	
@@ -249,7 +262,10 @@ FUNCTION RTLS_burnout_mass {
 	SET vehicle["mbod"] TO vehicle["stages"][vehicle["stages"]:LENGTH - 1]["m_final"] + 10000.
 }
 
-
+//compare abort time with negative return to see if we should flyback immediately
+FUNCTION RTLS_immediate_flyback {
+	RETURN (RTLSAbort["t_abort"] + 10 > abort_modes["RTLS"]["boundary"]).
+}
 
 FUNCTION setup_RTLS {
 
@@ -257,17 +273,29 @@ FUNCTION setup_RTLS {
 		RETURN.
 	}
 	
-	SET upfgConvergenceTgo TO 1.5.
-	SET upfgFinalizationTime TO 15.
+	//need to do the vehicle performance recalculations first because we need to know the time to burnout
+	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
+	SET vehicle["stages"][2]["mode"] TO 1.
+	SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
+	SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
+	LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
+	SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.
+	vehicle["stages"][2]:REMOVE("glim").
+	vehicle["stages"]:REMOVE(3).
 	
-	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
+	vehicle:ADD("mbod",0).
 	
-	LOCAL normvec IS RTLS_normal().
+	RTLS_burnout_mass().				 
+	
+	//so that downrange distance calculations are correct
+	SET launchpad TO abort_modes["RTLS"]["tgt_site"].
+		
 	
 	GLOBAL RTLSAbort IS LEXICON (
 								"t_abort",TIME:SECONDS,
-								"C1",VXCL(normvec,RTLS_C1(abort_modes["t_abort"],abort_v)),
+								"C1",v(0,0,0),
 								"Tc",0,
+								"MECO_range_shift",0,
 								"pitcharound",LEXICON(
 													"refvec",v(0,0,0),
 													"triggered",FALSE,
@@ -279,6 +307,27 @@ FUNCTION setup_RTLS {
 								"flyback_conv",-2,
 								"flyback_flag",FALSE
 	).
+	
+	LOCAL normvec IS RTLS_normal().
+	
+	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
+	SET RTLSAbort["C1"] TO VXCL(normvec,RTLS_C1(abort_modes["t_abort"],abort_v)).
+	
+	
+	//calculate the range shift to use for RVline calculations
+	//predict the time to desired cutoff mass, shift the target site forward to that point, measure distance and correct for inclination
+	LOCAL dmbo_t IS (vehicle["stages"][2]["m_initial"] - vehicle["mbod"])/red_flow.
+	
+	LOCAL tgt_site_now IS RTLS_tgt_site_vector().
+	LOCAL tgt_site_meco IS RTLS_shifted_tgt_site_vector(dmbo_t).
+	LOCAL range_dist IS VANG(tgt_site_now,tgt_site_meco)*(constant:pi*SHIP:BODY:RADIUS)/180.
+	
+	LOCAL delta_tgt_pos IS tgt_site_meco - tgt_site_now.
+	
+	//should be negative if we're moving east (the taget site will move towards us during flyback) and positive if west (tgtsite will be moving away)
+	SET RTLSAbort["MECO_range_shift"] TO -VDOT(SHIP:VELOCITY:SURFACE:NORMALIZED,delta_tgt_pos:NORMALIZED)*range_dist.
+	
+	
 	
 	LOCAL curR IS orbitstate["radius"].
 	LOCAL cutoff_alt IS 80*1000 + SHIP:BODY:RADIUS.
@@ -297,25 +346,9 @@ FUNCTION setup_RTLS {
 	
 	).
 	
-	//arrow(vecYZ(target_orbit["normal"]:NORMALIZED),"norm",v(0,0,0),50,0.05).
-	//arrow(vecYZ(RTLSAbort["C1"]),"C1",v(0,0,0),50,0.05).
 	
-	//LOCAL out IS RTLS_cutoff_params(target_orbit,curR).
-	//SET target_orbit TO out[0].
-	
-	
-	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
-	SET vehicle["stages"][2]["mode"] TO 1.
-	SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
-	SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
-	LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
-	SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.
-	vehicle["stages"][2]:REMOVE("glim").
-	vehicle["stages"]:REMOVE(3).
-	
-	vehicle:ADD("mbod",0).
-	
-	RTLS_burnout_mass().				 
+	SET upfgConvergenceTgo TO 1.5.
+	SET upfgFinalizationTime TO 15.
 
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
@@ -327,6 +360,7 @@ FUNCTION setup_RTLS {
 	}
 
 	drawUI().
+	
 
 }
 
@@ -345,18 +379,18 @@ FUNCTION setup_RTLS {
 FUNCTION GRTLS_dataViz {
 
 	
-	PRINT "                     "  AT (0,1).
+	PRINT "            GLIDE-RTLS GUIDANCE    "  AT (0,1).
+	PRINT "                          "  AT (0,2).
 	
 	IF (ops_mode = 5) {
-		PRINT "   ALPHA RECOVERY    " AT (0,2).
+		PRINT "   ALPHA RECOVERY    " AT (0,3).
 	} ELSE IF (ops_mode = 6) {
-		PRINT "   HOLDING PITCH    " AT (0,2).
+		PRINT "   HOLDING PITCH    " AT (0,3).
 	} ELSE IF (ops_mode = 7) {
-		PRINT "       NZ HOLD      " AT (0,2).
+		PRINT "       NZ HOLD      " AT (0,3).
 	}
 				   
 								   
-	PRINT "                     "  AT (0,3).
 	PRINT "                     "  AT (0,4).
 	PRINT "       M.E.T.      : "  AT (0,5).
 	PRINT "                     "  AT (0,6).

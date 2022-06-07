@@ -281,13 +281,10 @@ declare function closed_loop_ascent{
 			}
 			LOCK STEERING TO LOOKDIRUP(steervec, upvec).
 			
+			SET target_orbit["range"] TO downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
+			LOCAL tgtsurfvel IS RTLS_rvline(target_orbit["range"]).
 			
-			//to update tgo and vgo figures, not really critical
-			SET upfgInternal TO upfg_wrapper(upfgInternal).
-			
-			LOCAL cur_horV IS VXCL(upvec,SHIP:VELOCITY:ORBIT):MAG.
-			
-			IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
+			IF (SHIP:VELOCITY:SURFACE:MAG >= tgtsurfvel OR SSME_flameout()) {
 				LOCK STEERING TO "kill".
 				LOCK THROTTLE to 0.
 				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
