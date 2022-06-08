@@ -5,7 +5,7 @@ GLOBAL abort_modes IS LEXICON(
 					"t_abort",0,
 					"abort_v",0,
 					"RTLS",LEXICON(
-							"boundary",235,
+							"boundary",225,
 							"active",TRUE,
 							"tgt_site", get_RTLS_site()
 							),
@@ -289,29 +289,40 @@ FUNCTION setup_RTLS {
 	
 	//so that downrange distance calculations are correct
 	SET launchpad TO abort_modes["RTLS"]["tgt_site"].
+	
+	LOCAL t_abort IS TIME:SECONDS.
+	
+	LOCAL flyback_immediate IS (t_abort - vehicle["ign_t"] + 10 > abort_modes["RTLS"]["boundary"]).
 		
+	IF (flyback_immediate) {
+		addMessage("POWERED PITCH-AROUND TRIGGERED").
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
+	}
 	
 	GLOBAL RTLSAbort IS LEXICON (
-								"t_abort",TIME:SECONDS,
+								"t_abort",t_abort,
 								"C1",v(0,0,0),
 								"Tc",0,
 								"MECO_range_shift",0,
 								"pitcharound",LEXICON(
 													"refvec",v(0,0,0),
-													"triggered",FALSE,
+													"triggered",flyback_immediate,
 													"complete",FALSE,
 													"target",v(0,0,0)
 													
 												),
 								"flyback_iter",-2,
 								"flyback_conv",-2,
-								"flyback_flag",FALSE
+								"flyback_flag",flyback_immediate
 	).
 	
 	LOCAL normvec IS RTLS_normal().
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
 	SET RTLSAbort["C1"] TO VXCL(normvec,RTLS_C1(abort_modes["t_abort"],abort_v)).
+	
+	SET RTLSAbort["pitcharound"]["refvec"] TO VCRS( RTLSAbort["C1"], vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)).
+	SET RTLSAbort["pitcharound"]["target"] TO rodrigues(RTLSAbort["C1"],RTLSAbort["pitcharound"]["refvec"],2.5*VANG(RTLSAbort["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED))).
 	
 	
 	//calculate the range shift to use for RVline calculations
@@ -349,8 +360,13 @@ FUNCTION setup_RTLS {
 	
 	SET upfgConvergenceTgo TO 1.5.
 	SET upfgFinalizationTime TO 15.
+	SET upfgInternal["flyback_flag"] TO flyback_immediate.
+
 
 	SET upfgInternal TO resetUPFG(upfgInternal).
+	
+	
+	SET vehicle["roll"] TO 0.
 	
 	
 	OMS_dump("oms","start").
@@ -379,15 +395,15 @@ FUNCTION setup_RTLS {
 FUNCTION GRTLS_dataViz {
 
 	
-	PRINT "            GLIDE-RTLS GUIDANCE    "  AT (0,1).
+	PRINT "         GLIDE-RTLS GUIDANCE    "  AT (0,1).
 	PRINT "                          "  AT (0,2).
 	
 	IF (ops_mode = 5) {
-		PRINT "   ALPHA RECOVERY    " AT (0,3).
+	PRINT "            ALPHA RECOVERY    " AT (0,3).
 	} ELSE IF (ops_mode = 6) {
-		PRINT "   HOLDING PITCH    " AT (0,3).
+	PRINT "            HOLDING PITCH    " AT (0,3).
 	} ELSE IF (ops_mode = 7) {
-		PRINT "       NZ HOLD      " AT (0,3).
+	PRINT "               NZ HOLD      " AT (0,3).
 	}
 				   
 								   

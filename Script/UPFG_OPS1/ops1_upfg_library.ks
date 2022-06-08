@@ -163,9 +163,8 @@ FUNCTION upfg_wrapper {
 				}
 				
 				SET control["refvec"] TO SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-				SET vehicle["roll"] TO 0.
 				
-				IF (RTLS_immediate_flyback() OR ( upfgOutput["Tc"] <= 1 AND RTLSAbort["flyback_conv"] = 1)) {
+				IF (upfgOutput["Tc"] <= 1 AND RTLSAbort["flyback_conv"] = 1) {
 					addMessage("POWERED PITCH-AROUND TRIGGERED").
 					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
@@ -190,6 +189,9 @@ FUNCTION upfg_wrapper {
 					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
 						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
 						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
+						//do it again for good measure
+						SET RTLSAbort["flyback_flag"] TO TRUE.
+						SET upfgOutput["flyback_flag"] TO TRUE.
 						SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 						SET usc["lastthrot"] TO upfgOutput["throtset"].
 						
@@ -550,7 +552,7 @@ FUNCTION upfg {
 		
 		IF (flyback_flag AND RTLSthrotflag) {
 			
-			LOCAL throtgain IS -dt*2e-3.
+			LOCAL throtgain IS -dt*2.1e-3.
 			
 			LOCAL newKk IS Kk + throtgain*Tc.
 			SET Kk TO MAX(0,MIN(1,newKk)).
