@@ -95,8 +95,8 @@ The script then enters an infinite loop displaying the results of an orbital ana
 RTLS can be triggered automatically with an event contained in the vessel file or manually by shutting down an engine during flight. If the failure happens during stage 1 guidance will not kick in until after SRB separation, if the failure occurs during stage 2 it will be triggered immediately.  
 The script performs automatically all three phases of RTLS:
 - dissipation, flying outbound for a certain time to waste fuel. The script uses the PEG algorithm to estimate the right time to turn around.
-- flyback, where the shuttle points back to the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. The target MECO conditions are 78 km altitude and variable distance from the launch site, at a velocity that depends on MECO distance.
-- Glide-RTLS, where the Shuttle pitches up to 40° and performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory
+- flyback, where the shuttle points back to the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. The target MECO conditions are 78 km altitude and variable distance from the launch site, at a velocity that depends on MECO distance. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%.
+- Glide-RTLS activated after MECO and separation, where the Shuttle pitches up to 40° and performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory
 At the end of these phases the Shuttle will be at around 30km descending gently. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
 During dissipation and flyback, the script will also burn the OMS engines to dump fuel. This is completely automatic.  
 
@@ -115,5 +115,5 @@ The Shuttle **usually** manages to steer the entry trajectory towards the landin
 ## ATO/AOA aborts
 
 Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between MET 340s and MET 420s. After that, the script will continue to regular MECO targets with only two engines.  
-This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, thus lowering a bit the inclination at MECO.  
+This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired.  
 After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that.
