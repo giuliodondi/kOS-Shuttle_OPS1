@@ -100,7 +100,7 @@ The script performs automatically all three phases of RTLS:
 At the end of these phases the Shuttle will be at around 30km descending gently. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
 During dissipation and flyback, the script will also burn the OMS engines to dump fuel. This is completely automatic.  
 
-I tested early aborts (MET 80s) all the way to negative return (MET 235s). The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
+I tested early aborts (MET 80s) all the way to negative return (MET 225s). The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
 The script is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort.  
 The Glide-RTLS phase is more iffy as there is no closed-loop guidance, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
 The end conditions of Glide-RTLS depend a lot on the position and velocity at MECO. I programmed guidance to leave the shuttle with plenty of energy, but I've seen that sometimes the shuttle engages entry guidance **really** high on energy, like 30km and 1000 m/s at about 100km away. In this case I suggest to switch to approach mode earlier than usual (~60km from the target) and do a steep manual descent into thicker air.
@@ -108,7 +108,7 @@ The end conditions of Glide-RTLS depend a lot on the position and velocity at ME
 
 ## TAL abort
 
-The TAL abort is triggered if an engine is shut down between MET 235s and MET 340s. Closed-loop Guidance will target the site specified in the **shuttle.ks** file and alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. Of course there is a limited ability to do so, hence the need to choose the TAL site along with the mission parameters.  
+The TAL abort is triggered if an engine is shut down between MET 225s and MET 340s. Closed-loop Guidance will target the site specified in the **shuttle.ks** file and alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. Of course there is a limited ability to do so, hence the need to choose the TAL site along with the mission parameters.  
 Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
 The Shuttle **usually** manages to steer the entry trajectory towards the landing site without issue.
 
