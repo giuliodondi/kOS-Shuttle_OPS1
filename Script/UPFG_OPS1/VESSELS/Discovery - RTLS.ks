@@ -24,7 +24,7 @@ GLOBAL vehicle IS LEXICON(
 ).
 GLOBAL events IS LIST(
 					LEXICON("time",1,"type", "action","action",{TOGGLE AG1.}),	//activates fuel cells
-					LEXICON("time",220,"type", "action","action",{LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME"). englist[ROUND(RANDOM(),0)]:SHUTDOWN.}),
+					LEXICON("time",180,"type", "action","action",{LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME"). englist[ROUND(RANDOM(),0)]:SHUTDOWN.}),
 					LEXICON("time",350,"type", "roll","angle",0)
 ).
 
