@@ -426,9 +426,10 @@ FUNCTION events_handler {
 				IF ABS(evt["angle"] - vehicle["roll"])<5 {
 					set vehicle["roll"] TO evt["angle"].
 					rem_list:ADD(k).
+					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
 					
 				} ELSE {
-					
+					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.8.
 					local rollsign is SIGN( unfixangle( evt["angle"] - vehicle["roll"] ) ).
 					set vehicle["roll"] TO fixangle(vehicle["roll"] + rollsign*5).
 				} 
