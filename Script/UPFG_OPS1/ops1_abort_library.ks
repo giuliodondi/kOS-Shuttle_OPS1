@@ -786,18 +786,18 @@ FUNCTION TAL_cutoff_params {
 	SET tgt_orb["normal"] TO TAL_normal().
 	SET tgt_orb["Inclination"] TO VANG(tgt_orb["normal"],v(0,0,1)).
 	
-	SET tgt_orb["radius"] TO VXCL(tgt_orb["normal"],cutoff_r).
+	SET tgt_orb["radius"] TO VXCL(tgt_orb["normal"],cutoff_r):NORMALIZED*cutoff_r:MAG.
 	
 	//shifts underground the radius of the ballistic impact point
 	LOCAL radius_bias IS 15.	//in km
 	
 	
-	LOCAL AP is cutoff_r:MAG.
+	LOCAL AP is tgt_orb["radius"]:MAG.
 	LOCAL tgt_vec_radius IS BODY:RADIUS - radius_bias*1000.
 	SET tgt_orb["angle"] TO 0.
 	SET tgt_orb["eta"] TO 180.
 	
-	LOCAL tgt_eta IS 180 + signed_angle(cutoff_r,TALAbort["tgt_vec"],-tgt_orb["normal"],0).
+	LOCAL tgt_eta IS 180 + signed_angle(tgt_orb["radius"],TALAbort["tgt_vec"],-tgt_orb["normal"],0).
 	
 	SET tgt_orb["ecc"] TO (AP - tgt_vec_radius)/(AP + tgt_vec_radius*COS(tgt_eta)).
 	SET tgt_orb["SMA"] TO AP/(1 + tgt_orb["ecc"] ).
