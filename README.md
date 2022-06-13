@@ -48,7 +48,8 @@ Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure
 Whatever version you choose write down the following numbers:
 - Vacuum Thrust in kN
 - Vacuum ISP
-- Mass flow as the sum of LH2 and LO2 usage in kg per second.  
+- Mass flow as the sum of LH2 and LO2 usage in kg per second. 
+ 
 Write down the numbers for a single SSME and not the sum of all three.
 
 ## kOS configuration files
