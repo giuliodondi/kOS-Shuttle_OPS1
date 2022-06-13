@@ -124,7 +124,7 @@ The end conditions of Glide-RTLS depend a lot on the position and velocity at ME
 
 ## TAL abort
 
-The TAL abort is triggered if an engine is shut down between MET 225s and MET 340s. Closed-loop Guidance will target the site specified in the **shuttle.ks** file and alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. Of course there is a limited ability to do so, hence the need to choose the TAL site along with the mission parameters.  
+The TAL abort is triggered if an engine is shut down between MET 225s and MET 340s. Closed-loop Guidance will target the site specified in the **shuttle.ks** file and alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. The TAL site should not be too far off the nominal target plane or the Shuttle might not have enough fuel to correct the trajectory within the crossrange limits. The later the TAL abort, the faster the Shuttle is already and the more deltaV it takes to curve the trajectory.  
 Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
 The Shuttle **usually** manages to steer the entry trajectory towards the landing site without issue.
 
