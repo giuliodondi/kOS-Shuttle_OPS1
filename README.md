@@ -44,10 +44,11 @@ In addition, set Action Group 1 so that it activates the Fuel Cells . AG1 will b
 
 ### Don't forget to set the FAR control surface settings as required by the Entry script README.
 
-Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). Make sure you select the same version for all three SSMEs. Whatever version you choose write down the following numbers:
+Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). Make sure you select the same version for all three SSMEs.  
+Whatever version you choose write down the following numbers:
 - Vacuum Thrust in kN
 - Vacuum ISP
-- Mass flow as the sum of LH2 and LO2 usage in kg per second.
+- Mass flow as the sum of LH2 and LO2 usage in kg per second.  
 Write down the numbers for a single SSME and not the sum of all three.
 
 ## kOS configuration files
