@@ -32,6 +32,8 @@ Please read this section carefully to understand how to configure your vessel in
 
 ## VAB setup
 
+Build the Shuttle normally except for one important detail: **Place the left and right SSMEs first and the central SSMe last.** I will explain later on why this is necessary.
+
 In the VAB, make sure the vessel staging is as follows (from the first stage onwards) :
 - SSMEs
 - SRBs and any launch clamps
@@ -80,7 +82,7 @@ However, you only need to provide a few configuration parameters for two stages,
 
 
 Finally, the vessel config file contains an "events" definition, which is how we tell the script to make certain things happen during launch aside from staging events. An event is specified by time (in seconds MET), the type of event and some additional information depending on the type of event.
-Most events are of the "action" type, where the action is specified as a piece of code within brackets {} in the event structure. For instance, there is an event to toggle AG1, modify the kOS steering gains and throttle the engines down/up during first stage. The **Discovery - RTLS.ks** and **Discovery - TAL.ks** vessel files provided also contain an event to trigger automatically an engine shutdown (more about aborts later on).
+Most events are of the "action" type, where the action is specified as a piece of code within brackets {} in the event structure. For instance, there is an event to toggle AG1n and the **Discovery - RTLS.ks** and **Discovery - TAL.ks** vessel files provided contain an event to trigger automatically an engine shutdown (more about aborts later on).
 
 # Mission profiles
 
@@ -96,6 +98,12 @@ After MECO the script wil automatically:
 
 The script then enters an infinite loop displaying the results of an orbital analysis, calculating the erros with respect to the desired orbit. At this point you can halt the script with ctrl+C in the script window.
 **Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
+
+## Aborts
+
+**Caveat:  
+The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Triggering a failure of the center engine can lead to loss of control as kOS is no longer able to control roll independently of yaw.  
+The vessel configuration files for abort scenarions will select either SSME 0 or SSME1 at random for shutdown. These engines must correspond to the left and right SSME so that the centre one is left running. This is why I instructed you to place them in a certain sequence.**
 
 ## RTLS abort 
 
