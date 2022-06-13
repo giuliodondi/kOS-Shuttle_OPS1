@@ -54,7 +54,7 @@ Write down the numbers for a single SSME and not the sum of all three.
 
 ## kOS configuration files
 
-The mission parameters are specified in the main launch script is **shuttle.ks**. It contains variable definitions for:
+The mission parameters are specified in the main launch script **shuttle.ks**. It contains variable definitions for:
 - the name of the vessel config file to be used, it must exist in the UPFG_OPS1/VESSELS/ folder
 - a "target_orbit" structure describing the shape of the desired orbit. Apoapsis, periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the inclination to whatever you desire (read more about this later on).
 - a TAL_site definition, which must match some landing site defined in the **landing_sites.ks** file in the Entry script source or the script will not run
@@ -67,8 +67,12 @@ As an example, open up **Discovery.ks** .
 The vehicle structure contains the vessel name, a "stages" key with parameters about the various vehicle configurations and a "SSME" key with data about the engine version you are using.  
 You must first check that the engine data is correct (The files provided are configured for RS-25D) or update it if required. I advise to make a separate vessel configuration file for different engine variants.
 
-A shuttle flight is a sequence of three stages: time-limited SRB phase (first stage), constant-thrust SSME phase until 3G acceleration is reached and a G-limited phase (both second stage).  
-The initialisation function will build everything by itselv, provided that a few parameters are provided:
+The Space Shuttle is regarded as a two-stage vehicle but this program treats it as a three-stage vehicle:
+- Time-limited SRB phase until separation
+- Constant-thrust SSME phase until 3G acceleration is reached
+- G-limited SSME phase, throttling down continuously to keep around 3G acceleration
+  
+The initialisation function will build everything by itself, provided that a few parameters are provided:
 - "m_initial" for the first stage corresponds to the **fully-fueled vehicle with no payload or launch towers/clamps** 
 - "m_final" for stage1 and "m_initial" for stage " are placeholder values which you can leave alone, the script will update those measurements
 - "m_final" for stage 2 is the orbiter mass + RCS fuel + empty External Tank, with no payload
