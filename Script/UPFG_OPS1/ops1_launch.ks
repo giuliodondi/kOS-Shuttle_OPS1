@@ -122,7 +122,7 @@ declare function open_loop_ascent{
 	drawUI().
 	addMessage("LIFT-OFF!").
 	
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.9.
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
@@ -324,9 +324,7 @@ declare function closed_loop_ascent{
 	LOCK STEERING TO control["steerdir"].
 	LIST ENGINES IN Eng.
 	FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
-	UNLOCK THROTTLE.
 	
-	SAS ON.
 	RCS ON.
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
@@ -344,6 +342,8 @@ declare function closed_loop_ascent{
 				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 				UNLOCK THROTTLE.
 				UNLOCK STEERING.
+				UNLOCK THROTTLE.
+				SAS ON.
 				close_umbilical().
 				disable_TVC().
 				SET ops_mode TO 4.

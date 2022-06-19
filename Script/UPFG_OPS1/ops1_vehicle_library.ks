@@ -695,6 +695,7 @@ FUNCTION getState {
 
 //Staging function.
 FUNCTION STAGING{
+	IF vehiclestate["staging_in_progress"] {RETURN.}
 	
 	local stg_staginginfo IS vehicle["stages"][vehiclestate["cur_stg"]]["staging"]["type"].
 	
@@ -706,7 +707,7 @@ FUNCTION STAGING{
 	}
 	
 	addMessage("CLOSE TO STAGING").
-	SET vehiclestate["staging_time"] TO TIME:SECONDS+100.		//bias of 100 seconds to avoid premature triggering of the staging actions
+	SET vehiclestate["staging_time"] TO TIME:SECONDS+1000.		//bias of 1000 seconds to avoid premature triggering of the staging actions
 	
 	
 	
@@ -782,7 +783,10 @@ FUNCTION staging_reset {
 	vehiclestate["avg_thr"]:reset().
 	SET vehiclestate["m_burn_left"] TO stg["m_burn"].
 	handle_ullage(stg).
-	WHEN ( (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3) AND ( vehiclestate["cur_stg"]< (vehicle["stages"]:LENGTH - 1)) ) THEN {STAGING().}
+	IF vehiclestate["cur_stg"] < (vehicle["stages"]:LENGTH - 1) {
+		WHEN ( (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3)) THEN {STAGING().}
+	}
+	
 	IF ops_mode=2 {SET usc["lastthrot"] TO stg["Throttle"].	}
 }
 
