@@ -12,7 +12,7 @@ GLOBAL abort_modes IS LEXICON(
 					"TAL",LEXICON(
 							"boundary",341,
 							"active",FALSE,
-							"tgt_site", get_TAL_site()
+							"tgt_site", LATLNG(0,0)
 							),
 					"ATO",LEXICON(
 							"boundary",421,
@@ -685,7 +685,29 @@ FUNCTION GRTLS {
 //hard-coded selector of TAL sites based on inclination
 FUNCTION get_TAL_site {
 
-	RETURN ldgsiteslex[TAL_site]["position"].
+	LOCAL talsite IS LATLNG(0,0).
+
+	IF TAL_site = "Nearest" {
+		LOCAL orbplanevec IS VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
+		
+		LOCAL lowestproj IS 0.
+	
+		FOR s in ldgsiteslex:KEYS {
+			LOCAL sitepos IS vecYZ(pos2vec(s["position"])).
+			
+			LOCAL siteproj IS VDOT(sitepos,orbplanevec).
+			
+			IF (lowestproj=0 OR (lowestproj > 0 AND siteproj < lowestproj)) {
+				SET lowestproj TO siteproj.
+				SET talsite tO s.
+			}
+		}
+	
+	} ELSE {
+		SET talsite TO ldgsiteslex[TAL_site]["position"].
+	}
+	
+	RETURN talsite.
 
 }
 
@@ -820,6 +842,8 @@ FUNCTION setup_TAL {
 	IF (DEFINED TALAbort) {
 		RETURN.
 	}
+	
+	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site().
 	
 	// declare it to signal that TAL has bene initialised
 	//make an initial guess for the target vector, shift it 1000 seconds ahead, project it onto the orbital plane

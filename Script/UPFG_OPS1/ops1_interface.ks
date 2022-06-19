@@ -146,6 +146,10 @@ FUNCTION drawUI {
 		
 			SET vehstatus TO vehstatus + "TAL ABORT".
 		
+		}  ELSE IF (DEFINED ATOAbort) {
+		
+			SET vehstatus TO vehstatus + "ATO/AOA ABORT".
+		
 		} ELSE {
 			SET vehstatus TO vehstatus + "CLOSED LOOP GUIDANCE".
 			SET rtlsdissip TO TRUE.
