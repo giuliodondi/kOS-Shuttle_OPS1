@@ -21,10 +21,10 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 You will find one folder: 
 - **Script**
 
-Put the contents of the Scripts folder inside Ship/Script so that kOS can see all the files.
-In particular, there wil be only one script to run:
-- **shuttle.ks** to launch the Shuttle from the launchpad (read on to learn about mission setup).
-- **shuttle3a.ks** is an identical script with different parameters for a Vandenberg Polar orbit launch
+Put the contents of the Script folder inside Ship/Script so that kOS can see all the files.
+In particular, you will only run one of two script files:
+- **shuttle.ks** to launch the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
+- **shuttle3a.ks** is an identical script with special parameters for a Polar orbit launch from Vandenberg
 
 
 # Setup  
