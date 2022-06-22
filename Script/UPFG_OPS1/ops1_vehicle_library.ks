@@ -784,7 +784,7 @@ FUNCTION staging_reset {
 	SET vehiclestate["m_burn_left"] TO stg["m_burn"].
 	handle_ullage(stg).
 	IF vehiclestate["cur_stg"] < (vehicle["stages"]:LENGTH - 1) {
-		WHEN ( (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3)) THEN {STAGING().}
+		WHEN ( (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3) AND (vehiclestate["cur_stg"] < (vehicle["stages"]:LENGTH - 1)) ) THEN {STAGING().}
 	}
 	
 	IF ops_mode=2 {SET usc["lastthrot"] TO stg["Throttle"].	}
