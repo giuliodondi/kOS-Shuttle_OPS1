@@ -33,13 +33,14 @@ Please read this section carefully to understand how to configure your vessel in
 
 ## VAB setup
 
-The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance. It will measure everything automatically provided that the part tree is set up correctly in the VAB.  
+The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance, without the mass of SRB or laucnh clamps. The script will measure everything automatically provided that the part tree is set up correctly in the VAB.  
+
 Take care of the following things while building the Shuttle Stack:
 - The root part must be one of the orbiter parts (the cabin is fine)
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
-- The SRBs must be attached to the ET
+- The SRB decouplers, the SRB themselves and separation motors must all be children parts of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
-- Finally **place the left and right SSMEs first and the central SSME last.** This is only important if you plan to trigger aborts using the kOS configuration scripts, more on this later.
+- Moreover, place the left and right SSMEs first and the central SSME last. This is only important if you plan to trigger aborts using the kOS configuration scripts, more on this later.
 
 
 In the VAB, make sure the vessel staging is as follows (from the first stage onwards) :
