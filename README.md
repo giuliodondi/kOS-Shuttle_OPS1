@@ -4,17 +4,17 @@ My KSP ascent guidance script for the Space Shuttle which uses UPFG, adapted and
 
 # Remarks
 
-This script was last tested in KSP 1.9 with a full RO install. If you use a different version of KSP or the mods there may be different configuration parameters that throw the whole thing off-balance.
+This script was last tested in both KSP 1.9 and 1.10 with a full RO install. If you use a different version of KSP or the mods there may be different configuration parameters that throw the whole thing off-balance.
 In addition, my adaptations are very iffy, i.e. constructed from some idea that I had which happened to work by some miracle.
 I provide these scripts as they are, with no guarantee that they'll work perfectly every time. **YMMV**
 
 # Installation
 
 **Required mods:**
-- A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. Confrmed to work with FAR 0.16.0.1, should now also work with 0.16.0.4
+- A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
 - Kerbal Operating System
-- Space Shuttle System mod, SpaceODY's version seems to be the most up-to-date : https://github.com/SpaceODY/Space-Shuttle-System-Expanded
-- RO configs that come with the Realism Overhaul package
+- Space Shuttle System mod, [I recommend my own fork of SpaceODY's Shuttle System so that the RO configs will be identical to what I use](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
+  Should also work with SpaceODY's original fork :  https://github.com/SpaceODY/Space-Shuttle-System-Expanded
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
 
