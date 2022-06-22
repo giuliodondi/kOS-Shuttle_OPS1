@@ -151,16 +151,9 @@ declare function open_loop_ascent{
 	UNTIL FALSE {	
 		getState().
 		monitor_abort().
+		srb_staging().
 		
-		IF (vehicle["handover"]:HASKEY("time")) {
-			IF ( (TIME:SECONDS - vehicle["ign_t"]) >= vehicle["handover"]["time"] ) {BREAK.}
-		}
-		ELSE {
-			IF vehiclestate["cur_stg"]=vehicle["handover"]["stage"] {
-				vehicle["handover"]:ADD("time", TIME:SECONDS - vehicle["ign_t"] ).
-				BREAK.
-			}
-		}
+		IF (TIME:SECONDS - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
 		
 		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,25,scale)):VECTOR.
 
@@ -212,28 +205,30 @@ declare function closed_loop_ascent{
 			}
 		}														  
 		
-		IF (usc["terminal"]=TRUE) { 
-			IF maxthrust=0 {BREAK.}
-		}  
-		ELSE {			
-			IF (DEFINED RTLSAbort) {
-				IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 60 ) ) ) {
-					BREAK.
-				}
-			} ELSE {
-				IF (usc["conv"]=1 AND (upfgInternal["tgo"] < upfgFinalizationTime AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
-					BREAK.
-				}
+		//detect terminal conditions
+		
+		//see if we're at the last stage and close to flameout 
+		IF is_flameout_imminent() {BREAK.}
+		
+		//check for orbital terminal conditions 
+		IF (DEFINED RTLSAbort) {
+			IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 60 ) ) ) {
+				BREAK.
 			}
-			
-			//changed this to read the abort triggered flag so it works for all kinds of aborts														 
-			IF NOT (abort_modes["triggered"]) {
-				IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
-					SET target_orbit TO tgt_j2_timefor(target_orbit,upfgInternal["tgo"]).
-				}	
+		} ELSE {
+			IF (usc["conv"]=1 AND (upfgInternal["tgo"] < upfgFinalizationTime AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
+				BREAK.
 			}
-			
 		}
+		
+		//changed this to read the abort triggered flag so it works for all kinds of aborts														 
+		IF NOT (abort_modes["triggered"]) {
+			IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
+				SET target_orbit TO tgt_j2_timefor(target_orbit,upfgInternal["tgo"]).
+			}	
+		}
+			
+		
 		
 		//abort must be set up before getstate so the stage is reconfigured 
 		//andthen adjusted to the current fuel mass
@@ -251,6 +246,7 @@ declare function closed_loop_ascent{
 		dataViz().
 		WAIT 0.
 	}
+	
 	SET ops_mode TO 3.
  
 	SET usc["terminal"] TO TRUE.
