@@ -24,6 +24,7 @@ You will find one folder:
 Put the contents of the Scripts folder inside Ship/Script so that kOS can see all the files.
 In particular, there wil be only one script to run:
 - **shuttle.ks** to launch the Shuttle from the launchpad (read on to learn about mission setup).
+- **shuttle3a.ks** is an identical script with different parameters for a Vandenberg Polar orbit launch
 
 
 # Setup  
@@ -32,7 +33,14 @@ Please read this section carefully to understand how to configure your vessel in
 
 ## VAB setup
 
-Build the Shuttle normally except for one important detail: **Place the left and right SSMEs first and the central SSMe last.** I will explain later on why this is necessary.
+The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance. It will measure everything automatically provided that the part tree is set up correctly in the VAB.  
+Take care of the following things while building the Shuttle Stack:
+- The root part must be one of the orbiter parts (the cabin is fine)
+- The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
+- The SRBs must be attached to the ET
+- Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
+- Finally **place the left and right SSMEs first and the central SSME last.** This is only important if you plan to trigger aborts using the kOS configuration scripts, more on this later.
+
 
 In the VAB, make sure the vessel staging is as follows (from the first stage onwards) :
 - SSMEs
