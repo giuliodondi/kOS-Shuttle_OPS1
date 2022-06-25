@@ -92,11 +92,13 @@ The script then enters an infinite loop displaying the results of an orbital ana
 
 ### General considerations
 
-Aborts can be triggered by uncommenting the *engine_failure_time* variable in the main **shuttle.ks** script. The time specified will trigger a different abort mode, each with its own guidance and targeting scheme. Alternatively a failure can be triggered manually by shutting down an engine mid-flight, the program is able to detect both situations.
+Aborts can be triggered by uncommenting the *engine_failure_time* variable in the main **shuttle.ks** script. The time specified will trigger a different abort mode, each with its own guidance and targeting scheme. Alternatively a failure can be triggered manually by shutting down an engine mid-flight, the program is able to detect both situations.  
+All abort scenarios discard the SSME throttling stages and keep the throttle at maximum until MECO or fuel depletion, except for RTLS which uses throttling for guidance.
 
-All abort scenarios discard the SSME throttling stages and keep the throttle at macimum until MECO or fuel depletion, except for RTLS which uses throttling for guidance.
+Bear in mind that only **intact aborts** are covered right now. A double engine failure is a Contingency scenario and the script will not attempt to handle them.
 
-**Caveat:  
+**Caveat: **
+
 The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Oscillations are expected and should be fine, unless they are too severe.
 
 
