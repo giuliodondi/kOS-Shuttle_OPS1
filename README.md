@@ -92,11 +92,13 @@ The script then enters an infinite loop displaying the results of an orbital ana
 
 ### General considerations
 
+Aborts can be triggered by uncommenting the *engine_failure_time* variable in the main **shuttle.ks** script. The time specified will trigger a different abort mode, each with its own guidance and targeting scheme. Alternatively a failure can be triggered manually by shutting down an engine mid-flight, the program is able to detect both situations.
 
+All abort scenarios discard the SSME throttling stages and keep the throttle at macimum until MECO or fuel depletion, except for RTLS which uses throttling for guidance.
 
 **Caveat:  
-The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Triggering a failure of the center engine can lead to loss of control as kOS is no longer able to control roll independently of yaw.  
-The vessel configuration files for abort scenarions will select either SSME 0 or SSME1 at random for shutdown. These engines must correspond to the left and right SSME so that the centre one is left running. This is why I instructed you to place them in a certain sequence.**
+The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Oscillations are expected and should be fine, unless they are too severe.
+
 
 ## RTLS abort 
 
@@ -126,3 +128,7 @@ The Shuttle **usually** manages to steer the entry trajectory towards the landin
 Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between MET 340s and MET 420s. After that, the script will continue to regular MECO targets with only two engines.  
 This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired.  
 After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that.
+
+## Post-ATO engine failure 
+
+After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to throttle the engines up to 100%.
