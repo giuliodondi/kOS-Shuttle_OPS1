@@ -71,7 +71,14 @@ There is no longer any need for a specific vessel configuration file as the scri
 ## Nominal launch
 
 As mentioned, the mission is started by running **shuttle.ks**. Running this script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch a few seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch. It is possible to launch in the orbital plane of a ship in orbit by selecting it as a target in the map view **BEFORE** running the script. This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.  
-The script will guide the shuttle during first stage atmospheric flight, then use closed-loop PEG guidance for the second stage phase until MECO. 
+Fuel cells are automatically activated at liftoff. On a nominal mission a roll to heads-up attitude is performed at T+5:50.  
+
+Although the Shuttle was a two-stage vehicle, the script treats it as a four-stage vehicle:
+- stage 1 is the SRB atmospheric phase, with open-loop guidance. It terminates 5 seconds after SRB sep.
+- stage 2 is closed-loop PEG guidance with the engines at full constant throttle. It terminates when the acceleration reaches 3G
+- stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached
+- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. IT terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch. 
+- 
 After MECO the script wil automatically:
 - trigger ET sep
 - command an RCS vertical translation manoeuvre
@@ -82,6 +89,10 @@ The script then enters an infinite loop displaying the results of an orbital ana
 **Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
 
 ## Aborts
+
+### General considerations
+
+
 
 **Caveat:  
 The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Triggering a failure of the center engine can lead to loss of control as kOS is no longer able to control roll independently of yaw.  
