@@ -17,6 +17,10 @@ GLOBAL abort_modes IS LEXICON(
 					"ATO",LEXICON(
 							"boundary",421,
 							"active",FALSE
+							),
+					"MECO",LEXICON(
+							"boundary",1000,
+							"active",FALSE
 							)
 							
 ).
@@ -35,7 +39,7 @@ FUNCTION monitor_abort {
 	IF abort_detect {
 		addMessage("ENGINE OUT DETECTED.").
 		SET abort_modes["triggered"] TO TRUE.
-		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 5 ).
+		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 6 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
 	}
 
@@ -58,6 +62,7 @@ FUNCTION monitor_abort {
 		} ELSE IF abort_modes["ATO"]["active"] {
 			IF ( current_t >= abort_modes["ATO"]["boundary"]  ) {
 				SET abort_modes["ATO"]["active"] TO FALSE.
+				SET abort_modes["MECO"]["active"] TO TRUE.
 				addMessage("PRESS TO MECO.").
 			}
 		}
@@ -88,6 +93,14 @@ FUNCTION monitor_abort {
 			//no need to check the time for ATO / AOA
 			SET abort_modes["ATO"]["active"] TO FALSE.
 			setup_ATO().
+		
+		}  ELSE IF (abort_modes["MECO"]["active"] ) {
+			IF abort_detect {
+				addMessage("PRESSING TO MECO").
+			}
+
+			SET abort_modes["MECO"]["active"] TO FALSE.
+			setup_MECO_ENGOUT().
 		
 		}
 	
@@ -274,14 +287,21 @@ FUNCTION setup_RTLS {
 	}
 	
 	//need to do the vehicle performance recalculations first because we need to know the time to burnout
+	
+	SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
+	
 	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
 	SET vehicle["stages"][2]["mode"] TO 1.
-	SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
-	SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
-	LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
-	SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.
+	SET vehicle["stages"][2]["Throttle"] TO 1.
 	vehicle["stages"][2]:REMOVE("glim").
-	vehicle["stages"]:REMOVE(3).
+	vehicle["stages"][2]:REMOVE("minThrottle").
+	SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
+	
+	LOCAL current_m IS SHIP:MASS*1000.
+	local res_left IS get_prop_mass(vehicle["stages"][2]).
+	
+	update_stage2(current_m, res_left).
+	
 	
 	vehicle:ADD("mbod",0).
 	
@@ -398,11 +418,11 @@ FUNCTION GRTLS_dataViz {
 	PRINT "         GLIDE-RTLS GUIDANCE    "  AT (0,1).
 	PRINT "                          "  AT (0,2).
 	
-	IF (ops_mode = 5) {
+	IF (vehiclestate["ops_mode"] = 5) {
 	PRINT "            ALPHA RECOVERY    " AT (0,3).
-	} ELSE IF (ops_mode = 6) {
+	} ELSE IF (vehiclestate["ops_mode"] = 6) {
 	PRINT "            HOLDING PITCH    " AT (0,3).
-	} ELSE IF (ops_mode = 7) {
+	} ELSE IF (vehiclestate["ops_mode"] = 7) {
 	PRINT "               NZ HOLD      " AT (0,3).
 	}
 				   
@@ -563,7 +583,7 @@ FUNCTION GRTLS {
 	
 	RCS ON.
 	SAS OFF.
-	SET ops_mode TO 5.
+	SET vehiclestate["ops_mode"] TO 5.
 	LOCK STEERING TO LOOKDIRUP(aimvec, upvec).
 	
 	
@@ -603,7 +623,7 @@ FUNCTION GRTLS {
 	LOCAL deltanz IS  -  NZHOLD["tgt_nz"].
 	
 	WHEN ( SHIP:ALTITUDE < 60000 OR (NZHOLD["cur_nz"] <0 AND NZHOLD["cur_nz"] > -2 AND SHIP:ALTITUDE < 70000) ) THEN {
-		SET ops_mode TO 6.
+		SET vehiclestate["ops_mode"] TO 6.
 	}
 	
 	
@@ -617,7 +637,7 @@ FUNCTION GRTLS {
 		
 		SET NZHOLD TO update_g_force(NZHOLD).
 		
-		IF (ops_mode >= 6 ) {
+		IF (vehiclestate["ops_mode"] >= 6 ) {
 		
 			flap_control["pitch_control"]:update(-gimbals:PITCHANGLE).
 			SET flap_control TO flaptrim_control( flap_control).
@@ -627,14 +647,14 @@ FUNCTION GRTLS {
 			}
 					
 			//want to switch to mode 7 when the current nz starts to decrease or when it beomes greater than the target nz
-			IF ( ops_mode=6 AND NZHOLD["cur_nz"]>0 AND (prev_nz >= NZHOLD["cur_nz"] OR (NZHOLD["tgt_nz"]>0 AND NZHOLD["cur_nz"] >= NZHOLD["tgt_nz"])) ) {
-				SET ops_mode TO 7.
+			IF ( vehiclestate["ops_mode"]=6 AND NZHOLD["cur_nz"]>0 AND (prev_nz >= NZHOLD["cur_nz"] OR (NZHOLD["tgt_nz"]>0 AND NZHOLD["cur_nz"] >= NZHOLD["tgt_nz"])) ) {
+				SET vehiclestate["ops_mode"] TO 7.
 			}
 			
 			
 			SET deltanz TO NZHOLD["cur_nz"] -  NZHOLD["tgt_nz"].
 			
-			IF (ops_mode = 7 ) {
+			IF (vehiclestate["ops_mode"] = 7 ) {
 				SET pitchv TO MAX(pitchf,MIN(pitch0,nz_update_pitch(pitchv))).
 				SET NZHOLD["cmd_pch"] TO pitchv.
 			}
@@ -806,7 +826,7 @@ FUNCTION TAL_cutoff_params {
 	PARAMETER cutoff_r.
 
 	SET tgt_orb["normal"] TO TAL_normal().
-	SET tgt_orb["Inclination"] TO VANG(tgt_orb["normal"],v(0,0,1)).
+	SET tgt_orb["Inclination"] TO VANG(-tgt_orb["normal"],v(0,0,1)).
 	
 	SET tgt_orb["radius"] TO VXCL(tgt_orb["normal"],cutoff_r):NORMALIZED*cutoff_r:MAG.
 	
@@ -860,18 +880,22 @@ FUNCTION setup_TAL {
 	SET target_orbit["apoapsis"] TO (target_orbit["radius"]:MAG - BODY:RADIUS)/1000.
 	
 	SET target_orbit TO TAL_cutoff_params(target_orbit, target_orbit["radius"]).
-		
-	
 	SET TALAbort["tgt_vec"] TO TAL_tgt_vec(orbitstate["radius"]).
+	
+	
+	SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
 	
 	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
 	SET vehicle["stages"][2]["mode"] TO 1.
-	SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
-	SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
-	LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
-	SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.											   
+	SET vehicle["stages"][2]["Throttle"] TO 1.
 	vehicle["stages"][2]:REMOVE("glim").
-	vehicle["stages"]:REMOVE(3).
+	vehicle["stages"][2]:REMOVE("minThrottle").
+	SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
+	
+	LOCAL current_m IS SHIP:MASS*1000.
+	local res_left IS get_prop_mass(vehicle["stages"][2]).
+	
+	update_stage2(current_m, res_left).
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
@@ -881,6 +905,12 @@ FUNCTION setup_TAL {
 		OMS_dump("oms","stop").
 		addMessage("OMS DUMP COMPLETE").
 	}
+	
+	//trigger the roll to heads-up if it hasn't already, important for reentry 
+	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 20) ) THEN {
+		roll_heads_up().
+	}
+	
 
 	drawUI().
 }
@@ -914,7 +944,7 @@ FUNCTION ATO_cutoff_params {
 	PARAMETER cutoff_r.
 	
 	SET target["normal"] TO ATO_normal().
-	SET target["Inclination"] TO VANG(target["normal"],v(0,0,1)).	//needs fixing
+	SET target["Inclination"] TO VANG(- target["normal"],v(0,0,1)).
 
 	LOCAL etaa IS 0.
 	local r is cutoff_r:MAG.
@@ -968,21 +998,41 @@ FUNCTION setup_ATO {
 	
 	//need to take care of the stages, contrary to RTLS and TAL we might already be in constant-G mode
 	IF (vehiclestate["cur_stg"]=2) {
+		
+		SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
+	
 		SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
 		SET vehicle["stages"][2]["mode"] TO 1.
-		SET vehicle["stages"][2]["m_final"] TO vehicle["stages"][3]["m_final"].
-		SET vehicle["stages"][2]["m_burn"] TO vehicle["stages"][2]["m_initial"] - vehicle["stages"][2]["m_final"].
-		LOCAL red_flow IS vehicle["stages"][2]["engines"]["thrust"]/(vehicle["stages"][2]["engines"]["isp"]*g0).
-		SET vehicle["stages"][2]["Tstage"] TO vehicle["stages"][2]["m_burn"]/red_flow.										
+		SET vehicle["stages"][2]["Throttle"] TO 1.
 		vehicle["stages"][2]:REMOVE("glim").
-		vehicle["stages"]:REMOVE(3).
-	} ELSe IF (vehiclestate["cur_stg"]=3) {
+		vehicle["stages"][2]:REMOVE("minThrottle").
+		
+		LOCAL current_m IS SHIP:MASS*1000.
+		local res_left IS get_prop_mass(vehicle["stages"][2]).
+		
+		
+		
+		SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
+		
+		update_stage2(current_m, res_left).
+		
+	} ELSE IF (vehiclestate["cur_stg"]=3) {
+	
+		SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,4).
+	
 		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
-		LOCAL red_flow IS vehicle["stages"][3]["engines"]["thrust"]/(vehicle["stages"][3]["engines"]["isp"]*g0).
-		SET vehicle["stages"][3]["Tstage"] TO vehicle["stages"][3]["m_burn"]/red_flow.							
 		vehicle["stages"][3]:REMOVE("glim").
+		vehicle["stages"][3]:REMOVE("minThrottle").
+		vehicle["stages"][3]:REMOVE("throt_mult").
+		SET vehicle["stages"][3]["engines"] TO build_ssme_lex().
+		
+		LOCAL current_m IS SHIP:MASS*1000.
+		local res_left IS get_prop_mass(vehicle["stages"][3]).
+		
+		update_stage3(current_m, res_left).
+		
 	} 
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
@@ -1000,4 +1050,65 @@ FUNCTION setup_ATO {
 
 
 
+//		POST-ATO ENGINE OUT FUNCTIONS
 
+
+FUNCTION setup_MECO_ENGOUT {
+	IF (DEFINED MECO_ENGOUT) {
+		RETURN.
+	}
+	
+	// declare it to signal that ATO has been initialised
+	GLOBAL MECO_ENGOUT IS LEXICON (
+		"t_abort",TIME:SECONDS
+	).
+
+	//no changes in targeting, just convert the stages to constant thrust depletion stages and trigger dump 
+	
+
+	IF (vehiclestate["cur_stg"]=3) {
+	
+		SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,4).
+	
+		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
+		SET vehicle["stages"][3]["mode"] TO 1.
+		SET vehicle["stages"][3]["Throttle"] TO 1.
+		vehicle["stages"][3]:REMOVE("glim").
+		vehicle["stages"][3]:REMOVE("minThrottle").
+		vehicle["stages"][3]:REMOVE("throt_mult").
+		SET vehicle["stages"][3]["engines"] TO build_ssme_lex().
+		
+		LOCAL current_m IS SHIP:MASS*1000.
+		local res_left IS get_prop_mass(vehicle["stages"][3]).
+		
+		update_stage3(current_m, res_left).
+		
+	} ELSE IF (vehiclestate["cur_stg"]=4) {
+	
+		SET vehicle["stages"][4]["staging"]["type"] TO "depletion".
+		SET vehicle["stages"][4]["mode"] TO 1.
+		SET vehicle["stages"][4]["Throttle"] TO 1.
+		vehicle["stages"][4]:REMOVE("minThrottle").
+		SET vehicle["stages"][4]["engines"] TO build_ssme_lex().
+		
+		LOCAL current_m IS SHIP:MASS*1000.
+		local res_left IS get_prop_mass(vehicle["stages"][4]).
+		
+		update_stage4(current_m, res_left).
+		
+	} 
+	
+	SET upfgInternal TO resetUPFG(upfgInternal).
+	
+	
+	//the dump will actually stop at MECO
+	OMS_dump("oms","start").
+	WHEN ( TIME:SECONDS > (MECO_ENGOUT["t_abort"] + 540) ) THEN {
+		OMS_dump("oms","stop").
+		addMessage("OMS DUMP COMPLETE").
+	}
+	
+	drawUI().
+
+
+}

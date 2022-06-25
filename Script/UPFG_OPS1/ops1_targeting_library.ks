@@ -1,4 +1,9 @@
 
+//GLOBAL NAV VARIABLES 
+
+GLOBAL launchpad IS SHIP:GEOPOSITION.
+GLOBAL surfacestate IS  LEXICON("MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0).
+GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0). 
 
 
 //			VARIOUS TARGETING FUNCTIONS
@@ -499,49 +504,29 @@ FUNCTION prepare_launch {
 
 
 
+//		NAVIGATION FUNCTIONS 
 
 
 
-							//VEHICLE CONTROL FUNCTIONS 
-							
-
-//open-loop pitch profile for pre-UPFG
-FUNCTION pitch {
-	PARAMETER v.
-	PARAMETER v0.
-	PARAMETER scale.			 
+FUNCTION update_navigation {
 	
-	LOCAL default IS 90.
-
-	LOCAL out IS default.
+	SET surfacestate["MET"] TO TIME:SECONDS. 
 	
-	IF v>v0 {
-		
-		LOCAL p1 IS -0.0048.
-		LOCAL p2 IS 28.8.
-		LOCAL p3 IS 26300.
-		LOCAL q1 IS 3.923.
-		
-		LOCAL x IS v + 400.391 - v0.
 	
-		SET out TO (p1*x^2 + p2*x + p3)/(x + q1).
-		
-		//LOCAL scale IS MIN(0.2,0.15*( (target_orbit["radius"]:MAG - BODY:RADIUS)/250000 - 1)).
-		
-		SET out TO out*(1 + scale*(1 - out/default)).
-		
-		LOCAL bias IS out - surfacestate["vdir"].
-		
-		SET out TO out + 0.8*bias.
-		
-		
-	}
-
-
-	RETURN MAX(0,MIN(default,out)).
+	//measure position and orbit parameters
+	
+	IF vehiclestate["ops_mode"] >1 {set v to SHIP:PROGRADE:VECTOR.}
+	ELSE {set v to SHIP:SRFPROGRADE:VECTOR.}
+	
+	SET surfacestate["hdir"] TO compass_for(v,SHIP:GEOPOSITION ).
+	SET surfacestate["vdir"] TO 90 - VANG(v, SHIP:UP:VECTOR).
+	SET surfacestate["pitch"] TO 90 - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR).	
+	SET surfacestate["az"] TO compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ).
+	SET surfacestate["alt"] TO SHIP:ALTITUDE.
+	SET surfacestate["vs"] TO SHIP:VERTICALSPEED.
+	SET surfacestate["hs"] TO SHIP:VELOCITY:SURFACE:MAG.
+	
+	SET orbitstate["velocity"] TO vecYZ(SHIP:ORBIT:VELOCITY:ORBIT).
+	SET orbitstate["radius"] TO vecYZ(SHIP:ORBIT:BODY:POSITION)*-1.
 
 }
-
-
-
-

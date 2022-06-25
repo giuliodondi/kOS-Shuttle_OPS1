@@ -79,12 +79,12 @@ FUNCTION drawUI {
 	PRINT "|=============================================================|" AT (0,33).
 	PRINT "|         VEHICLE DATA         |     UPFG GUIDANCE DATA       |" AT (0,34).
 	PRINT "|                              |                              |" AT (0,35).
-	PRINT "|   CURRENT STG   :            |                              |" AT (0,36).
-	PRINT "|   STG THRUST    :            |                              |" AT (0,37).
-	PRINT "|   STG TWR       :            |                              |" AT (0,38).
-	PRINT "|   STG REM TIME  :            |                              |" AT (0,39).
+	PRINT "|   TOT BURN TIME :            |                              |" AT (0,36).
+	PRINT "|   CURRENT TWR   :            |                              |" AT (0,37).
+	PRINT "|   CMD THROTTLE  :            |                              |" AT (0,38).
+	PRINT "|   CURRENT STG   :            |                              |" AT (0,39).
 	PRINT "|   STG TYPE      :            |                              |" AT (0,40).
-	PRINT "|   CMD THROTTLE  :            |                              |" AT (0,41).
+	PRINT "|   STG REM TIME  :            |                              |" AT (0,41).
 	PRINT "|                              |                              |" AT (0,42).
 	PRINT "|=============================================================|" AT (0,43).
 	PRINT "|                         MESSAGE BOX:                        |" AT (0,44).
@@ -120,9 +120,9 @@ FUNCTION drawUI {
 	LOCAL vehstatus IS "CURRENT STATUS : ".
 	LOCAL rtlsdissip Is ( (DEFINED RTLSAbort) AND NOT ( RTLSAbort["pitcharound"]["triggered"] OR RTLSAbort["flyback_flag"] )).
 	
-	IF ops_mode =0 { SET vehstatus TO vehstatus + "INITIAL CLIMB".}
-	ELSE IF ops_mode =1 { SET vehstatus TO vehstatus + "OPEN LOOP ASCENT".}
-	ELSE IF ops_mode =2 { 
+	IF vehiclestate["ops_mode"] =0 { SET vehstatus TO vehstatus + "INITIAL CLIMB".}
+	ELSE IF vehiclestate["ops_mode"] =1 { SET vehstatus TO vehstatus + "OPEN LOOP ASCENT".}
+	ELSE IF vehiclestate["ops_mode"] =2 { 
 		
 		IF (DEFINED RTLSAbort) {
 		
@@ -156,12 +156,12 @@ FUNCTION drawUI {
 		}
 		
 	}
-	ELSE IF ops_mode =3 { SET vehstatus TO vehstatus + "TERMINAL GUIDANCE".}
-	ELSE IF ops_mode =4 { SET vehstatus TO vehstatus + "GUIDANCE TERMINATED". }
+	ELSE IF vehiclestate["ops_mode"] =3 { SET vehstatus TO vehstatus + "TERMINAL GUIDANCE".}
+	ELSE IF vehiclestate["ops_mode"] =4 { SET vehstatus TO vehstatus + "GUIDANCE TERMINATED". }
 	
 	PRINTPLACE(vehstatus ,61,1,12).
 	
-	IF (ops_mode =2) OR (ops_mode =3){	
+	IF (vehiclestate["ops_mode"] =2) OR (vehiclestate["ops_mode"] =3){	
 	
 		PRINT "    S_MODE     : "	AT (32,vehloc).
 		PRINT "    STATUS     : "	AT (32,vehloc+1).
@@ -185,7 +185,7 @@ FUNCTION drawUI {
 		PRINT "AVAILABLE" AT (42,vehloc+3).
 	}
 	
-	IF ops_mode = 4 {
+	IF vehiclestate["ops_mode"] = 4 {
 
 		//LOCAL perilng IS unfixangle(ORBIT:ARGUMENTOFPERIAPSIS).
 		//set perilng to SIGN((perilng))*get_a_cBB(ABS(perilng),ABS(ORBIT:INCLINATION)).
@@ -232,7 +232,7 @@ FUNCTION dataViz {
 	
 	local v is 0.
 	
-	IF ops_mode >1 {set v to SHIP:PROGRADE:VECTOR.}
+	IF vehiclestate["ops_mode"] >1 {set v to SHIP:PROGRADE:VECTOR.}
 	ELSE {set v to SHIP:SRFPROGRADE:VECTOR.}
 
 	PRINTPLACE(ROUND(90 - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR),2) + " deg",12,19,surfloc+2).
@@ -282,23 +282,32 @@ FUNCTION dataViz {
 	}
 	
 	
-	
-	
 	//vehicle data
+	
+	LOCAL cur_stg_idx IS vehiclestate["cur_stg"].
+	
+	LOCAL total_stg_time IS 0.
+	FOR s IN vehicle["stages"]:SUBLIST(cur_stg_idx,vehicle["stages"]:LENGTH - cur_stg_idx) {
+		SET total_stg_time TO total_stg_time + s["Tstage"].
+	}
+	
+	PRINTPLACE(sectotime(total_stg_time),12,19,vehloc).
+	PRINTPLACE(ROUND(get_TWR(),2) + " ",12,19,vehloc+1).
+	PRINTPLACE(ROUND(THROTTLE*100,1) + " %",12,19,vehloc+2).
+	
+	PRINTPLACE(" " + cur_stg_idx + " ",12,19,vehloc + 3).
+	
 	LOCAL stg IS get_stage().
 	
-	
-	PRINTPLACE(" " + vehiclestate["cur_stg"] + " ",12,19,vehloc).
-	PRINTPLACE(ROUND(vehiclestate["avg_thr"]:average()/1000,1) + " kN",12,19,vehloc+1).
-	PRINTPLACE(" " + ROUND(get_TWR(),2) + " ",12,19,vehloc+2).
-	PRINTPLACE(sectotime(stg["Tstage"]),12,19,vehloc+3).
 	PRINTPLACE(stg["staging"]["type"],12,19,vehloc+4).
-	PRINTPLACE(ROUND(THROTTLE*100,1) + " %",12,19,vehloc+5).
+	PRINTPLACE(sectotime(stg["Tstage"]),12,19,vehloc+5).
+	
+	
 
 	
 	
 	//upfg data
-	IF (ops_mode =2) OR (ops_mode =3) {
+	IF (vehiclestate["ops_mode"] =2) OR (vehiclestate["ops_mode"] =3) {
 	
 		PRINTPLACE(target_orbit["mode"],12,50,vehloc).
 		

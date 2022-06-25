@@ -2,36 +2,22 @@ function launch{
 	CLEARSCREEN.
 	SET TERMINAL:WIDTH TO 65.
 	SET TERMINAL:HEIGHT TO 59.
-	//	Settings for UPFG
 	SET CONFIG:IPU TO 600.					//	Required to run the script fast enough.
-	GLOBAL upfgFinalizationTime IS 5.		//	When time-to-go gets below that, keep attitude stable and simply count down time to cutoff.
-	GLOBAL upfgConvergenceTgo IS 0.2.	//	Maximum difference between consecutive UPFG T-go predictions that allow accepting the solution.
-	GLOBAL upfgConvergenceVec IS 15.	//	Maximum angle between guidance vectors calculated by UPFG between stages that allow accepting the solution.
-
 	
-	//	Load vessel config file
 	
-	IF (vesselfilename:ENDSWITH(".ks")=TRUE) {
-		SET vesselfilename TO vesselfilename:REMOVE( vesselfilename:FIND(".ks") ,3 ).
-	}
-	RUNPATH("./VESSELS/" + vesselfilename + ".ks").
 	
 	//	Load libraries
 	RUNPATH("0:/Shuttle_entrysim/landing_sites").
 	RUNPATH("0:/Libraries/misc_library").	
 	RUNPATH("0:/Libraries/maths_library").	
 	RUNPATH("0:/Libraries/navigation_library").	
-		
-		
-	RUNPATH("ops1_interface").
-	RUNPATH("ops1_vehicle_library2").
-	RUNPATH("ops1_targeting_library").
-	RUNPATH("ops1_upfg_library").
-	RUNPATH("ops1_abort_library").
+	RUNPATH("0:/UPFG_OPS1/ops1_interface").
+	RUNPATH("0:/UPFG_OPS1/ops1_vehicle_library").
+	RUNPATH("0:/UPFG_OPS1/ops1_targeting_library").
+	RUNPATH("0:/UPFG_OPS1/ops1_upfg_library").
+	RUNPATH("0:/UPFG_OPS1/ops1_abort_library").
 	
-	//conic state extrapolation function / gravity integrator
-	RUNPATH("upfg__cser_sg_simple").
-	
+	PRINT " PROGRAM LIBRARIES LOADED" AT (0,1).
 	
 	if logdata=TRUE {	
 		GLOBAL loglex IS LEXICON(
@@ -55,25 +41,7 @@ function launch{
 	}
 	
 	wait until ship:unpacked and ship:loaded.
-	
-	PRINT " INITIALISING GLOBAL VARIABLES" AT (0,1).
-	//generic variables
-	
-	GLOBAL ops_mode IS 0.
-	
-
-	//Nav variables
-	GLOBAL launchpad IS SHIP:GEOPOSITION.
-	
-	GLOBAL surfacestate IS  LEXICON("MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0).
-	GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0). 
-	GLOBAL control Is LEXICON(
-		"launch_az",0,
-		"steerdir", LOOKDIRUP(SHIP:FACING:FOREVECTOR, SHIP:FACING:TOPVECTOR),
-		"refvec", v(0,0,0)
-	).
-	
-	
+		
 	initialise_shuttle().
 	prepare_launch().	
 	countdown().
@@ -89,6 +57,12 @@ declare function countdown{
 
 	LOCK THROTTLE to throttleControl().
 	SAS OFF.
+	
+	//prepare launch triggers 
+	add_action_event(1, activate_fuel_cells@ ).
+	add_action_event(350, roll_heads_up@ ).
+	
+	
 	local line is 30.
 	print " COUNTDOWN:" AT (0,line).
 	
@@ -122,13 +96,12 @@ declare function open_loop_ascent{
 	drawUI().
 	addMessage("LIFT-OFF!").
 	
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.8.
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 	
 	
-	get_mass_bias().
 	getState().
 
 	SET control["steerdir"] TO LOOKDIRUP(-SHIP:ORBIT:BODY:POSITION, SHIP:FACING:TOPVECTOR).
@@ -138,7 +111,7 @@ declare function open_loop_ascent{
 	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.
 	LOCAL scale IS MIN(0.2,0.15*( (target_orbit["radius"]:MAG - BODY:RADIUS)/250000 - 1)).																				   
 	
-	SET ops_mode TO 1.
+	SET vehiclestate["ops_mode"] TO 1.
 	getState().
 	
 	WHEN SHIP:VERTICALSPEED >= 36 THEN {
@@ -158,7 +131,7 @@ declare function open_loop_ascent{
 		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,25,scale)):VECTOR.
 
 		
-		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec,control["refvec"],vehicle["roll"]). }
+		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, vehicle["roll"]). }
 		
 		dataViz().
 		WAIT 0.
@@ -170,10 +143,10 @@ declare function open_loop_ascent{
 declare function closed_loop_ascent{
 	
 	
-	SET ops_mode TO 2.
-	
+	SET vehiclestate["ops_mode"] TO 2.
 	drawUI().
 	getState().
+	
 	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
 	SET STEERINGMANAGER:ROLLTS TO 30.
 	//SET STEERINGMANAGER:YAWTS TO 4.
@@ -185,17 +158,15 @@ declare function closed_loop_ascent{
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
 	}													 
 	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	IF (DEFINED RTLSAbort) {
-		RTLS_burnout_mass().
-	}
+	
 	LOCAL x IS setupUPFG(target_orbit).
 	GLOBAL upfgInternal IS x[0].
 	GLOBAL usc IS x[1].
-	addMessage("RUNNING UPFG ALGORITHM").
-	
 	SET usc["lastvec"] TO vecYZ(thrust_vec()).
 	SET usc["lastthrot"] TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
-
+	
+	addMessage("RUNNING UPFG ALGORITHM").
+	
 	dataViz().
 
 	UNTIL FALSE{
@@ -203,20 +174,33 @@ declare function closed_loop_ascent{
 			WHEN usc["conv"]=1 THEN {
 				addMessage("GUIDANCE CONVERGED IN " + usc["itercount"] + " ITERATIONS").
 			}
-		}														  
+		}				
+
+		//abort must be set up before getstate so the stage is reconfigured 
+		//and then adjusted to the current fuel mass
+		monitor_abort().
+		//move it here so that we have the most accurate time figure for staging checks
+		getState().
+		
 		
 		//detect terminal conditions
 		
 		//see if we're at the last stage and close to flameout 
-		IF is_flameout_imminent() {BREAK.}
+		//this also takes care of staging during ssme phase
+		IF ssme_staging_flameout() {
+			addMessage("LOW LEVEL").
+			BREAK.
+		}
 		
 		//check for orbital terminal conditions 
 		IF (DEFINED RTLSAbort) {
 			IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 60 ) ) ) {
+				addMessage("POWERED PITCH-DOWN").
 				BREAK.
 			}
 		} ELSE {
 			IF (usc["conv"]=1 AND (upfgInternal["tgo"] < upfgFinalizationTime AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
+				addMessage("TERMINAL GUIDANCE").
 				BREAK.
 			}
 		}
@@ -228,17 +212,11 @@ declare function closed_loop_ascent{
 			}	
 		}
 			
-		
-		
-		//abort must be set up before getstate so the stage is reconfigured 
-		//andthen adjusted to the current fuel mass
-		monitor_abort().
-		getState().
 			
 		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
 		IF NOT vehiclestate["staging_in_progress"] { //AND usc["conv"]=1
-			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED,control["refvec"],vehicle["roll"]).										
+			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED, vehicle["roll"]).										
 		} 
 		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
 			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		
@@ -247,7 +225,7 @@ declare function closed_loop_ascent{
 		WAIT 0.
 	}
 	
-	SET ops_mode TO 3.
+	SET vehiclestate["ops_mode"] TO 3.
  
 	SET usc["terminal"] TO TRUE.
 	
@@ -257,8 +235,6 @@ declare function closed_loop_ascent{
 		LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
 		LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.								  
-		
-		addMessage("POWERED PITCH-DOWN").
 		
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 		
@@ -323,9 +299,6 @@ declare function closed_loop_ascent{
 	
 	RCS ON.
 	
-	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
-	
-	
 	//ET sep loop
 	LOCAL etsep_t IS TIME:SECONDS.
 	WHEN ( TIME:SECONDS > etsep_t + 1.5) THEN {
@@ -335,14 +308,9 @@ declare function closed_loop_ascent{
 			STAGE.
 			
 			WHEN ( TIME:SECONDS > etsep_t + 15) THEN {
-				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-				UNLOCK THROTTLE.
-				UNLOCK STEERING.
-				UNLOCK THROTTLE.
-				SAS ON.
 				close_umbilical().
 				disable_TVC().
-				SET ops_mode TO 4.
+				SET vehiclestate["ops_mode"] TO 4.
 			}
 		}
 	}
@@ -350,7 +318,7 @@ declare function closed_loop_ascent{
 	UNTIL FALSE{
 		getState().
 		
-		IF (ops_mode = 4) {
+		IF (vehiclestate["ops_mode"] = 4) {
 			BREAK.
 		}
 	
@@ -366,9 +334,12 @@ declare function closed_loop_ascent{
 		RETURN.
 	}
 	
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
+	
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
 	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+	SAS ON.
 	
 	
 	

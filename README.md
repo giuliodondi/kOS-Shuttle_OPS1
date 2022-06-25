@@ -1,11 +1,12 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
 
-My KSP ascent guidance script for the Space Shuttle which uses UPFG, adapted and modified to perform aborts.
+My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
+Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
 
 # Remarks
 
 This script was last tested in both KSP 1.9 and 1.10 with a full RO install. If you use a different version of KSP or the mods there may be different configuration parameters that throw the whole thing off-balance.
-In addition, my adaptations are very iffy, i.e. constructed from some idea that I had which happened to work by some miracle.
+In addition, some of my adaptations are quite iffy, i.e. constructed from some idea that I had which happened to work by some miracle.
 I provide these scripts as they are, with no guarantee that they'll work perfectly every time. **YMMV**
 
 # Installation

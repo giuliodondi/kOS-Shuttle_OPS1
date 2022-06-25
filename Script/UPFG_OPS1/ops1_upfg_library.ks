@@ -1,3 +1,17 @@
+
+//conic state extrapolation function / gravity integrator
+//RUNPATH("0:/UPFG_OPS1/upfg__cser_new").
+RUNPATH("0:/UPFG_OPS1/upfg__cser_sg_simple").
+
+
+//global UPFG variables 
+
+GLOBAL upfgFinalizationTime IS 5.		//	When time-to-go gets below that, keep attitude stable and simply count down time to cutoff.
+GLOBAL upfgConvergenceTgo IS 1.	//	Maximum difference between consecutive UPFG T-go predictions that allow accepting the solution.
+GLOBAL upfgConvergenceVec IS 15.	//	Maximum angle between guidance vectors calculated by UPFG between stages that allow accepting the solution.
+	
+	
+
 									//	UPFG HANDLING FUNCTIONS
 
 
@@ -99,7 +113,12 @@ FUNCTION upfg_wrapper {
 	}
 	
 	
-	LOCAL out IS upfg(currentIterationTime , vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]) , target_orbit , upfgInternal , usc["itercount"]=0 , usc["terminal"] ).
+	LOCAL out IS upfg(
+		currentIterationTime,
+		vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]),
+		target_orbit,
+		upfgInternal
+	).
 	
 	
 	
@@ -258,8 +277,6 @@ FUNCTION upfg {
 	PARAMETER vehicle.
 	PARAMETER tgt_orb.
 	PARAMETER previous.
-	PARAMETER _dummy.
-	PARAMETER terminalflag.
 	
 
 	LOCAL dt IS t - previous["time"].
@@ -268,19 +285,7 @@ FUNCTION upfg {
 	LOCAL tgo IS previous["tgo"].
 	LOCAL lambda IS previous["lambda"].
 	LOCAL lambdadot IS previous["lambdadot"].
-	
-
-	IF terminalflag {
-		SET previous["vgo"] TO vgo.
-		SET previous["lambda"] TO lambda.
-		SET previous["tgo"] TO tgo - dt.
-		SET previous["time"] TO t.
-		SET previous["v"] TO v.
-		SET previous["steering"] TO compute_iF(t - previous["t_lambda"]).
-		RETURN LIST(previous,tgt_orb).
-	}
-	
-	
+		
 	LOCAL r IS orbitstate["radius"].
 	LOCAL cser IS previous["cser"].
 	LOCAL rd IS previous["rd"].
@@ -324,6 +329,7 @@ FUNCTION upfg {
 	LOCAL aT IS LIST().
 	LOCAL tu IS LIST().
 	LOCAL tb IS LIST().
+	LOCAL kklist IS LIST().
   
 	FROM { LOCAL i IS 0. } UNTIL i>=n STEP { SET i TO i+1. } DO {
 		SM:ADD(vehicle[i]["mode"]).
@@ -334,22 +340,16 @@ FUNCTION upfg {
 		}
 		fT:ADD(vehicle[i]["engines"]["thrust"]).
 		md:ADD(vehicle[i]["engines"]["flow"]).
+		kklist:ADD(vehicle[i]["Throttle"]).
 		IF (i=0) {
-			SET fT[i] TO fT[i]*Kk.
-			SET md[i] TO md[i]*Kk.
+			SET kklist[i] TO Kk.	
 		}
+		SET fT[i] TO fT[i]*kklist[i].
+		SET md[i] TO md[i]*kklist[i].
 		ve:ADD(vehicle[i]["engines"]["isp"]*g0).
 		aT:ADD(fT[i] / vehicle[i]["m_initial"]).
 		tu:ADD(ve[i]/aT[i]).
 		tb:ADD(vehicle[i]["Tstage"]).
-		//for G-limited stages we pretend the throttle limit doesn't exist 
-		//i.e. we do the calculations pretending that the stage will be throttled down until depletion
-		//when the throttle limit is reached the stage will be converted elsewhere to a constant T depletion stage
-		//at the appropriate thrust level
-		//therefore for now we compute the burn time of the G-limited stage to depletion 
-		IF SM[i]=2 {
-			SET tb[i] TO (ve[i]/aL[i])*LN(1 + vehicle[i]["m_burn"]/vehicle[i]["m_final"]).
-		}
 	}
 	
 	
@@ -360,27 +360,33 @@ FUNCTION upfg {
 		SET aT[0] TO aL[0].
 	}
 	SET tu[0] TO ve[0] / aT[0].
-	LOCAL L IS 0.
+	
 	LOCAL Li IS LIST().
-	
-	FROM { LOCAL i IS 0. } UNTIL i>=n-1 STEP { SET i TO i+1. } DO {
-		IF SM[i]=1 {
-			Li:ADD( ve[i]*LN(tu[i]/(tu[i]-tb[i])) ).
-		} ELSE IF SM[i]=2 {
-			Li:ADD( aL[i]*tb[i] ).
-		} ELSE Li:ADD( 0 ).
-		SET L TO L + Li[i].
-		IF (s_mode <> 5 OR s_mode<>6 ) {
-			IF L>vgo:MAG {
-				RETURN upfg(t,vehicle:SUBLIST(0,vehicle:LENGTH-1), tgt_orb, previous,_dummy,terminalflag).
-			}
-		}
-	}
-	Li:ADD(vgo:MAG - L).
-	
+		
 	IF (s_mode = 5) {
+		Li:ADD(vgo:MAG).
 		SET burnout_m TO m*CONSTANT:E^(-Li[0]/ve[0]).
 		SET mbo_T TO (m - mbod)/md[0].
+	} ELSE {
+		LOCAL Lsum IS 0.
+		FROM { LOCAL i IS 0. } UNTIL i>=n-1 STEP { SET i TO i+1. } DO {
+			IF SM[i]=1 {
+				Li:ADD( ve[i]*LN(tu[i]/(tu[i]-tb[i])) ).
+			} ELSE IF SM[i]=2 {
+				Li:ADD( aL[i]*tb[i] ).
+			} ELSE Li:ADD( 0 ).
+			SET Lsum TO Lsum + Li[i].
+			
+			IF Lsum>vgo:MAG {
+				RETURN upfg(
+					t,
+					vehicle:SUBLIST(0,vehicle:LENGTH-1),
+					tgt_orb,
+					previous
+				).
+			}
+		}
+		Li:ADD(vgo:MAG - Lsum).
 	}
 	
 	LOCAL tgoi IS LIST().
@@ -397,11 +403,10 @@ FUNCTION upfg {
 		}
 	}
 	
-	//LOCAL L1 IS Li[0].
 	SET tgo TO tgoi[n-1].
 	
 	//	4
-	SET L TO 0.
+	LOCAL L IS 0.
 	LOCAL J IS 0.
 	LOCAL S IS 0.
 	LOCAL Q IS 0.
