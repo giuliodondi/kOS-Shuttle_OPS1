@@ -5,8 +5,8 @@ Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted an
 
 # Remarks
 
-This script was last tested in both KSP 1.9 and 1.10 with a full RO install. If you use a different version of KSP or the mods there may be different configuration parameters that throw the whole thing off-balance.
-In addition, some of my adaptations are quite iffy, i.e. constructed from some idea that I had which happened to work by some miracle.
+This script was last tested in 1.10 with a full RO install. It shoudl also work with KSP 1.9. If you use a different version of KSP or the mods there may be different configuration parameters that throw the whole thing off-balance.
+In addition, some of my adaptations are somewhat iffy, i.e. constructed from some idea that I had which happened to work by some miracle.
 I provide these scripts as they are, with no guarantee that they'll work perfectly every time. **YMMV**
 
 # Installation
@@ -14,10 +14,10 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 **Required mods:**
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
 - Kerbal Operating System
-- Space Shuttle System mod, [I recommend my own fork of SpaceODY's Shuttle System so that the RO configs will be identical to what I use](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
-  Should also work with SpaceODY's original fork :  https://github.com/SpaceODY/Space-Shuttle-System-Expanded
+- Space Shuttle System mod, [Use my own fork of SpaceODY's Shuttle System so that the RO configs will be identical to what I use](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
+In principle it also works with SpaceODY's original fork (https://github.com/SpaceODY/Space-Shuttle-System-Expanded) but only if you use the White external tank, since the way parts are configured in that mod, the other two ET variants are actually distinct parts with different names and the script currently can only look for one kind. My fork uses B9 parts switch for the ET variants and thus does not have this problem.
 
 You will find one folder: 
 - **Script**
@@ -25,26 +25,20 @@ You will find one folder:
 Put the contents of the Script folder inside Ship/Script so that kOS can see all the files.
 In particular, you will only run one of two script files:
 - **shuttle.ks** to launch the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
-- **shuttle3a.ks** is an identical script with special parameters for a Polar orbit launch from Vandenberg
+- **shuttle3a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
 
 
 # Setup  
 
-Please read this section carefully to understand how to configure your vessel in the VAB and how this is reflected in the config files.
+The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance, without the mass of SRB or launch clamps. The script will measure everything automatically provided that the part tree is set up correctly in the VAB.  
 
-## VAB setup
-
-The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance, without the mass of SRB or laucnh clamps. The script will measure everything automatically provided that the part tree is set up correctly in the VAB.  
-
-Take care of the following things while building the Shuttle Stack:
+Take care of the following things while building the Shuttle Stack in the VAB:
 - The root part must be one of the orbiter parts (the cabin is fine)
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
-- Moreover, place the left and right SSMEs first and the central SSME last. This is only important if you plan to trigger aborts using the kOS configuration scripts, more on this later.
 
-
-In the VAB, make sure the vessel staging is as follows (from the first stage onwards) :
+Make sure the vessel staging is as follows (from the first stage onwards) :
 - SSMEs
 - SRBs and any launch clamps
 - SRB decouplers and separation motors (both nosecone and skirt)
@@ -52,54 +46,39 @@ In the VAB, make sure the vessel staging is as follows (from the first stage onw
 - Anything in the payload bay
 - Tail parachute
 
-In addition, set Action Group 1 so that it activates the Fuel Cells . AG1 will be triggered right after liftoff so you may place anything else you might want here
 
 ### Don't forget to set the FAR control surface settings as required by the Entry script README.
 
-Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). Make sure you select the same version for all three SSMEs.  
-Whatever version you choose write down the following numbers:
-- Vacuum Thrust in kN
-- Vacuum ISP
-- Mass flow as the sum of LH2 and LO2 usage in kg per second. 
+Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately).  
+**Make sure you select the same version for all three SSMEs.**
+
+IF you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the script should detect this and break during vehicle initialisation. This is intended and meant to signal to you that something is wrong.
  
-Write down the numbers for a single SSME and not the sum of all three.
 
-## kOS configuration files
+## kOS configuration file
 
-The mission parameters are specified in the main launch script **shuttle.ks**. It contains variable definitions for:
-- the name of the vessel config file to be used, it must exist in the UPFG_OPS1/VESSELS/ folder
+The mission parameters are specified in the main launch script **shuttle.ks** or **shuttle3a.ks**.  
+It contains variable definitions for:
 - a "target_orbit" structure describing the shape of the desired orbit. Apoapsis, periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the inclination to whatever you desire (read more about this later on).
-- a TAL_site definition, which must match some landing site defined in the **landing_sites.ks** file in the Entry script source or the script will not run
+- a variable *engine_failure_time* which you can uncomment to trigger an automatic engine failure at the specified time. More on aborts later on.
+- a TAL_site variable, which must match the name of some landing site defined in the **landing_sites.ks** file in the Entry script source or the script will not run.
 - a variable to enable telemetry logging in the UPFG_OPS1/LOGS/ folder if you want to plot it with your own means
 
-Vessel config files can be found under UPFG_OPS1/VESSELS/. There are several files that define the main Vehicle struct containing all the vessel information needed for the mission. 
-
-As an example, open up **Discovery.ks** .  
-
-The vehicle structure contains the vessel name, a "stages" key with parameters about the various vehicle configurations and a "SSME" key with data about the engine version you are using.  
-You must first check that the engine data is correct (The files provided are configured for RS-25D) or update it if required. I advise to make a separate vessel configuration file for different engine variants.
-
-The Space Shuttle is regarded as a two-stage vehicle but this program treats it as a three-stage vehicle:
-- Time-limited SRB phase until separation
-- Constant-thrust SSME phase until 3G acceleration is reached
-- G-limited SSME phase, throttling down continuously to keep around 3G acceleration
-  
-However, you only need to provide a few configuration parameters for two stages, the script will calculate everything else:
-- "m_initial" for the first stage corresponds to the **fully-fueled vehicle with no payload or launch towers/clamps** 
-- "Tstage" for stage 1 is the trigger for SRB separation and should be adjusted so that the SRB are jettisoned when their TWR is below 1. IF the RO configs ever change, this value should also be updated.
-- "m_final" for stage1 and "m_initial" for stage 2 are placeholder values which you can leave alone, the script will update those measurements
-- "m_final" for stage 2 is the orbiter mass + OMS fuel + empty External Tank, with no payload
-
-
-Finally, the vessel config file contains an "events" definition, which is how we tell the script to make certain things happen during launch aside from staging events. An event is specified by time (in seconds MET), the type of event and some additional information depending on the type of event.
-Most events are of the "action" type, where the action is specified as a piece of code within brackets {} in the event structure. For instance, there is an event to toggle AG1n and the **Discovery - RTLS.ks** and **Discovery - TAL.ks** vessel files provided contain an event to trigger automatically an engine shutdown (more about aborts later on).
+There is no longer any need for a specific vessel configuration file as the script now measures both vehicle mass and SSME parameters automatically. **The script assumes that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
 
 # Mission profiles
 
 ## Nominal launch
 
 As mentioned, the mission is started by running **shuttle.ks**. Running this script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch a few seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch. It is possible to launch in the orbital plane of a ship in orbit by selecting it as a target in the map view **BEFORE** running the script. This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.  
-The script will guide the shuttle during first stage atmospheric flight, then use closed-loop PEG guidance for the second stage phase until MECO. 
+Fuel cells are automatically activated at liftoff. On a nominal mission a roll to heads-up attitude is performed at T+5:50.  
+
+Although the Shuttle was a two-stage vehicle, the script treats it as a four-stage vehicle:
+- stage 1 is the SRB atmospheric phase, with open-loop guidance. It terminates 5 seconds after SRB sep.
+- stage 2 is closed-loop PEG guidance with the engines at full constant throttle. It terminates when the acceleration reaches 3G
+- stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached
+- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. IT terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch. 
+- 
 After MECO the script wil automatically:
 - trigger ET sep
 - command an RCS vertical translation manoeuvre
@@ -111,9 +90,17 @@ The script then enters an infinite loop displaying the results of an orbital ana
 
 ## Aborts
 
-**Caveat:  
-The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Triggering a failure of the center engine can lead to loss of control as kOS is no longer able to control roll independently of yaw.  
-The vessel configuration files for abort scenarions will select either SSME 0 or SSME1 at random for shutdown. These engines must correspond to the left and right SSME so that the centre one is left running. This is why I instructed you to place them in a certain sequence.**
+### General considerations
+
+Aborts can be triggered by uncommenting the *engine_failure_time* variable in the main **shuttle.ks** script. The time specified will trigger a different abort mode, each with its own guidance and targeting scheme. Alternatively a failure can be triggered manually by shutting down an engine mid-flight, the program is able to detect both situations.  
+All abort scenarios discard the SSME throttling stages and keep the throttle at maximum until MECO or fuel depletion, except for RTLS which uses throttling for guidance.
+
+Bear in mind that only **intact aborts** are covered right now. A double engine failure is a Contingency scenario and the script will not attempt to handle them.
+
+**Caveat: **
+
+The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Oscillations are expected and should be fine, unless they are too severe.
+
 
 ## RTLS abort 
 
@@ -143,3 +130,7 @@ The Shuttle **usually** manages to steer the entry trajectory towards the landin
 Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between MET 340s and MET 420s. After that, the script will continue to regular MECO targets with only two engines.  
 This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired.  
 After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that.
+
+## Post-ATO engine failure 
+
+After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to throttle the engines up to 100%.
