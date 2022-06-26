@@ -849,7 +849,7 @@ FUNCTION srb_staging {
 		addMessage("STAND-BY FOR SRB SEP").
 		
 		
-		WHEN (get_TWR()<1) THEN {
+		WHEN (get_TWR()<0.98) THEN {
 		
 			wait until stage:ready.
 			STAGE.
@@ -872,7 +872,7 @@ FUNCTION ssme_staging_flameout {
 	LOCAL j IS vehiclestate["cur_stg"].
 	
 	IF j = (vehicle["stages"]:LENGTH - 1) {
-		RETURN (vehicle["stages"][j]["Tstage"] <= 3).
+		RETURN (vehicle["stages"][j]["Tstage"] <= upfgFinalizationTime).
 	} ELSE {
 		
 		IF (vehicle["stages"][j]["Tstage"] <=0.1) {
