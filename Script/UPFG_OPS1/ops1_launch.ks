@@ -194,7 +194,10 @@ declare function closed_loop_ascent{
 		
 		//check for orbital terminal conditions 
 		IF (DEFINED RTLSAbort) {
-			IF ( RTLSAbort["flyback_flag"] AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime ) OR ( (usc["conv"]<>1 OR SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"]) AND upfgInternal["tgo"] < 60 ) ) ) {
+			
+			LOCAL tgtsurfvel IS RTLS_rvline(downrangedist(launchpad,SHIP:GEOPOSITION )*1000).
+		
+			IF ( RTLSAbort["flyback_flag"] AND upfgInternal["tgo"] < 60 AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime) OR SHIP:VELOCITY:SURFACE:MAG >= 0.9*tgtsurfvel ) ) {
 				addMessage("POWERED PITCH-DOWN").
 				BREAK.
 			}
@@ -236,7 +239,7 @@ declare function closed_loop_ascent{
 		
 		LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.								  
 		
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.7.
 		
 		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 0.65.		
 		
@@ -326,6 +329,9 @@ declare function closed_loop_ascent{
 		WAIT 0.
 	}
 	
+	//to disable RCS separation maneouvre
+	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+	
 	// IF RTLS enter GRTLS loop and exit
 	IF (DEFINED RTLSAbort) {
 		LIST ENGINES IN Eng.
@@ -338,7 +344,6 @@ declare function closed_loop_ascent{
 	
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
-	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 	SAS ON.
 	
 	

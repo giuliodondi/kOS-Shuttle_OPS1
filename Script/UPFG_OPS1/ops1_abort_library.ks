@@ -39,7 +39,7 @@ FUNCTION monitor_abort {
 	IF abort_detect {
 		addMessage("ENGINE OUT DETECTED.").
 		SET abort_modes["triggered"] TO TRUE.
-		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 6 ).
+		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 5 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
 	}
 
@@ -347,7 +347,7 @@ FUNCTION setup_RTLS {
 	
 	//calculate the range shift to use for RVline calculations
 	//predict the time to desired cutoff mass, shift the target site forward to that point, measure distance and correct for inclination
-	LOCAL dmbo_t IS (vehicle["stages"][2]["m_initial"] - vehicle["mbod"])/red_flow.
+	LOCAL dmbo_t IS (vehicle["stages"][2]["m_initial"] - vehicle["mbod"]) * vehicle["stages"][2]["Tstage"]/vehicle["stages"][2]["m_burn"].
 	
 	LOCAL tgt_site_now IS RTLS_tgt_site_vector().
 	LOCAL tgt_site_meco IS RTLS_shifted_tgt_site_vector(dmbo_t).
@@ -356,7 +356,8 @@ FUNCTION setup_RTLS {
 	LOCAL delta_tgt_pos IS tgt_site_meco - tgt_site_now.
 	
 	//should be negative if we're moving east (the taget site will move towards us during flyback) and positive if west (tgtsite will be moving away)
-	SET RTLSAbort["MECO_range_shift"] TO -VDOT(SHIP:VELOCITY:SURFACE:NORMALIZED,delta_tgt_pos:NORMALIZED)*range_dist.
+	//SET RTLSAbort["MECO_range_shift"] TO -VDOT(SHIP:VELOCITY:SURFACE:NORMALIZED,delta_tgt_pos:NORMALIZED)*range_dist.
+	SET RTLSAbort["MECO_range_shift"] TO -range_dist.
 	
 	
 	
@@ -522,14 +523,20 @@ FUNCTION GRTLS {
 	
 	STEERINGMANAGER:RESETPIDS().
 	STEERINGMANAGER:RESETTODEFAULT().
-
+	
 	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 20.
-	SET STEERINGMANAGER:PITCHTS TO 10.0.
-	SET STEERINGMANAGER:YAWTS TO 10.0.
-	SET STEERINGMANAGER:ROLLTS TO 8.0.
-	SET STEERINGMANAGER:PITCHPID:KD TO 0.05.
-	SET STEERINGMANAGER:YAWPID:KD TO 0.05.
-	SET STEERINGMANAGER:ROLLPID:KD TO 0.05.
+
+
+	SET STEERINGMANAGER:PITCHTS TO 8.0.
+	SET STEERINGMANAGER:YAWTS TO 3.
+	SET STEERINGMANAGER:ROLLTS TO 3.
+
+	IF (STEERINGMANAGER:PITCHPID:HASSUFFIX("epsilon")) {
+		SET STEERINGMANAGER:PITCHPID:EPSILON TO 0.1.
+		SET STEERINGMANAGER:YAWPID:EPSILON TO 0.1.
+		SET STEERINGMANAGER:ROLLPID:EPSILON TO 0.1.
+	}
+
 
 	LOCAL pitch0 IS 40.
 	LOCAL pitchf IS 10.
