@@ -224,10 +224,7 @@ FUNCTION prepare_launch {
 		
 		LOCAL targetInc IS target_orbit["inclination"].
 		//internal flag for retrograde launches, northerly or southerly alike
-		LOCAL retro IS FALSE.
-		IF (targetInc > 90) {
-			SET retro TO TRUE.
-		}
+		LOCAL retro IS (targetInc > 90).
 		
 		LOCAL targetAlt IS target_orbit["radius"]:MAG.
 		//LOCAL targetVel IS SQRT( SHIP:ORBIT:BODY:MU/(SHIP:BODY:RADIUS+targetAlt*1000) ).		//	This is a normal calculation for a circular orbit
@@ -238,15 +235,18 @@ FUNCTION prepare_launch {
 
 		}
 		
-		//get "orbit heading angle" between north and orbit plane at launch latitude
-		LOCAL cincl IS COS(targetInc).
-		IF (retro) {
-			SET cincl TO COS(180 - targetInc).
+		//calculate preliminary inertial azimuth 
+		LOCAL equatorial_angle IS targetInc.
+		IF retro {
+			SET equatorial_angle TO 180 - equatorial_angle.
 		}
-		LOCAL Binertial IS ABS(cincl/COS(siteLat)).
-		IF Binertial < -1 { SET Binertial TO -1. }
-		IF Binertial > 1 { SET Binertial TO 1. }
-		SET Binertial TO ARCSIN(Binertial).		//	In case of an attempt at launch to a lower inclination than reachable
+		
+		LOCAL Binertial IS ABS(COS(equatorial_angle)/COS(siteLat)).
+		SET Binertial TO ARCSIN(limitarg(Binertial)).
+		
+		IF retro {
+			SET Binertial TO 180 +  Binertial.
+		}
 		
 		//get launch azimuth angle wrt due east=0
 		LOCAL Vbody IS (2*CONSTANT:PI*SHIP:BODY:RADIUS/SHIP:BODY:ROTATIONPERIOD)*COS(siteLat).
@@ -258,19 +258,11 @@ FUNCTION prepare_launch {
 			SET azimuth TO 180 - azimuth.
 		}
 		
-		//	In MATLAB an azimuth of 0 is due east, while in KSP it's due north.
-		//	Return the valid value depending on the launch direction:
-		LOCAL out IS 0.
-		IF target_orbit["direction"] = "north" {
-			SET out TO 90-azimuth.
-		} ELSE IF target_orbit["direction"] = "south" {
-			SET out TO  90+azimuth.
-		} ELSE {
-			SET out TO  90-azimuth.
-		}
+		//azimuth is the angle wrt the due east direction
+		//transform it into an azimuth wrt the north direction
+		//this will subtract from 90° if it's a positive angle, due north, and add to 90° if it's due south. wrap around 360°
 		
-		//if retrograde, the result will be negative. correct
-		SET azimuth TO fixangle(azimuth).
+		LOCAL out IS fixangle(90-azimuth).
 		
 		//implement range azimuth limitation
 		LOCAL site_azrange IS LEXICON(
@@ -290,9 +282,9 @@ FUNCTION prepare_launch {
 		FOR s IN site_azrange:VALUES{
 			LOCAL sitepos IS s["position"].
 			
-			//if the launchsite is within 100km of a known site
+			//if the launchsite is within 50km of a known site
 			//apply its range restrictions
-			IF downrangedist(sitepos,shippos) < 100 {
+			IF downrangedist(sitepos,shippos) < 50 {
 				SET out TO CLAMP(out,s["min_az"],s["max_az"]).
 				BREAK.
 			}
