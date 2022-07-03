@@ -707,7 +707,7 @@ FUNCTION getState {
 		IF (vehiclestate["cur_stg"]=1) {
 		
 			//do it here so we bypass the check during later stages
-			IF (surfacestate:HASKEY("q") AND surfacestate["alt"] > 100 ) {
+			IF (surfacestate:HASKEY("q") AND surfacestate["vs"] > 50 ) {
 				check_maxq(SHIP:Q).
 			}
 		
