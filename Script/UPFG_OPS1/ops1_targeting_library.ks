@@ -223,17 +223,17 @@ FUNCTION prepare_launch {
 		//	Expects global variables "target_orbit" as lexicons
 		
 		LOCAL targetInc IS target_orbit["inclination"].
+		
 		//internal flag for retrograde launches, northerly or southerly alike
 		LOCAL retro IS (targetInc > 90).
 		
-		LOCAL targetAlt IS target_orbit["radius"]:MAG.
-		//LOCAL targetVel IS SQRT( SHIP:ORBIT:BODY:MU/(SHIP:BODY:RADIUS+targetAlt*1000) ).		//	This is a normal calculation for a circular orbit
+		//flag for southerly launches 
+		LOCAL southerly IS (target_orbit["direction"]="south").
+		
+
 		LOCAL targetVel IS target_orbit["velocity"]*COS(target_orbit["angle"]).				//	But we already have our desired velocity, however we must correct for the flight path angle (only the tangential component matters here)
 		
 		LOCAL siteLat IS SHIP:GEOPOSITION:LAT.
-		IF targetInc < siteLat { //pushUIMessage( "Target inclination below launch site!", 5, PRIORITY_HIGH ).
-
-		}
 		
 		//calculate preliminary inertial azimuth 
 		LOCAL equatorial_angle IS targetInc.
@@ -244,20 +244,25 @@ FUNCTION prepare_launch {
 		LOCAL Binertial IS ABS(COS(equatorial_angle)/COS(siteLat)).
 		SET Binertial TO ARCSIN(limitarg(Binertial)).
 		
+		//mirror the angle w.r.t. the local north direction for retrograde launches
 		IF retro {
-			SET Binertial TO 180 +  Binertial.
+			SET Binertial TO - Binertial.
 		}
+		
+		//mirror the angle w.r.t the local east direction for southerly launches
+		IF southerly {
+			SET Binertial TO 180 - Binertial.
+		}
+		
+		SET Binertial TO fixangle(Binertial).	//get the inertial launch hazimuth
+		
+		
 		
 		//get launch azimuth angle wrt due east=0
 		LOCAL Vbody IS (2*CONSTANT:PI*SHIP:BODY:RADIUS/SHIP:BODY:ROTATIONPERIOD)*COS(siteLat).
 		LOCAL VrotX IS targetVel*SIN(Binertial)-Vbody.
 		LOCAL VrotY IS targetVel*COS(Binertial).
 		LOCAL azimuth IS ARCTAN2(VrotY, VrotX).
-		//if retrograde, correct
-		IF (retro) {
-			SET azimuth TO 180 - azimuth.
-		}
-		
 		//azimuth is the angle wrt the due east direction
 		//transform it into an azimuth wrt the north direction
 		//this will subtract from 90° if it's a positive angle, due north, and add to 90° if it's due south. wrap around 360°
@@ -274,7 +279,7 @@ FUNCTION prepare_launch {
 							"Vandenberg",LEXICON(
 									"position",LATLNG(34.67974,-120.53102),
 									"min_az",147,
-									"max_az",201	//250
+									"max_az",220	//250
 							)
 		
 		).
