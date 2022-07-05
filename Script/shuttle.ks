@@ -6,7 +6,7 @@
 GLOBAL target_orbit IS LEXICON (	
 								"periapsis",30,
 								"apoapsis",220,
-								"inclination",35,
+								"inclination",52,
 								"Cutoff Altitude",112,
 								"end",0								//don't remove this
 ).
