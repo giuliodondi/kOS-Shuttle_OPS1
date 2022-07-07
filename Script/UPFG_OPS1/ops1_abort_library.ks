@@ -1044,14 +1044,6 @@ FUNCTION setup_ATO {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
-	
-	//the dump will actually stop at MECO
-	OMS_dump("oms","start").
-	WHEN ( TIME:SECONDS > (ATOAbort["t_abort"] + 540) ) THEN {
-		OMS_dump("oms","stop").
-		addMessage("OMS DUMP COMPLETE").
-	}
-	
 	drawUI().
 }
 
@@ -1107,13 +1099,6 @@ FUNCTION setup_MECO_ENGOUT {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
-	
-	//the dump will actually stop at MECO
-	OMS_dump("oms","start").
-	WHEN ( TIME:SECONDS > (MECO_ENGOUT["t_abort"] + 540) ) THEN {
-		OMS_dump("oms","stop").
-		addMessage("OMS DUMP COMPLETE").
-	}
 	
 	drawUI().
 
