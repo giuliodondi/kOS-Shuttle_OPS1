@@ -43,7 +43,7 @@ function initialise_shuttle {
 	}
 
 	//this must be changed if the RO config for the SRBs ever changes
-	LOCAL srb_time IS 120.
+	LOCAL srb_time IS 119.
 
 	
 	//hard-coded initialisation of shuttle vehicle
@@ -849,7 +849,8 @@ FUNCTION srb_staging {
 		addMessage("STAND-BY FOR SRB SEP").
 		
 		
-		WHEN (get_TWR()<0.98) THEN {
+		//WHEN (get_TWR()<0.98) THEN {
+		WHEN (get_srb_thrust()<400) THEN {	//try srb thrust triggering
 		
 			wait until stage:ready.
 			STAGE.
@@ -893,6 +894,15 @@ FUNCTION ssme_staging_flameout {
 
 
 //		SHUTTLE-SPECIFIC FUNCTIONS 
+
+
+FUNCTION get_srb_thrust {
+
+	local srb is ship:partsdubbed("ShuttleRocketBooster")[0].
+	
+	return srb:thrust.
+
+}
 
 
 //if a global flag is set, sets up an event to shutdown one of the SSMEs
