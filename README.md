@@ -17,7 +17,9 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 - Space Shuttle System mod, [Use my own fork of SpaceODY's Shuttle System so that the RO configs will be identical to what I use](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
-In principle it also works with SpaceODY's original fork (https://github.com/SpaceODY/Space-Shuttle-System-Expanded) but only if you use the White external tank, since the way parts are configured in that mod, the other two ET variants are actually distinct parts with different names and the script currently can only look for one kind. My fork uses B9 parts switch for the ET variants and thus does not have this problem.
+As is it does not work with SpaceODY's original fork (https://github.com/SpaceODY/Space-Shuttle-System-Expanded) for several reasons:
+- That version offers the External Tank variants as separate VAB parts with different names, the script is only able to measure the ET propellants with the White ET, the other parts have a different internal name. My fork is immune from this problem as it uses B9 to catalog the variants.
+- This script will soon have a revised OMS dump scheme for aborts which **may or may not** use a resource drain module I placed on the OMS engines parts in my fork. OMS dumping is necessary to bring the CG within limits or the Shuttle will lose pitch control during reentry.
 
 You will find one folder: 
 - **Script**
