@@ -4,6 +4,7 @@ GLOBAL abort_modes IS LEXICON(
 					"triggered",FALSE,
 					"t_abort",0,
 					"abort_v",0,
+					"oms_dump",FALSE,
 					"RTLS",LEXICON(
 							"boundary",225,
 							"active",TRUE,
@@ -103,6 +104,9 @@ FUNCTION monitor_abort {
 			setup_MECO_ENGOUT().
 		
 		}
+		
+		//since we're in an abort condition check if the oms dump should be stopped (assumed running)
+		stop_oms_dump().
 	
 	}
 
@@ -390,11 +394,7 @@ FUNCTION setup_RTLS {
 	SET vehicle["roll"] TO 0.
 	
 	
-	OMS_dump("oms","start").
-	WHEN ( TIME:SECONDS > (RTLSAbort["t_abort"] + 540) ) THEN {
-		OMS_dump("oms","stop").
-		addMessage("OMS DUMP COMPLETE").
-	}
+	start_oms_dump().
 
 	drawUI().
 	
@@ -520,14 +520,15 @@ FUNCTION GRTLS {
 
 	CLEARSCREEN.
 	RUNPATH("0:/Shuttle_entrysim/src/entry_utility").
+	RUNPATH("0:/Shuttle_entrysim/src/veh_control_utility").
 	
 	STEERINGMANAGER:RESETPIDS().
 	STEERINGMANAGER:RESETTODEFAULT().
 	
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 20.
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
 
 
-	SET STEERINGMANAGER:PITCHTS TO 8.0.
+	SET STEERINGMANAGER:PITCHTS TO 4.0.
 	SET STEERINGMANAGER:YAWTS TO 3.
 	SET STEERINGMANAGER:ROLLTS TO 3.
 
@@ -647,7 +648,7 @@ FUNCTION GRTLS {
 		IF (vehiclestate["ops_mode"] >= 6 ) {
 		
 			flap_control["pitch_control"]:update(-gimbals:PITCHANGLE).
-			SET flap_control TO flaptrim_control( flap_control).
+			SET flap_control TO flaptrim_control(TRUE, flap_control).
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
 				set_target_nz().
@@ -906,12 +907,7 @@ FUNCTION setup_TAL {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
-	//the dump will actually stop at MECO
-	OMS_dump("oms","start").
-	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 540) ) THEN {
-		OMS_dump("oms","stop").
-		addMessage("OMS DUMP COMPLETE").
-	}
+	start_oms_dump().
 	
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
 	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 20) ) THEN {

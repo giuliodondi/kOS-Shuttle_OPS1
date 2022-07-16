@@ -964,19 +964,44 @@ FUNCTION close_umbilical {
 
 
 
-FUNCTION OMS_dump {
-	PARAMETER type.
-	PARAMETER state.
-	
-	IF (type = "oms") {
-		FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
-			IF (state="start") {
-				oms:ACTIVATE.
-			} ELSE IF (state="stop") {
+FUNCTION start_oms_dump {
+	RCS ON.
+	SET SHIP:CONTROL:FORE TO 1.
+	SET SHIP:CONTROL:TOP TO 1.
+	FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+		oms:ACTIVATE.
+	}
+	SET abort_modes["oms_dump"] TO TRUE.
+}
+
+FUNCTION stop_oms_dump {
+	PARAMETER force IS FALSE.
+	IF abort_modes["oms_dump"] {
+		IF (OMS_quantity()< 0.2 OR force) {
+
+			SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+			FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
 				oms:SHUTDOWN.
 			}
+			addMessage("OMS DUMP STOPPED").
+			SET abort_modes["oms_dump"] TO FALSE.
 		}
 	}
+}
+
+
+FUNCTION OMS_quantity {
+	
+	LOCAL quant IS 0.
+	
+	LOCAL i IS 0.
+	FOR tank IN ship:PARTSNAMEDPATTERN("ShuttleOMSPod*") {
+		SET quant TO quant + (tank:mass - tank:drymass)/(tank:wetmass - tank:drymass).
+		SET i TO i + 1.
+	}
+	SET quant TO quant/i.
+	
+	return quant.
 
 }
 

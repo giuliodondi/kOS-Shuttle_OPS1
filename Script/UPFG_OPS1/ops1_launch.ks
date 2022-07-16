@@ -299,6 +299,7 @@ declare function closed_loop_ascent{
 	LOCK STEERING TO control["steerdir"].
 	LIST ENGINES IN Eng.
 	FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
+	stop_oms_dump(TRUE).
 	
 	RCS ON.
 	
