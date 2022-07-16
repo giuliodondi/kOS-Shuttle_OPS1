@@ -52,6 +52,15 @@ function clamp {
 
 }
 
+//keeps a value within the interval starting from lower_val and lower_val + int_width, wrapping around if it falls outside
+FUNCTION wraparound {
+	PARAMETER val.
+	PARAMETER lower_val.
+	PARAMETER int_width.
+	if val <lower_val {set val to val + int_width. }
+	else if val >=(lower_val + int_width) {set val to val - int_width. }	
+	RETURN val.
+}
 
 //prevents angles from being either negative or greater than 360.
 FUNCTION fixangle {

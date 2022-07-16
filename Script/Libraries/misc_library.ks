@@ -139,8 +139,22 @@ FUNCTION arrow_body {
 
 
 
+//converts the universal clock in seconds
+FUNCTION utc_time_seconds {
+	LOCAL utc_time Is TIME.
+	RETURN utc_time:SECOND + 60*utc_time:MINUTE + 3600*utc_time:HOUR.
+}
 
+//givne a longitude from 0 long. gives the local clock in seconds
+FUNCTION local_time_seconds {
+	PARAMETER long.
 
+	LOCAL utc_time IS utc_time_seconds().
+	
+	LOCAL degree_shift IS BODY:ROTATIONPERIOD/360.
+
+	RETURN wraparound(utc_time + long*degree_shift, 0, BODY:ROTATIONPERIOD).
+}
 
 
 //converts a time value into a hours,minutes,seconds string
