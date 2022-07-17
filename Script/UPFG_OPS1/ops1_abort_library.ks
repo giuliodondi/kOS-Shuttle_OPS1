@@ -525,10 +525,10 @@ FUNCTION GRTLS {
 	STEERINGMANAGER:RESETPIDS().
 	STEERINGMANAGER:RESETTODEFAULT().
 	
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 3.
 
 
-	SET STEERINGMANAGER:PITCHTS TO 4.0.
+	//SET STEERINGMANAGER:PITCHTS TO 4.0.
 	SET STEERINGMANAGER:YAWTS TO 3.
 	SET STEERINGMANAGER:ROLLTS TO 3.
 
@@ -573,7 +573,7 @@ FUNCTION GRTLS {
 	).
 	
 	LISt ENGINES IN englist.
-	LOCAL gimbals IS 0.
+	GLOBAL gimbals IS 0.
 	FOR e IN englist {
 		IF e:HASSUFFIX("gimbal") {
 			SET gimbals TO e:GIMBAL.
@@ -630,7 +630,8 @@ FUNCTION GRTLS {
 	
 	LOCAL deltanz IS  -  NZHOLD["tgt_nz"].
 	
-	WHEN ( SHIP:ALTITUDE < 60000 OR (NZHOLD["cur_nz"] <0 AND NZHOLD["cur_nz"] > -2 AND SHIP:ALTITUDE < 70000) ) THEN {
+	//WHEN ( SHIP:ALTITUDE < 60000 OR (NZHOLD["cur_nz"] <0 AND NZHOLD["cur_nz"] > -2 AND SHIP:ALTITUDE < 70000) ) THEN {
+	WHEN (SHIP:ALTITUDE < 65000) THEN {
 		SET vehiclestate["ops_mode"] TO 6.
 	}
 	
@@ -646,8 +647,7 @@ FUNCTION GRTLS {
 		SET NZHOLD TO update_g_force(NZHOLD).
 		
 		IF (vehiclestate["ops_mode"] >= 6 ) {
-		
-			flap_control["pitch_control"]:update(-gimbals:PITCHANGLE).
+	
 			SET flap_control TO flaptrim_control(TRUE, flap_control).
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
@@ -672,6 +672,10 @@ FUNCTION GRTLS {
 				BREAK.
 			}
 			
+		} ELSE {
+			IF SHIP:ALTITUDE < 65000 {
+				SET vehiclestate["ops_mode"] TO 6.
+			}
 		}
 		
 
