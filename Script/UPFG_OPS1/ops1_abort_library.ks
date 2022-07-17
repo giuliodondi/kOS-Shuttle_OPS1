@@ -689,6 +689,7 @@ FUNCTION GRTLS {
 								LIST(350,5),
 								LIST(1800,10)
 								).
+	GLOBAL bypass_pitchprof_def IS TRUE.
 								
 	GLOBAL sim_end_conditions IS LEXICON(
 						"altitude",12000,
