@@ -648,6 +648,8 @@ FUNCTION GRTLS {
 		
 		IF (vehiclestate["ops_mode"] >= 6 ) {
 	
+			//read off the gimbal angle to get the pitch control input 
+			flap_control["pitch_control"]:update(gimbals:PITCHANGLE).
 			SET flap_control TO flaptrim_control(TRUE, flap_control).
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
