@@ -19,6 +19,12 @@ function launch{
 	
 	PRINT " PROGRAM LIBRARIES LOADED" AT (0,1).
 	
+	wait until ship:unpacked and ship:loaded.
+		
+	initialise_shuttle().
+	prepare_launch().	
+	
+	//need to have initalised the vehicle first for the vessel name
 	if logdata=TRUE {	
 		GLOBAL loglex IS LEXICON(
 										"Time",0,
@@ -37,13 +43,9 @@ function launch{
 										"Incl",0,
 										"Ecctr",0
 		).
-		log_data(loglex,"./LOGS/" + vesselfilename + "_log").
+		log_data(loglex,"./LOGS/" + vehicle["name"] + "_log").
 	}
 	
-	wait until ship:unpacked and ship:loaded.
-		
-	initialise_shuttle().
-	prepare_launch().	
 	countdown().
 	open_loop_ascent().
 	closed_loop_ascent().
@@ -146,12 +148,6 @@ declare function closed_loop_ascent{
 	SET vehiclestate["ops_mode"] TO 2.
 	drawUI().
 	getState().
-	
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
-	SET STEERINGMANAGER:ROLLTS TO 30.
-	//SET STEERINGMANAGER:YAWTS TO 4.
-	//SET STEERINGMANAGER:YAWPID:KD TO 0.1.
-	SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
 	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes

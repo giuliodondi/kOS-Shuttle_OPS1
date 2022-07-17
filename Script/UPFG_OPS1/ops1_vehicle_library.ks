@@ -852,12 +852,19 @@ FUNCTION srb_staging {
 		//WHEN (get_TWR()<0.98) THEN {
 		WHEN (get_srb_thrust()<400) THEN {	//try srb thrust triggering
 		
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
+			SET STEERINGMANAGER:ROLLTS TO 30.
+			//SET STEERINGMANAGER:YAWTS TO 4.
+			//SET STEERINGMANAGER:YAWPID:KD TO 0.1.
+			SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
+			
 			wait until stage:ready.
 			STAGE.
 		
 			increment_stage().
 			
 			SET vehicle["handover"]["time"] TO vehiclestate["staging_time"] - vehicle["ign_t"] + 5.
+			
 		}
 	}
 	
