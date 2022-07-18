@@ -129,7 +129,8 @@ FUNCTION get_RTLS_site {
 									"Edwards",ldgsiteslex["Edwards"]
 	
 	).
-	LOCAL closest_out IS get_closest_site(reduced_sites_lex).
+	//LOCAL closest_out IS get_closest_site(reduced_sites_lex).
+	LOCAL closest_out IS get_closest_site(ldgsiteslex).
 	RETURN closest_out[1].
 }
 
@@ -689,7 +690,7 @@ FUNCTION GRTLS {
 	//prepare entry guidance
 	GLOBAL pitchprof_segments IS LIST(
 								LIST(350,5),
-								LIST(1800,10)
+								LIST(1800,20)
 								).
 	GLOBAL bypass_pitchprof_def IS TRUE.
 								
