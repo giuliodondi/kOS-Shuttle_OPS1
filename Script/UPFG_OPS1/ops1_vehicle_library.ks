@@ -287,7 +287,7 @@ FUNCTION pitch {
 	
 	IF v>v0 {
 		
-		LOCAL p1 IS -0.0048.
+		LOCAL p1 IS -0.0075.
 		LOCAL p2 IS 28.8.
 		LOCAL p3 IS 26300.
 		LOCAL q1 IS 3.923.
