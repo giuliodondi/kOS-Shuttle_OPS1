@@ -130,9 +130,11 @@ The Shuttle **usually** manages to steer the entry trajectory towards the landin
 ## ATO/AOA aborts
 
 Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between MET 340s and MET 420s. After that, the script will continue to regular MECO targets with only two engines.  
-This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired.  
-After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that.
+This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired. Also no OMs dump is performed as you will need the fuel to do orbital corrections later on.  
+
+After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that. 
+The SpaceShuttleSystem has less crossrange capability than in real life, for AOA aborts out of KSC I've only been able to reenter back at the Cape for launches to an inclination of 40° or less. For ISS launches (52° inclination) Northrup strip (White Sands) is the preferred AoA landing site. For launches out of Vandenberg, SpaceShuttleSystem sadly does not have the crossrange to make it back to any site in the continental US
 
 ## Post-ATO engine failure 
 
-After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to throttle the engines up to 100%.
+After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to throttle the remaining engines up to 100%.
