@@ -287,7 +287,7 @@ FUNCTION pitch {
 	
 	IF v>v0 {
 		
-		LOCAL p1 IS -0.0075.
+		LOCAL p1 IS -0.0068.
 		LOCAL p2 IS 28.8.
 		LOCAL p3 IS 26300.
 		LOCAL q1 IS 3.923.
@@ -845,7 +845,7 @@ FUNCTION srb_staging {
 
 	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3 ) {
 		SET vehiclestate["staging_in_progress"] TO TRUE.
-		SET control["steerdir"] TO "kill".
+		//SET control["steerdir"] TO "kill".
 		addMessage("STAND-BY FOR SRB SEP").
 		
 		

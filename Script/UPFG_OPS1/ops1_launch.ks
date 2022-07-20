@@ -119,6 +119,10 @@ declare function open_loop_ascent{
 	WHEN SHIP:VERTICALSPEED >= 36 THEN {
 		addMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
+		
+		WHEN vehiclestate["staging_in_progress"] THEN {
+			SET steer_flag TO FALSE.
+		}
 	}
 	
 	
@@ -131,7 +135,6 @@ declare function open_loop_ascent{
 		IF (TIME:SECONDS - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
 		
 		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,25,scale)):VECTOR.
-
 		
 		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, vehicle["roll"]). }
 		
