@@ -62,8 +62,8 @@ IF you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the
 The mission parameters are specified in the main launch script **shuttle.ks** or **shuttle3a.ks**.  
 It contains variable definitions for:
 - a "target_orbit" structure describing the shape of the desired orbit. Apoapsis, periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the inclination to whatever you desire (read more about this later on).
-- a variable *engine_failure_time* which you can uncomment to trigger an automatic engine failure at the specified time. More on aborts later on.
-- a TAL_site variable, which must match the name of some landing site defined in the **landing_sites.ks** file in the Entry script source or the script will not run.
+- a disabled variable *engine_failure_time* which you can uncomment to trigger an automatic engine failure at the specified time. More on aborts later on.
+- a disabled variable TAL_site which you can uncomment to select a specific TAL landign site. The value must match the name of some landing site defined in the **Shuttle_entrysim/landing_sites.ks** file in the Entry script source or the script will crash.
 - a variable to enable telemetry logging in the UPFG_OPS1/LOGS/ folder if you want to plot it with your own means
 
 There is no longer any need for a specific vessel configuration file as the script now measures both vehicle mass and SSME parameters automatically. **The script assumes that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
@@ -123,7 +123,8 @@ The end conditions of Glide-RTLS depend a lot on the position and velocity at ME
 
 ## TAL abort
 
-The TAL abort is triggered if an engine is shut down between MET 225s and MET 340s. Closed-loop Guidance will target the site specified in the **shuttle.ks** file and alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. The TAL site should not be too far off the nominal target plane or the Shuttle might not have enough fuel to correct the trajectory within the crossrange limits. The later the TAL abort, the faster the Shuttle is already and the more deltaV it takes to curve the trajectory.  
+The TAL abort is triggered if an engine is shut down between MET 225s and MET 340s. The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within 600km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
+Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. The later the TAL abort, the faster the Shuttle is already and the more deltaV it takes to curve the trajectory.  
 Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
 The Shuttle **usually** manages to steer the entry trajectory towards the landing site without issue.
 
