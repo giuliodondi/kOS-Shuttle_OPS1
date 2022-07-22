@@ -26,7 +26,7 @@ GLOBAL target_orbit IS LEXICON (
 //GLOBAL engine_failure_time IS 150.
 
 
-//uncomment this to select a specific TAL site
+//TAL site selection is now automatic. Uncomment this to select a specific TAL site
 //GLOBAL TAL_site is "Mataveri".
 
 

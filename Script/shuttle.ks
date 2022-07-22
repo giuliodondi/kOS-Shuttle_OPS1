@@ -14,10 +14,10 @@ GLOBAL target_orbit IS LEXICON (
 
 // uncomment this line to trigger automatically an engine failure. Alternatively shutdown manually one of the engines 
 //GLOBAL engine_failure_time IS 150.
-//GLOBAL engine_failure_time IS 410.
+//GLOBAL engine_failure_time IS 230.
 
 
-//uncomment this to select a specific TAL site
+//TAL site selection is now automatic. Uncomment this to select a specific TAL site
 //GLOBAL TAL_site is "Zaragoza".
 
 
