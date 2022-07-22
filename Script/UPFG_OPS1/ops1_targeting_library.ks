@@ -9,6 +9,13 @@ GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0).
 //			VARIOUS TARGETING FUNCTIONS
 
 
+// normal vector of the current instantaneous orbital plane
+//to be compatible with TargetNormal, it's the left-handed cross prod of position and velocity
+FUNCTION currentNormal{
+	
+	RETURN -VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
+
+}
 
 //	Target plane normal vector in MATLAB coordinates, UPFG compatible direction
 FUNCTION targetNormal {

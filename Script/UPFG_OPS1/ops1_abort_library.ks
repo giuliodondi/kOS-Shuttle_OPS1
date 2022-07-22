@@ -720,6 +720,7 @@ FUNCTION GRTLS {
 
 //hard-coded selector of TAL sites based on inclination
 FUNCTION get_TAL_site {
+	PARAMETER DVrem.
 
 	LOCAL selectedSite IS LATLNG(0,0).
 	
@@ -729,10 +730,8 @@ FUNCTION get_TAL_site {
 	
 
 	IF TAL_site = "Nearest" {
-		LOCAL orbplanevec IS VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
-		
-		//estimate the delta-V remaining 
-		
+		LOCAL orbplanevec IS currentNormal().
+				
 		
 		
 		LOCAL lowestproj IS 0.
@@ -744,14 +743,17 @@ FUNCTION get_TAL_site {
 			
 			LOCAL site_plane IS VXCL(orbplanevec,sitepos).
 			
-			IF (signed_angle(orbitstate["radius"],site_plane,orbplanevec,0) > 0) {
-				print s at (0,50 + i).
-				set i to i + 1.
+			IF (signed_angle(orbitstate["radius"],site_plane,-orbplanevec,0) > 0) {
 				
 				//shift ahead by half an hour
 				LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+				
+				//estimate deltav to curve velocity to point to the target site
+				
+				print s at (0,50 + i).
+				set i to i + 1.
 			
-				LOCAL siteproj IS VDOT(sitepos,orbplanevec).
+				LOCAL siteproj IS ABS(VDOT(sitepos_shifted,orbplanevec)).
 				
 				IF (lowestproj=0 OR (lowestproj > 0 AND siteproj < lowestproj)) {
 					SET lowestproj TO siteproj.
@@ -800,6 +802,34 @@ FUNCTION TAL_normal {
 }
 
 
+//give the position of a TAL site, returns a corrected position within a set crossrange distance
+//from the abeam position on the current orbital plane
+FUNCTION TAL_site_xrange_shift {
+	PARAMETER tal_site_vec.
+	PARAMETER current_normal.
+	
+	LOCAL tal_site_proj IS VXCL(current_normal,tal_site_vec).
+	
+	//now find the plane containing both the shifted site and its projection onto the orbital plane 
+	LOCAL abeam_norm IS VCRS(tal_site_vec:NORMALIZED,tal_site_proj:NORMALIZED):NORMALIZED.
+	
+	//get the angle between the two
+	//clamp this angle so that the crossrange is within a certain value
+	LOCAL max_xrange IS 600.	//in km
+	LOCAL abeam_angle IS signed_angle(tal_site_vec,tal_site_proj,abeam_norm,0).
+	SET abeam_angle TO SIGN(abeam_angle)*CLAMP(ABS(abeam_angle),0,max_xrange*1000*180/(CONSTANT:PI*BODY:RADIUS)).
+	
+	LOCAL tgtvec IS rodrigues(tal_site_vec,abeam_norm,abeam_angle):NORMALIZED*BODY:RADIUS.
+	
+	
+	clearvecdraws().
+	arrow_body(vecYZ(tal_site_vec),"tal_site_vec").
+	arrow_body(vecYZ(tal_site_proj),"tal_site_proj").
+	arrow_body(vecYZ(tgtvec),"tgtvec").
+
+	RETURN tgtvec.
+}
+
 
 
 FUNCTION TAL_tgt_vec {
@@ -817,6 +847,8 @@ FUNCTION TAL_tgt_vec {
 	//drive this angle to zero by iterating over eta
 	//save the final shifted site position
 	
+	LOCAL current_normal IS currentNormal().
+	
 	LOCAL sitevec IS TAL_tgt_site_vector().
 	//find the ttue anomaly of the current position based on the current orbital params
 	LOCAL eta_cur IS (target_orbit["SMA"]*(1-target_orbit["ecc"]^2)/posvec:MAG - 1)/target_orbit["ecc"].
@@ -832,13 +864,13 @@ FUNCTION TAL_tgt_vec {
 		
 		LOCAL abeam_dt IS eta_to_dt(eta_guess,target_orbit["SMA"],target_orbit["ecc"]).
 		SET abeam_dt TO abeam_dt - eta_to_dt(eta_cur,target_orbit["SMA"],target_orbit["ecc"]).
-		LOCAL abeam_pos IS rodrigues(VXCL(target_orbit["normal"],posvec),-target_orbit["normal"],d_eta).
+		LOCAL abeam_pos IS rodrigues(posvec,-current_normal,d_eta).
 		
 		SET shifted_site TO vecYZ(pos2vec(shift_pos(vecYZ(sitevec),-abeam_dt))).
 		
-		SET shifted_site_proj TO VXCL(target_orbit["normal"],shifted_site).
+		SET shifted_site_proj TO VXCL(current_normal,shifted_site).
 		
-		LOCAL eta_error IS signed_angle(abeam_pos,shifted_site_proj,-target_orbit["normal"],0).
+		LOCAL eta_error IS signed_angle(abeam_pos,shifted_site_proj,-current_normal,0).
 		
 		IF (ABS(eta_error) < 0.01) {
 			BREAK.
@@ -847,18 +879,11 @@ FUNCTION TAL_tgt_vec {
 		SET d_eta TO d_eta + eta_error.
 	}
 			
-	//now find the plane containing both the shifted site and its projection onto the orbital plane 
-	LOCAL abeam_norm IS VCRS(shifted_site:NORMALIZED,shifted_site_proj:NORMALIZED):NORMALIZED.
 	
-	//get the angle between the two
-	//clamp this angle so that the crossrange is within a certain value
-	LOCAL max_xrange IS 600.	//in km
-	LOCAL abeam_angle IS signed_angle(shifted_site,shifted_site_proj,abeam_norm,0).
-	SET abeam_angle TO SIGN(abeam_angle)*CLAMP(ABS(abeam_angle),0,max_xrange*1000*180/(CONSTANT:PI*BODY:RADIUS)).
 	
-	LOCAL tgtvec IS rodrigues(shifted_site,abeam_norm,abeam_angle):NORMALIZED*BODY:RADIUS.
 	
-	RETURN tgtvec.
+	
+	RETURN TAL_site_xrange_shift(shifted_site,current_normal).
 }
 
 //cutoff altitude is set as the apoapsis
@@ -920,7 +945,16 @@ FUNCTION setup_TAL {
 	
 	update_stage2(current_m, res_left).
 	
-	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site().
+	//estimate deltaV remaining in constant-thrust depletion stage
+	LOCAL ve2 IS vehicle["stages"][2]["engines"]["isp"]*g0.
+	LOCAL at2 IS vehicle["stages"][2]["engines"]["thrust"]*vehicle["stages"][2]["Throttle"]/vehicle["stages"][2]["m_initial"].
+	LOCAL tu2 IS ve2/at2.
+	LOCAL tb2 IS vehicle["stages"][2]["Tstage"].
+	
+	LOCAL DVrem IS ve2*LN(tu2/(tu2-tb2)).
+	
+	
+	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site(DVrem).
 	
 	
 	// declare it to signal that TAL has bene initialised
