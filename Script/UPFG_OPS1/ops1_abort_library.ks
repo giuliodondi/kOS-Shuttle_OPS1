@@ -722,7 +722,7 @@ FUNCTION GRTLS {
 FUNCTION get_TAL_site {
 	PARAMETER DVrem.
 
-	LOCAL selectedSite IS LATLNG(0,0).
+	LOCAL selectedSite IS "NONE".
 	
 	IF NOT (DEFINED TAL_site) {
 		GLOBAL TAL_site IS "Nearest".
@@ -730,38 +730,45 @@ FUNCTION get_TAL_site {
 	
 
 	IF TAL_site = "Nearest" {
-		LOCAL orbplanevec IS currentNormal().
+		LOCAL current_normal IS currentNormal().
 				
+		LOCAL candidate_sites IS LIST().
 		
-		
-		LOCAL lowestproj IS 0.
 		local i is 0.
 		FOR s in ldgsiteslex:KEYS {
 			LOCAL site IS ldgsiteslex[s].
 		
 			LOCAL sitepos IS vecYZ(pos2vec(site["position"])).
 			
-			LOCAL site_plane IS VXCL(orbplanevec,sitepos).
+			LOCAL site_plane IS VXCL(current_normal,sitepos).
 			
-			IF (signed_angle(orbitstate["radius"],site_plane,-orbplanevec,0) > 0) {
+			//first see if the candidate site is downrange
+			IF (signed_angle(orbitstate["radius"],site_plane,-current_normal,0) > 0) {
 				
 				//shift ahead by half an hour
 				LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
 				
+				//correct shifted site within cossrange
+				LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
+				
+				LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
+				
 				//estimate deltav to curve velocity to point to the target site
+				LOCAL tgtMECOvel IS 7650.
+				LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
+				LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]):MAG.
 				
-				print s at (0,50 + i).
-				set i to i + 1.
-			
-				LOCAL siteproj IS ABS(VDOT(sitepos_shifted,orbplanevec)).
-				
-				IF (lowestproj=0 OR (lowestproj > 0 AND siteproj < lowestproj)) {
-					SET lowestproj TO siteproj.
-					SET selectedSite tO s.
+				IF (0.9*DVrem - dv2site)>0 {
+					print s + " dv : " + (DVrem - dv2site) at (0,50 + i).
+					set i to i + 1.
+					
+					candidate_sites:ADD(s).
 				}
 			}
-			wait 0.1.
 		}
+		
+		SET selectedSite TO select_rand(candidate_sites).
+		
 		addMessage("SELECTED TAL SITE IS " + selectedSite).
 		
 	
@@ -821,11 +828,10 @@ FUNCTION TAL_site_xrange_shift {
 	
 	LOCAL tgtvec IS rodrigues(tal_site_vec,abeam_norm,abeam_angle):NORMALIZED*BODY:RADIUS.
 	
-	
-	clearvecdraws().
-	arrow_body(vecYZ(tal_site_vec),"tal_site_vec").
-	arrow_body(vecYZ(tal_site_proj),"tal_site_proj").
-	arrow_body(vecYZ(tgtvec),"tgtvec").
+	//clearvecdraws().
+	//arrow_body(vecYZ(tal_site_vec),"tal_site_vec").
+	//arrow_body(vecYZ(tal_site_proj),"tal_site_proj").
+	//arrow_body(vecYZ(tgtvec),"tgtvec").
 
 	RETURN tgtvec.
 }
