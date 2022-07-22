@@ -99,8 +99,7 @@ All abort scenarios discard the SSME throttling stages and keep the throttle at 
 
 Bear in mind that only **intact aborts** are covered right now. A double engine failure is a Contingency scenario and the script will not attempt to handle them.
 
-**Caveat: **
-
+**Caveat:**
 The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Oscillations are expected and should be fine, unless they are too severe.
 
 
