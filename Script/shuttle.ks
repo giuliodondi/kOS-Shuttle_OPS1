@@ -17,8 +17,8 @@ GLOBAL target_orbit IS LEXICON (
 //GLOBAL engine_failure_time IS 410.
 
 
-//change this to the best suitable site based on launch inclination
-GLOBAL TAL_site is "Zaragoza".
+//uncomment this to select a specific TAL site
+//GLOBAL TAL_site is "Zaragoza".
 
 
 GLOBAL logdata Is false.

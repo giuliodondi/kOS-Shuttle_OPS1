@@ -721,29 +721,51 @@ FUNCTION GRTLS {
 //hard-coded selector of TAL sites based on inclination
 FUNCTION get_TAL_site {
 
-	LOCAL talsite IS LATLNG(0,0).
+	LOCAL selectedSite IS LATLNG(0,0).
+	
+	IF NOT (DEFINED TAL_site) {
+		GLOBAL TAL_site IS "Nearest".
+	}
+	
 
 	IF TAL_site = "Nearest" {
 		LOCAL orbplanevec IS VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
 		
 		LOCAL lowestproj IS 0.
-	
+		local i is 0.
 		FOR s in ldgsiteslex:KEYS {
-			LOCAL sitepos IS vecYZ(pos2vec(s["position"])).
+			LOCAL site IS ldgsiteslex[s].
+		
+			LOCAL sitepos IS vecYZ(pos2vec(site["position"])).
 			
-			LOCAL siteproj IS VDOT(sitepos,orbplanevec).
+			LOCAL site_plane IS VXCL(orbplanevec,sitepos).
 			
-			IF (lowestproj=0 OR (lowestproj > 0 AND siteproj < lowestproj)) {
-				SET lowestproj TO siteproj.
-				SET talsite tO s.
+			IF (signed_angle(orbitstate["radius"],site_plane,orbplanevec,0) > 0) {
+				print s at (0,50 + i).
+				set i to i + 1.
+				
+				//shift ahead by half an hour
+				LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+			
+				LOCAL siteproj IS VDOT(sitepos,orbplanevec).
+				
+				IF (lowestproj=0 OR (lowestproj > 0 AND siteproj < lowestproj)) {
+					SET lowestproj TO siteproj.
+					SET selectedSite tO s.
+				}
 			}
+			wait 0.1.
 		}
+		addMessage("SELECTED TAL SITE IS " + selectedSite).
+		
 	
 	} ELSE {
-		SET talsite TO ldgsiteslex[TAL_site]["position"].
+		addMessage("SELECTED TAL SITE IS " + TAL_site).
+		SET selectedSite TO TAL_site.
 	}
 	
-	RETURN talsite.
+	SET TAL_site TO selectedSite.
+	RETURN ldgsiteslex[selectedSite]["position"].
 
 }
 
@@ -880,6 +902,7 @@ FUNCTION setup_TAL {
 	}
 	
 	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site().
+	
 	
 	// declare it to signal that TAL has bene initialised
 	//make an initial guess for the target vector, shift it 1000 seconds ahead, project it onto the orbital plane
