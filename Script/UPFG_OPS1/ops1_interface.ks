@@ -145,6 +145,10 @@ FUNCTION drawUI {
 		} ELSE IF (DEFINED TALAbort) {
 		
 			SET vehstatus TO vehstatus + "TAL ABORT".
+			
+			IF (DEFINED TAL_site) {
+				SET vehstatus TO vehstatus + " to " + TAL_site.
+			}
 		
 		}  ELSE IF (DEFINED ATOAbort) {
 		
