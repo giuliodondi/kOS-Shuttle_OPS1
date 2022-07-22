@@ -735,6 +735,7 @@ FUNCTION get_TAL_site {
 		LOCAL candidate_sites IS LIST().
 		
 		local i is 0.
+		LOCAL min_dv_miss IS -1000000000.
 		FOR s in ldgsiteslex:KEYS {
 			LOCAL site IS ldgsiteslex[s].
 		
@@ -758,16 +759,25 @@ FUNCTION get_TAL_site {
 				LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
 				LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]):MAG.
 				
-				IF (0.9*DVrem - dv2site)>0 {
-					print s + " dv : " + (DVrem - dv2site) at (0,50 + i).
-					set i to i + 1.
-					
+				//current remaining deltaV minus the estimate
+				LOCAL dv_excess IS 0.9*DVrem - dv2site.
+				
+				IF dv_excess>0 {
+					//if the excess deltav is positive this is a good candidate
 					candidate_sites:ADD(s).
+				} ELSE {
+					//else, keep track of the "least bad" candidate site 
+					//this is the fallback option if no good candidates are present
+					IF (dv_excess > min_dv_miss) {
+						SET selectedSite TO s.
+					}
 				}
 			}
 		}
 		
-		SET selectedSite TO select_rand(candidate_sites).
+		IF (candidate_sites:LENGTH > 0) {
+			SET selectedSite TO select_rand(candidate_sites).
+		}
 		
 		addMessage("SELECTED TAL SITE IS " + selectedSite).
 		
