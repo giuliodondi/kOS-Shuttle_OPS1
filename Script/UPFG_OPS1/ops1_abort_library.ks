@@ -731,6 +731,10 @@ FUNCTION get_TAL_site {
 	IF TAL_site = "Nearest" {
 		LOCAL orbplanevec IS VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
 		
+		//estimate the delta-V remaining 
+		
+		
+		
 		LOCAL lowestproj IS 0.
 		local i is 0.
 		FOR s in ldgsiteslex:KEYS {
@@ -901,6 +905,21 @@ FUNCTION setup_TAL {
 		RETURN.
 	}
 	
+	//performance calculations first since we need an estimate of the deltaV remaining
+	SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
+	
+	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
+	SET vehicle["stages"][2]["mode"] TO 1.
+	SET vehicle["stages"][2]["Throttle"] TO 1.
+	vehicle["stages"][2]:REMOVE("glim").
+	vehicle["stages"][2]:REMOVE("minThrottle").
+	SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
+	
+	LOCAL current_m IS SHIP:MASS*1000.
+	local res_left IS get_prop_mass(vehicle["stages"][2]).
+	
+	update_stage2(current_m, res_left).
+	
 	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site().
 	
 	
@@ -920,21 +939,6 @@ FUNCTION setup_TAL {
 	
 	SET target_orbit TO TAL_cutoff_params(target_orbit, target_orbit["radius"]).
 	SET TALAbort["tgt_vec"] TO TAL_tgt_vec(orbitstate["radius"]).
-	
-	
-	SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
-	
-	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
-	SET vehicle["stages"][2]["mode"] TO 1.
-	SET vehicle["stages"][2]["Throttle"] TO 1.
-	vehicle["stages"][2]:REMOVE("glim").
-	vehicle["stages"][2]:REMOVE("minThrottle").
-	SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
-	
-	LOCAL current_m IS SHIP:MASS*1000.
-	local res_left IS get_prop_mass(vehicle["stages"][2]).
-	
-	update_stage2(current_m, res_left).
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
