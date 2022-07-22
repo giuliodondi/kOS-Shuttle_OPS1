@@ -185,6 +185,18 @@ declare function sectotime {
 }
 
 
+
+//select a random element from a list
+FUNCTION select_rand{
+	PARAMETER lst.
+	
+	LOCAL len IS lst:LENGTH.
+	
+	RETURN lst[FLOOR(len*RANDOM())].
+}
+
+
+
 // object that implements a fixed-size list where elements are added at the front
 FUNCTION fixed_list_factory {
 	PARAMETER len.

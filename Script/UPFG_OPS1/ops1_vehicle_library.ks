@@ -923,7 +923,7 @@ FUNCTION setup_engine_failure {
 					"type", "action",
 					"action",{
 								LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME").
-								englist[FLOOR(3*RANDOM())]:SHUTDOWN.
+								select_rand(englist):SHUTDOWN.
 					}
 			)
 		).
