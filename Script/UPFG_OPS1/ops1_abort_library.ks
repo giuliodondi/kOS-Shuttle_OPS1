@@ -769,6 +769,7 @@ FUNCTION get_TAL_site {
 					//else, keep track of the "least bad" candidate site 
 					//this is the fallback option if no good candidates are present
 					IF (dv_excess > min_dv_miss) {
+						SET min_dv_miss TO dv_excess.
 						SET selectedSite TO s.
 					}
 				}
