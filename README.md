@@ -105,6 +105,8 @@ The Shuttle has its engines pointed away from the main vehicle axis and as such 
 
 ## RTLS abort 
 
+### Only works for Shuttles using RS-25D variant at the moment. I haven't yet pintpointed which parameter must be adjusted based on engine thrust
+
 RTLS can be triggered automatically with an event contained in the vessel file or manually by shutting down an engine during flight. If the failure happens during stage 1 guidance will not kick in until after SRB separation, if the failure occurs during stage 2 it will be triggered immediately.  
 The script performs automatically all three phases of RTLS:
 - dissipation, flying outbound for a certain time to waste fuel. The script uses the PEG algorithm to estimate the right time to turn around.
