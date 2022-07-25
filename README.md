@@ -78,9 +78,9 @@ Fuel cells are automatically activated at liftoff. On a nominal mission a roll t
 Although the Shuttle was a two-stage vehicle, the script treats it as a four-stage vehicle:
 - stage 1 is the SRB atmospheric phase, with open-loop guidance. It terminates 5 seconds after SRB sep.
 - stage 2 is closed-loop PEG guidance with the engines at full constant throttle. It terminates when the acceleration reaches 3G
-- stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached
-- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. IT terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch. 
-- 
+- stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached. For missions with very heavy payloads this might be the last phase overall, as fuel will be depleted before the minimum throttle setting is reached.
+- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. It terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch. 
+
 After MECO the script wil automatically:
 - trigger ET sep
 - command an RCS vertical translation manoeuvre
