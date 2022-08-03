@@ -272,7 +272,7 @@ declare function t_to_eta {
 
 //get current vehicle roll angle around the surface prograde vector 
 FUNCTION get_roll_prograde {
-	LOCAL progvec IS SHIP:srfprograde:vector:NORMALIZED.
+	LOCAL progvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
 	LOCAL shiptopvec IS VXCL(progvec,SHIP:FACING:FOREVECTOR:NORMALIZED):NORMALIZED.
 	LOCAL surftopvec IS VXCL(progvec,-SHIP:ORBIT:BODY:POSITION:NORMALIZED):NORMALIZED.
 	RETURN signed_angle(shiptopvec,surftopvec,progvec,0).
@@ -280,15 +280,16 @@ FUNCTION get_roll_prograde {
 //get current pitch angles from the surface prograde vector
 FUNCTION get_pitch_prograde {
 	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	LOCAL progvec IS SHIP:srfprograde:vector:NORMALIZED.
+	LOCAL progvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
 	LOCAL facingvec IS SHIP:FACING:FOREVECTOR:NORMALIZED.
 	LOCAL sidevec IS VCRS(progvec,topvec).
-	RETURN signed_angle(
-						progvec,
-						facingvec,
-						sidevec,
-						0
-	).
+	//RETURN signed_angle(
+	//					progvec,
+	//					facingvec,
+	//					sidevec,
+	//					0
+	//).
+	RETURN VANG(progvec,facingvec).
 
 }
 
