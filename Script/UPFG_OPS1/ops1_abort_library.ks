@@ -584,6 +584,8 @@ FUNCTION GRTLS {
 						)
 	).
 	
+	reset_pids().
+	
 	LISt ENGINES IN englist.
 	GLOBAL gimbals IS 0.
 	FOR e IN englist {
