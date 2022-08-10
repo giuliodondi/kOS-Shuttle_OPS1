@@ -395,7 +395,7 @@ FUNCTION setup_RTLS {
 	).
 	
 	
-	SET upfgConvergenceTgo TO 1.5.
+	SET upfgConvergenceTgo TO 1.8.
 	SET upfgFinalizationTime TO 15.
 	SET upfgInternal["flyback_flag"] TO flyback_immediate.
 
