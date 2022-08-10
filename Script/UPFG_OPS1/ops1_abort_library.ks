@@ -171,11 +171,11 @@ FUNCTION RTLS_dissip_theta_time {
 						LIST(30,64),
 						LIST(60,62),
 						LIST(90,58),
-						LIST(120,52),
-						LIST(150,42),
-						LIST(180,39),
-						LIST(210,35),
-						LIST(240,31)
+						LIST(120,56),
+						LIST(150,52),
+						LIST(180,46),
+						LIST(210,39),
+						LIST(240,35)
 	).
 	
 	LOCAL theta_bias IS 0.
