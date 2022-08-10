@@ -557,7 +557,7 @@ FUNCTION upfg {
 		
 		IF (flyback_flag AND RTLSthrotflag) {
 			
-			LOCAL throtgain IS -dt*2.1e-3.
+			LOCAL throtgain IS -dt*2e-3.
 			
 			LOCAL newKk IS Kk + throtgain*Tc.
 			SET Kk TO MAX(0,MIN(1,newKk)).
