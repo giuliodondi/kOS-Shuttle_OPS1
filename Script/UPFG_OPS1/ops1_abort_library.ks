@@ -1,26 +1,36 @@
 //main abort lexicon
 //define abort boundaries here
+//boundaries are now functions that return a bool so we can implement whatever logic we want
+//keep them all here
 GLOBAL abort_modes IS LEXICON( 
 					"triggered",FALSE,
 					"t_abort",0,
 					"abort_v",0,
 					"oms_dump",FALSE,
 					"RTLS",LEXICON(
-							"boundary",225,
+							"boundary",{
+								RETURN SHIP:VELOCITY:SURFACE:MAG > 2150.
+							},
 							"active",TRUE,
 							"tgt_site", get_RTLS_site()
 							),
 					"TAL",LEXICON(
-							"boundary",341,
+							"boundary",{
+								RETURN SHIP:VELOCITY:ORBIT:MAG > 4350.
+							},
 							"active",FALSE,
 							"tgt_site", LATLNG(0,0)
 							),
 					"ATO",LEXICON(
-							"boundary",421,
+							"boundary",{
+								RETURN SHIP:VELOCITY:ORBIT:MAG > 6100.
+							},
 							"active",FALSE
 							),
 					"MECO",LEXICON(
-							"boundary",1000,
+							"boundary",{
+								RETURN FALSE.	//want this to be always false
+							},
 							"active",FALSE
 							)
 							
@@ -49,19 +59,19 @@ FUNCTION monitor_abort {
 		//set the correct abort mode to active and print information
 		
 		IF abort_modes["RTLS"]["active"] {
-			IF ( current_t >= abort_modes["RTLS"]["boundary"]  ) {
+			IF abort_modes["RTLS"]["boundary"]() {
 				SET abort_modes["RTLS"]["active"] TO FALSE.
 				SET abort_modes["TAL"]["active"] TO TRUE.
 				addMessage("NEGATIVE RETURN").
 			}
 		} ELSE IF abort_modes["TAL"]["active"] {
-			IF ( current_t >= abort_modes["TAL"]["boundary"]  ) {
+			IF abort_modes["TAL"]["boundary"]() {
 				SET abort_modes["TAL"]["active"] TO FALSE.
 				SET abort_modes["ATO"]["active"] TO TRUE.
 				addMessage("PRESS TO ATO.").
 			}
 		} ELSE IF abort_modes["ATO"]["active"] {
-			IF ( current_t >= abort_modes["ATO"]["boundary"]  ) {
+			IF abort_modes["ATO"]["boundary"]() {
 				SET abort_modes["ATO"]["active"] TO FALSE.
 				SET abort_modes["MECO"]["active"] TO TRUE.
 				addMessage("PRESS TO MECO.").
@@ -317,7 +327,8 @@ FUNCTION setup_RTLS {
 	
 	LOCAL t_abort IS TIME:SECONDS.
 	
-	LOCAL flyback_immediate IS (t_abort - vehicle["ign_t"] + 10 > abort_modes["RTLS"]["boundary"]).
+	//LOCAL flyback_immediate IS (t_abort - vehicle["ign_t"] + 10 > abort_modes["RTLS"]["boundary"]).
+	LOCAL flyback_immediate IS FALSE.
 		
 	IF (flyback_immediate) {
 		addMessage("POWERED PITCH-AROUND TRIGGERED").
