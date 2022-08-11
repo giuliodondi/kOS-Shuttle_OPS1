@@ -1,36 +1,22 @@
 //main abort lexicon
-//define abort boundaries here
-//boundaries are now functions that return a bool so we can implement whatever logic we want
-//keep them all here
+//abort boundaries are defined with velocity in their own functions
 GLOBAL abort_modes IS LEXICON( 
 					"triggered",FALSE,
 					"t_abort",0,
 					"abort_v",0,
 					"oms_dump",FALSE,
 					"RTLS",LEXICON(
-							"boundary",{
-								RETURN SHIP:VELOCITY:SURFACE:MAG > 2150.
-							},
 							"active",TRUE,
 							"tgt_site", get_RTLS_site()
 							),
 					"TAL",LEXICON(
-							"boundary",{
-								RETURN SHIP:VELOCITY:ORBIT:MAG > 4350.
-							},
 							"active",FALSE,
 							"tgt_site", LATLNG(0,0)
 							),
 					"ATO",LEXICON(
-							"boundary",{
-								RETURN SHIP:VELOCITY:ORBIT:MAG > 6100.
-							},
 							"active",FALSE
 							),
 					"MECO",LEXICON(
-							"boundary",{
-								RETURN FALSE.	//want this to be always false
-							},
 							"active",FALSE
 							)
 							
@@ -59,19 +45,19 @@ FUNCTION monitor_abort {
 		//set the correct abort mode to active and print information
 		
 		IF abort_modes["RTLS"]["active"] {
-			IF abort_modes["RTLS"]["boundary"]() {
+			IF RTLS_boundary() {
 				SET abort_modes["RTLS"]["active"] TO FALSE.
 				SET abort_modes["TAL"]["active"] TO TRUE.
 				addMessage("NEGATIVE RETURN").
 			}
 		} ELSE IF abort_modes["TAL"]["active"] {
-			IF abort_modes["TAL"]["boundary"]() {
+			IF TAL_boundary() {
 				SET abort_modes["TAL"]["active"] TO FALSE.
 				SET abort_modes["ATO"]["active"] TO TRUE.
 				addMessage("PRESS TO ATO.").
 			}
 		} ELSE IF abort_modes["ATO"]["active"] {
-			IF abort_modes["ATO"]["boundary"]() {
+			IF ATO_boundary() {
 				SET abort_modes["ATO"]["active"] TO FALSE.
 				SET abort_modes["MECO"]["active"] TO TRUE.
 				addMessage("PRESS TO MECO.").
@@ -290,9 +276,14 @@ FUNCTION RTLS_burnout_mass {
 	SET vehicle["mbod"] TO vehicle["stages"][vehicle["stages"]:LENGTH - 1]["m_final"] + 10000.
 }
 
-//compare abort time with negative return to see if we should flyback immediately
+
+FUNCTION RTLS_boundary{
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2150.
+}
+
+//compare current velocity with negative return boundary to see if we should flyback immediately
 FUNCTION RTLS_immediate_flyback {
-	RETURN (RTLSAbort["t_abort"] + 10 > abort_modes["RTLS"]["boundary"]).
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2000.
 }
 
 FUNCTION setup_RTLS {
@@ -327,8 +318,7 @@ FUNCTION setup_RTLS {
 	
 	LOCAL t_abort IS TIME:SECONDS.
 	
-	//LOCAL flyback_immediate IS (t_abort - vehicle["ign_t"] + 10 > abort_modes["RTLS"]["boundary"]).
-	LOCAL flyback_immediate IS FALSE.
+	LOCAL flyback_immediate IS RTLS_immediate_flyback().
 		
 	IF (flyback_immediate) {
 		addMessage("POWERED PITCH-AROUND TRIGGERED").
@@ -953,6 +943,10 @@ FUNCTION TAL_cutoff_params {
 }
 
 
+FUNCTION TAL_boundary {
+	RETURN SHIP:VELOCITY:ORBIT:MAG > 4350.
+}
+
 
 FUNCTION setup_TAL {
 
@@ -1067,6 +1061,10 @@ FUNCTION ATO_cutoff_params {
 	set target["eta"] to etaa.
 	
 	RETURN target.
+}
+
+FUNCTION ATO_boundary {
+	RETURN SHIP:VELOCITY:ORBIT:MAG > 6100.
 }
 	
 
