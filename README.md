@@ -95,6 +95,7 @@ The script then enters an infinite loop displaying the results of an orbital ana
 ### General considerations
 
 Aborts can be triggered by uncommenting the *engine_failure_time* variable in the main **shuttle.ks** script. The time specified will trigger a different abort mode, each with its own guidance and targeting scheme. Alternatively a failure can be triggered manually by shutting down an engine mid-flight, the program is able to detect both situations.  
+The boundaries between abort scenarios depend on velocity, so they may be reached at significantly different METs depending on the SSME condiguration and the payload.  
 All abort scenarios discard the SSME throttling stages and keep the throttle at maximum until MECO or fuel depletion, except for RTLS which uses throttling for guidance.
 
 Bear in mind that only **intact aborts** are covered right now. A double engine failure is a Contingency scenario and the script will not attempt to handle them.
@@ -105,11 +106,13 @@ The Shuttle has its engines pointed away from the main vehicle axis and as such 
 
 ## RTLS abort 
 
-### Only works for Shuttles using RS-25D variant at the moment. I haven't yet pintpointed which parameter must be adjusted based on engine thrust
+### Works ok with RS-25D variants, behaviour is a bit strange with the lower-thrust RS-25 but I have still been able to perform the abort successfully
 
-RTLs is triggered if an engine fails between liftoff and MET 225 seconds. The actual abort guidance is not activated until the vehicle enters second stage, if the engine goes dow nafter SRB sep, guidance is activated immediately.  
+RTLs is triggered if an engine fails before 2280 m/s surface-relative velocity is reached. The boundary is called **negative return** and a TAL abort is commanded after that.  
+The actual abort guidance is not activated until the vehicle enters second stage, if the engine goes down after SRB sep, guidance is activated immediately.  
+
 The script performs automatically all three phases of RTLS:
-- **Dissipation**, flying outbound for a certain time to waste fuel. Guidance is open-loop, limited to pitching up by an angle that depends on the time of engine failure. The script uses the PEG algorithm as a predictor to estimate the right time to turn around.
+- **Dissipation**, flying outbound for a certain time to waste fuel. Guidance is open-loop, limited to pitching up by an angle that depends on the time of engine failure. The script uses the PEG algorithm as a predictor to estimate the right time to turn around. If RTLS is triggered very close to the negative return boundary, this step is skipped.
 - **Flyback**, where the shuttle points back to the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. 
 The target MECO conditions are 78 km altitude and variable distance from the launch site, at a velocity that depends on MECO distance. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 60 seconds before MECO as it is a bit unstable, thus the 2% constraint might actually be violated in some cases, but not by much.
 - **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° and performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory.  
@@ -117,15 +120,15 @@ The target MECO conditions are 78 km altitude and variable distance from the lau
 At the end of these phases the Shuttle will be at around 30km descending gently. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
 During dissipation and flyback, the script will also burn the OMS engines to dump fuel. This is completely automatic.  
 
-I tested early aborts (MET 80s) all the way to negative return (MET 225s). The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
-The script is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort.  
+I tested early aborts all the way to negative return. The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
+Guidance might lose convergence a couple times after pitch-around since the active throttling is not as stable as I'd like. Also guidance is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort.  
 The Glide-RTLS phase is more iffy as there is no closed-loop guidance, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
-The end conditions of Glide-RTLS depend a lot on the position and velocity at MECO. I programmed guidance to leave the shuttle with plenty of energy, but I've seen that sometimes the shuttle engages entry guidance **really** high on energy, like 30km and 1000 m/s at about 100km away. In this case I suggest to switch to approach mode earlier than usual (~60km from the target) and do a steep manual descent into thicker air.
 
 
 ## TAL abort
 
-The TAL abort is triggered if an engine is shut down between MET 225s and MET 340s. The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within 600km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
+The TAL abort is triggered if an engine is shut down between negative return and 4350 inertial velocity. The boundary is called **press to ATO** and an ATO/AOA abort is commanded after that.  
+The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within 600km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
 
 Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. The later the TAL abort, the faster the Shuttle is already and the more deltaV it takes to curve the trajectory.  
 Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
@@ -133,7 +136,7 @@ The Shuttle **usually** manages to steer the entry trajectory towards the landin
 
 ## ATO/AOA aborts
 
-Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between MET 340s and MET 420s.  
+Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between Press to ATO and 6100 inertial velocity. The boundary is called **press to MECO** and no abort is commanded after that.  
 This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired. Also no OMs dump is performed as you will need the fuel to do orbital corrections later on.  
 
 After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that. 
