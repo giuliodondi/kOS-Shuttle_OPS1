@@ -100,15 +100,15 @@ FUNCTION log_data {
 
 //draw a vector  with label, by default its centered on the ship and scaled to 10 times its length
 FUNCTION arrow {
-	PARAMETER v.
+	PARAMETER vec.
 	PARAMETER lab.
-	PARAMETER v_centre IS v(0,0,0).
+	PARAMETER vec_centre IS v(0,0,0).
 	PARAMETER scl IS 10.
 	PARAMETER wdh IS 0.5.
 	
 	VECDRAW(
-      v_centre,
-      v,
+      vec_centre,
+      vec,
       RGB(1,0,0),
       lab,
       scl,
@@ -120,14 +120,14 @@ FUNCTION arrow {
 
 //draw a vector  with label, by default its centered on the body and scaled to 2 times its length
 FUNCTION arrow_body {
-	PARAMETER v.
+	PARAMETER vec.
 	PARAMETER lab.
 	PARAMETER scl IS 2.
 	PARAMETER wdh IS 0.5.
 	
 	VECDRAW(
       SHIP:ORBIT:BODY:POSITION,
-      v,
+      vec,
       RGB(1,0,0),
       lab,
       scl,
@@ -169,16 +169,16 @@ declare function sectotime {
 		set string to string + FLOOR(t) + " s".	
 	}
 	else {
-		local min is FLOOR(t/60).
-		if min<60 {
-			local sec is FLOOR(t - min*60).
-			set string to string + min + " m " + sec+ " s".
+		local minutes is FLOOR(t/60).
+		if minutes<60 {
+			local sec is FLOOR(t - minutes*60).
+			set string to string + minutes + " m " + sec+ " s".
 		}
 		else {
-			local sec is FLOOR(t - min*60).	
-			local hr is FLOOR(min/60).
-			set min to min - hr*60.
-			set string to string + hr + " h " + min + " m " + sec+ " s".
+			local sec is FLOOR(t - minutes*60).	
+			local hr is FLOOR(minutes/60).
+			set minutes to minutes - hr*60.
+			set string to string + hr + " h " + minutes + " m " + sec+ " s".
 		}
 	}
 	return string.

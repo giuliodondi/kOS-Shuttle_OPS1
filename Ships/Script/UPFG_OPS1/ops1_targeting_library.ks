@@ -61,15 +61,15 @@ FUNCTION cutoff_params {
 	
 	local x is 1 + target["ecc"]*COS(etaa).
 	
-	local r is cutoff_r:MAG.
+	local r_cut is cutoff_r:MAG.
 	
 	IF mode=2{ //given sma, ecc and eta, compute r
-		set r to target["SMA"]*(1-target["ecc"]^2)/x.	
+		set r_cut to target["SMA"]*(1-target["ecc"]^2)/x.	
 	}
 	ELSE IF mode=1 {	//given sma, ecc and r, compute eta
 		IF target["ecc"]=0 {set etaa to  0.}
 		ELSE {		
-			set etaa to (target["SMA"]*(1-target["ecc"]^2)/r - 1)/target["ecc"].
+			set etaa to (target["SMA"]*(1-target["ecc"]^2)/r_cut - 1)/target["ecc"].
 			set etaa to ARCCOS(limitarg(etaa)).
 		}
 		set x to 1 + target["ecc"]*COS(etaa).
@@ -77,16 +77,16 @@ FUNCTION cutoff_params {
 	
 	
 	//ELSE IF mode=1 {	//given r, ecc and eta, compute sma
-	//	SET target["SMA"] TO x*r/(1-target["ecc"]^2).
+	//	SET target["SMA"] TO x*r_cut/(1-target["ecc"]^2).
 	//}
 
-	local v is SQRT(SHIP:BODY:MU * (2/r - 1/target["SMA"])).
+	local v_cut is SQRT(SHIP:BODY:MU * (2/r_cut - 1/target["SMA"])).
 		
 	local phi is target["ecc"]*sin(etaa)/x.
 	set phi to ARCTAN(phi).
 	
-	set target["radius"] to cutoff_r:NORMALIZED*r.
-	set target["velocity"] to v.
+	set target["radius"] to cutoff_r:NORMALIZED*r_cut.
+	set target["velocity"] to v_cut.
 	set target["angle"] to phi.
 	set target["eta"] to etaa.
 	
@@ -519,11 +519,13 @@ FUNCTION update_navigation {
 	
 	//measure position and orbit parameters
 	
-	IF vehiclestate["ops_mode"] >1 {set v to SHIP:PROGRADE:VECTOR.}
-	ELSE {set v to SHIP:SRFPROGRADE:VECTOR.}
+	LOCAL progv IS v(0,0,0).
 	
-	SET surfacestate["hdir"] TO compass_for(v,SHIP:GEOPOSITION ).
-	SET surfacestate["vdir"] TO 90 - VANG(v, SHIP:UP:VECTOR).
+	IF vehiclestate["ops_mode"] >1 {set progv to SHIP:PROGRADE:VECTOR.}
+	ELSE {set progv to SHIP:SRFPROGRADE:VECTOR.}
+	
+	SET surfacestate["hdir"] TO compass_for(progv,SHIP:GEOPOSITION ).
+	SET surfacestate["vdir"] TO 90 - VANG(progv, SHIP:UP:VECTOR).
 	SET surfacestate["pitch"] TO 90 - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR).	
 	SET surfacestate["az"] TO compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ).
 	SET surfacestate["alt"] TO SHIP:ALTITUDE.

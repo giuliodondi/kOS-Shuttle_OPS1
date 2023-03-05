@@ -277,7 +277,7 @@ FUNCTION debug_vehicle {
 
 //open-loop pitch profile for first stage ascent
 FUNCTION pitch {
-	PARAMETER v.
+	PARAMETER curv.
 	PARAMETER v0.
 	PARAMETER scale.			 
 	
@@ -285,14 +285,14 @@ FUNCTION pitch {
 
 	LOCAL out IS default.
 	
-	IF v>v0 {
+	IF curv>v0 {
 		
 		LOCAL p1 IS -0.0068.
 		LOCAL p2 IS 28.8.
 		LOCAL p3 IS 26300.
 		LOCAL q1 IS 3.923.
 		
-		LOCAL x IS v + 400.391 - v0.
+		LOCAL x IS curv + 400.391 - v0.
 	
 		SET out TO (p1*x^2 + p2*x + p3)/(x + q1).
 		
@@ -332,8 +332,7 @@ FUNCTION thrustrot {
 			IF e:IGNITION {
 				SET thr TO thr + (e:THRUST).
 				//set x to x + 1.
-				local v is -e:POSITION:NORMALIZED*e:THRUST.
-				set offs to offs + v.
+				set offs to offs -e:POSITION:NORMALIZED*e:THRUST.
 			}
 		}
 	}	
@@ -469,13 +468,13 @@ FUNCTION get_stage {
 
 
 FUNCTION add_action_event{
-	PARAMETER time.
+	PARAMETER tt.
 	PARAMETER callable.
 	
 	
 	events:ADD(
 		LEXICON(
-				"time",time,
+				"time",tt,
 				"type", "action",
 				"action",callable
 		)

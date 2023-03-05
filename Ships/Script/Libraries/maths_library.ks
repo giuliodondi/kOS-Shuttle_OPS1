@@ -421,7 +421,7 @@ FUNCTION sphetocart{
 FUNCTION carttosphe {
 	PARAMETER vin.
 	
-	local r is SQRT( vin:x^2 + vin:y^2 + vin:z^2 ).
+	local r_ is SQRT( vin:x^2 + vin:y^2 + vin:z^2 ).
 	local t is 0.
 	local p is 0.
 	
@@ -447,7 +447,7 @@ FUNCTION carttosphe {
 		set p to fixangle(ARCTAN( SQRT( vin:x^2 + vin:y^2 )/vin:z )).
 	}
 	
-	RETURN v(r,t,p).
+	RETURN v(r_,t,p).
 }
 
 //normalises a vector in spherical coordinates

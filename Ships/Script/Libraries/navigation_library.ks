@@ -332,8 +332,8 @@ function get_fpa {
 	parameter vec.
 	PARAMETER geopos.
 	
-	LOCAL up IS pos2vec(geopos):NORMALIZED.
-	LOCAL velproj IS VXCL(up,vec).
+	LOCAL upvec IS pos2vec(geopos):NORMALIZED.
+	LOCAL velproj IS VXCL(upvec,vec).
 	
 	LOCAL rightvec IS -VCRS(velproj,vec):NORMALIZED.
 	

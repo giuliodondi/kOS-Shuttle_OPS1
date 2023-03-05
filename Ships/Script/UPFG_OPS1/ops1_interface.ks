@@ -234,15 +234,15 @@ FUNCTION dataViz {
 	PRINTPLACE(ROUND(downrangedist(launchpad,SHIP:GEOPOSITION ),2) + " km",12,50,surfloc).
 	PRINTPLACE(ROUND(SHIP:GROUNDSPEED,1) + " m/s",12,50,surfloc+1).
 	
-	local v is 0.
+	local progv is 0.
 	
-	IF vehiclestate["ops_mode"] >1 {set v to SHIP:PROGRADE:VECTOR.}
-	ELSE {set v to SHIP:SRFPROGRADE:VECTOR.}
+	IF vehiclestate["ops_mode"] >1 {set progv to SHIP:PROGRADE:VECTOR.}
+	ELSE {set progv to SHIP:SRFPROGRADE:VECTOR.}
 
 	PRINTPLACE(ROUND(90 - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR),2) + " deg",12,19,surfloc+2).
 	PRINTPLACE(ROUND(compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ),2) + " deg",12,50,surfloc+2).
-	PRINTPLACE(ROUND(VANG(v, SHIP:UP:VECTOR) - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR),3) + " deg",12,19,surfloc+3).
-	PRINTPLACE(ROUND(compass_for(v,SHIP:GEOPOSITION ) - compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ),3) + " deg",12,50,surfloc+3).
+	PRINTPLACE(ROUND(VANG(progv, SHIP:UP:VECTOR) - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR),3) + " deg",12,19,surfloc+3).
+	PRINTPLACE(ROUND(compass_for(progv,SHIP:GEOPOSITION ) - compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ),3) + " deg",12,50,surfloc+3).
 	
 	
 	//orbital data

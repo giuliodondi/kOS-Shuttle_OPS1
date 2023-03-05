@@ -2,14 +2,14 @@
 FUNCTION agrav {
 
 	//ought to be in metres
-	PARAMETER r.
+	PARAMETER r_cur.
 
-	LOCAL r_inv IS 1/r:MAG.
+	LOCAL r_inv IS 1/r_cur:MAG.
 	
 	//central body potential
-	LOCAL G_c IS -BODY:MU*r*(r_inv^3).
+	LOCAL G_c IS -BODY:MU*r_cur*(r_inv^3).
 	
-	//LOCAL u_r IS r:NORMALIZED.
+	//LOCAL u_r IS r_cur:NORMALIZED.
 	
 	LOCAL G IS V(0,0,0).
 	
@@ -22,9 +22,9 @@ FUNCTION agrav {
 	
 	
 	
-	LOCAL xx IS r:X.
-	LOCAL yy IS r:Y.
-	LOCAL zz IS r:Z.
+	LOCAL xx IS r_cur:X.
+	LOCAL yy IS r_cur:Y.
+	LOCAL zz IS r_cur:Z.
 	
 	LOCAL r7 IS r_inv^2.
 	LOCAL r5 IS r7^2*r_inv.

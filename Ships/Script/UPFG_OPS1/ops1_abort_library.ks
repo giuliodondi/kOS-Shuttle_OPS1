@@ -1043,20 +1043,20 @@ FUNCTION ATO_cutoff_params {
 	SET target["Inclination"] TO VANG(- target["normal"],v(0,0,1)).
 
 	LOCAL etaa IS 0.
-	local r is cutoff_r:MAG.
+	local r_cut is cutoff_r:MAG.
 	IF target["ecc"]=0 {set etaa to  0.}
 	ELSE {		
-		set etaa to (target["SMA"]*(1-target["ecc"]^2)/r - 1)/target["ecc"].
+		set etaa to (target["SMA"]*(1-target["ecc"]^2)/r_cut - 1)/target["ecc"].
 		set etaa to ARCCOS(limitarg(etaa)).
 	}
 	local x is  1 + target["ecc"]*COS(etaa).
 	
-	local v is SQRT(SHIP:BODY:MU * (2/r - 1/target["SMA"])).
+	local v_cut is SQRT(SHIP:BODY:MU * (2/r_cut - 1/target["SMA"])).
 		
 	local phi is target["ecc"]*sin(etaa)/x.
 	set phi to ARCTAN(phi).
 	
-	set target["velocity"] to v.
+	set target["velocity"] to v_cut.
 	set target["angle"] to phi.
 	set target["eta"] to etaa.
 	
