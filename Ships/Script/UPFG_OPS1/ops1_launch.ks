@@ -98,8 +98,6 @@ declare function open_loop_ascent{
 	drawUI().
 	addMessage("LIFT-OFF!").
 	
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.8.
-	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 	
@@ -110,8 +108,7 @@ declare function open_loop_ascent{
 		
 	local steer_flag IS false.
 	
-	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.
-	LOCAL scale IS MIN(0.2,0.15*( (target_orbit["radius"]:MAG - BODY:RADIUS)/250000 - 1)).																				   
+	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.																			   
 	
 	SET vehiclestate["ops_mode"] TO 1.
 	getState().
@@ -125,18 +122,18 @@ declare function open_loop_ascent{
 		}
 	}
 	
-	
-	
 	UNTIL FALSE {	
 		getState().
 		monitor_abort().
 		srb_staging().
 		
-		IF (TIME:SECONDS - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
+		LOCAL tt IS TIME:SECONDS.
 		
-		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG,25,scale)):VECTOR.
+		IF (tt - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
 		
-		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, vehicle["roll"]). }
+		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
+		
+		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, vehicle["roll"], 3). }
 		
 		dataViz().
 		WAIT 0.

@@ -277,36 +277,33 @@ FUNCTION debug_vehicle {
 
 //open-loop pitch profile for first stage ascent
 FUNCTION pitch {
-	PARAMETER curv.
-	PARAMETER v0.
-	PARAMETER scale.			 
-	
-	LOCAL default IS 90.
+	PARAMETER curv.	 
 
-	LOCAL out IS default.
+	LOCAL v0 IS 25.
 	
-	IF curv>v0 {
+	LOCAL refv IS 400.
+	
+	LOCAL scale IS 0.22.
+	
+	IF curv<=v0 {
+		RETURN 90.
+	} ELSE {
 		
 		LOCAL p1 IS -0.0068.
 		LOCAL p2 IS 28.8.
 		LOCAL p3 IS 26300.
 		LOCAL q1 IS 3.923.
 		
-		LOCAL x IS curv + 400.391 - v0.
+		LOCAL x IS curv + refv - v0.
 	
-		SET out TO (p1*x^2 + p2*x + p3)/(x + q1).
+		LOCAL out IS (p1*x^2 + p2*x + p3)/(x + q1).
 		
-		SET out TO out*(1 + scale*(1 - out/default)).
+		SET out TO out*(1 + scale*(1 - out/90)).
 		
 		LOCAL bias IS out - surfacestate["vdir"].
 		
-		SET out TO out + 0.8*bias.
-		
-		
+		RETURN CLAMP(out + 0.8*bias,0,90).
 	}
-
-	RETURN CLAMP(out,0,default).
-
 }
 
 
@@ -366,9 +363,10 @@ FUNCTION roll_heads_up {
 //	Returns a kOS direction for given aim vector, reference up vector and roll angle.
 //corrects for thrust offset
 FUNCTION aimAndRoll {
-	DECLARE PARAMETER aimVec.
-	DECLARE PARAMETER tgtRollAng.
-			 
+	PARAMETER aimVec.
+	PARAMETER tgtRollAng.
+	PARAMETER maxrot IS 20.
+		
 	LOCAL steerVec IS aimVec.
 	
 	LOCAL newRollAng IS tgtRollAng.
