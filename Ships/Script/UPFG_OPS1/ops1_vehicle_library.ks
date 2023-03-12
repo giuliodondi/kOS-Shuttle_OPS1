@@ -276,14 +276,14 @@ FUNCTION debug_vehicle {
 
 
 //open-loop pitch profile for first stage ascent
-FUNCTION pitch {
+FUNCTION open_loop_pitch {
 	PARAMETER curv.	 
 
 	LOCAL v0 IS 25.
 	
 	LOCAL refv IS 400.
 	
-	LOCAL scale IS 0.22.
+	LOCAL scale IS 0.201.
 	
 	IF curv<=v0 {
 		RETURN 90.

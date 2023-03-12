@@ -131,7 +131,7 @@ declare function open_loop_ascent{
 		
 		IF (tt - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
 		
-		local aimVec is HEADING(control["launch_az"],pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
+		local aimVec is HEADING(control["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
 		
 		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, vehicle["roll"], 3). }
 		
