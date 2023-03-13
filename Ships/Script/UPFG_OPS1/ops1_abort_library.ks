@@ -182,11 +182,13 @@ FUNCTION RTLS_dissip_theta_vel {
 
 
 
+
 //c1 vector in upfg coordinates
 //takes velocity in upfg coordinates
 FUNCTION RTLS_C1 {
 	PARAMETER abort_t.
 	PARAMETER vel_vec.
+	parameter normvec.
 	
 	local thetabias is 0.
 	
@@ -198,11 +200,12 @@ FUNCTION RTLS_C1 {
 	
 	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
 	
-	LOCAL iz IS VCRS(vel_vec, tgtsitevec):NORMALIZED.
-	LOCAL C1 IS VCRS(tgtsitevec,iz ):NORMALIZED.
-	RETURN rodrigues(C1, iz, theta).
+	//LOCAL iz IS VCRS(vel_vec, tgtsitevec):NORMALIZED.
+	LOCAL C1 IS VCRS(tgtsitevec,normvec ):NORMALIZED.
 	
-
+	
+	RETURN rodrigues(C1, normvec, theta).
+	
 }
 
 //RV-line , takes range to target site in metres
@@ -235,6 +238,7 @@ FUNCTION RTLS_normal {
 FUNCTION RTLS_cutoff_params {
 	PARAMETER tgt_orb.
 	PARAMETER cutoff_r.
+	PARAMETER flyback_flag.
 	
 	//first calculate the cutoff reference frame pointing to the target site right now
 	LOCAL iy IS RTLS_normal().
@@ -259,10 +263,10 @@ FUNCTION RTLS_cutoff_params {
 	LOCAL vEarth IS (constant:pi/43200)*VCRS( v(0,0,1),tgtsitevec).
 	SET vel TO vel + vEarth.
 	
-	
-	//set new normal to normal of the plane containing current pos and target vel
-	SET tgt_orb["normal"] TO VCRS( -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED) , vel:NORMALIZED  ).
-	
+	if (flyback_flag) {
+		//set new normal to normal of the plane containing current pos and target vel
+		SET tgt_orb["normal"] TO VCRS( -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED) , vel:NORMALIZED  ).
+	}
 
 	SET tgt_orb["velocity"] TO vel:MAG.	
 	
@@ -345,9 +349,9 @@ FUNCTION setup_RTLS {
 	LOCAL normvec IS RTLS_normal().
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
-	SET RTLSAbort["C1"] TO VXCL(normvec,RTLS_C1(abort_modes["t_abort"],abort_v)).
+	SET RTLSAbort["C1"] TO RTLS_C1(abort_modes["t_abort"],abort_v, normvec).
 	
-	SET RTLSAbort["pitcharound"]["refvec"] TO VCRS( RTLSAbort["C1"], vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)).
+	SET RTLSAbort["pitcharound"]["refvec"] TO normvec.
 	SET RTLSAbort["pitcharound"]["target"] TO rodrigues(RTLSAbort["C1"],RTLSAbort["pitcharound"]["refvec"],2.5*VANG(RTLSAbort["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED))).
 	
 	

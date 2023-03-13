@@ -160,8 +160,9 @@ FUNCTION upfg_wrapper {
 	
 	IF (DEFINED RTLSAbort) {
 		//clearvecdraws().
-		//arrow(vecyz(upfgOutput["steering"]),"iF2",v(0,0,0),50,0.05).
-		//arrow(vecYZ(target_orbit["normal"]:NORMALIZED),"norm",v(0,0,0),50,0.05).
+		//arrow(vecYZ(target_orbit["normal"]:NORMALIZED),"norm",v(0,0,0),10,0.5).
+		//arrow(vecYZ(RTLSAbort["pitcharound"]["refvec"]:NORMALIZED),"refvec",v(0,0,0),10,0.5).
+		//arrow(vecYZ(RTLSAbort["C1"]:NORMALIZED),"C1",v(0,0,0),10,0.5).
 		
 		//dissipation and flyback trigger logic
 		IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
@@ -170,8 +171,6 @@ FUNCTION upfg_wrapper {
 				//dissipation thrust vector
 				//SET RTLSAbort["C1"] TO  VXCL(target_orbit["normal"],RTLSAbort["C1"]).
 				SET usc["lastvec"] TO RTLSAbort["C1"].
-				
-				SET RTLSAbort["pitcharound"]["refvec"] TO VCRS( RTLSAbort["C1"], vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED)).
 				
 				SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"],upfgOutput["steering"]).
 				
@@ -446,7 +445,7 @@ FUNCTION upfg {
 		SET P_ TO P_+Pi[i].
 		SET H_ TO J_*tgoi[i] - Q_.
 	}
-	LOCAL K IS J_/L_.
+	LOCAL K_ IS J_/L_.
 	
 	
 	//	5
@@ -460,16 +459,16 @@ FUNCTION upfg {
 	LOCAL rgoxy IS rgo - VDOT(iz,rgo)*iz.
 	LOCAL rgoz IS (S_ - VDOT(lambda,rgoxy)) / VDOT(lambda,iz).
 	SET rgo TO rgoxy + rgoz*iz + rbias.
-	LOCAL lambdade IS Q_ - S_*K.
+	LOCAL lambdade IS Q_ - S_*K_.
 	
 	IF (NOT t40flag) {
 		SET lambdadot TO (rgo - S_*lambda) / lambdade.
 	}
 	
 	
-	LOCAL iF_ IS compute_iF(-K).
+	LOCAL iF_ IS compute_iF(-K_).
 	LOCAL phi IS VANG(iF_,lambda)*CONSTANT:DEGTORAD.
-	LOCAL phidot IS -phi/K.
+	LOCAL phidot IS -phi/K_.
 	LOCAL vthrust IS (L_ - 0.5*L_*phi^2 - J_*phi*phidot - 0.5*H_*phidot^2).
 	SET vthrust TO vthrust*lambda - (L_*phi + J_*phidot)*lambdadot:NORMALIZED.
 	LOCAL rthrust IS S_ - 0.5*S_*phi^2 - Q_*phi*phidot - 0.5*P_*phidot^2.
@@ -500,7 +499,7 @@ FUNCTION upfg {
 	
 	//some code duplication but helps readability
 	IF s_mode=5 {
-		LOCAL out IS RTLS_cutoff_params(tgt_orb,rp).
+		LOCAL out IS RTLS_cutoff_params(tgt_orb,rp,flyback_flag).
 		SET tgt_orb TO out[0].
 		SET vd TO  out[1].
 		
@@ -577,7 +576,7 @@ FUNCTION upfg {
 		"vgo", vgo,
 		"lambda", lambda,
 		"lambdadot", lambdadot,
-		"t_lambda",(t + K),
+		"t_lambda",(t + K_),
 		"steering",iF_,
 		"throtset",Kk,
 		"flyback_flag",flyback_flag,
