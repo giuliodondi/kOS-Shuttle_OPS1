@@ -50,7 +50,7 @@ FUNCTION log_data {
 		
 		//append to the string the numbers in sequence separated by four spaces
 		FOR val IN log_lex:VALUES {
-			SET str TO str + val + "    ".
+			SET str TO str + val + ",".
 		}
 
 		LOG str TO filename.
@@ -63,15 +63,15 @@ FUNCTION log_data {
 	if not (defined logname) {
 	
 		IF overwrite {
-			GLOBAL logname is logname_string  + ".txt".
+			GLOBAL logname is logname_string  + ".csv".
 			IF EXISTS(logname)=TRUE {
-				MOVEPATH(logname,logname_string + "_old" + ".txt").
+				MOVEPATH(logname,logname_string + "_old" + ".csv").
 			}
 		} ELSE {
 			local logcount is 0.
-			GLOBAL logname is logname_string + logcount + ".txt".
+			GLOBAL logname is logname_string + logcount + ".csv".
 			until false {
-				set logname to logname_string + logcount + ".txt".
+				set logname to logname_string + logcount + ".csv".
 				IF EXISTS(logname)=TRUE {
 					set logcount to logcount + 1.
 				}
@@ -84,7 +84,7 @@ FUNCTION log_data {
 		LOCAL titlestr IS "".
 		
 		FOR key IN log_lex:KEYS {
-			SET titlestr TO titlestr + key + "    ".
+			SET titlestr TO titlestr + key + ",".
 		}
 		
 		log titlestr to logname.
