@@ -169,7 +169,7 @@ FUNCTION upfg_wrapper {
 			IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
 			
 				//dissipation thrust vector
-				//SET RTLSAbort["C1"] TO  VXCL(target_orbit["normal"],RTLSAbort["C1"]).
+				SET RTLSAbort["C1"] TO  RTLS_C1(RTLSAbort["C1"], target_orbit["normal"], vehicle["stages"][vehiclestate["cur_stg"]]).
 				SET usc["lastvec"] TO RTLSAbort["C1"].
 				
 				SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"],upfgOutput["steering"]).
@@ -182,7 +182,7 @@ FUNCTION upfg_wrapper {
 				
 				SET control["refvec"] TO SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 				
-				IF (upfgOutput["Tc"] <= 1 AND RTLSAbort["flyback_conv"] = 1) {
+				IF (upfgOutput["Tc"] <= 6 AND RTLSAbort["flyback_conv"] = 1) {
 					addMessage("POWERED PITCH-AROUND TRIGGERED").
 					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.

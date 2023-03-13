@@ -180,12 +180,50 @@ FUNCTION RTLS_dissip_theta_vel {
 }
 
 
+//calculate the theta angle required to achieve apoapsis at a set altitude 
+//approximate constant mass calculations
+//intended to be called in a loop until flyback
+FUNCTION RTLS_dissip_theta_adaptive {
+	PARAMETER y0.
+	PARAMETER vy0.
+	parameter thr.
+	PARAMETER m0.
+	
+	LOCAL g0 IS 9.80665. 
+	
+	LOCAL dy IS 130000 - y0.
+	
+	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
+
+	RETURN MIN(5,ARCSIN(limitarg(sintheta))).
+}
+
+//c1 vector in upfg coordinates
+//
+FUNCTION RTLS_C1 {
+	parameter C1_prev.
+	parameter normvec.
+	parameter stg.
+	
+	LOCAL y0 IS surfacestate["alt"].
+	LOCAL vy0 IS surfacestate["vs"].
+	
+	IF (vy0 < 100) {
+		RETURN C1_prev.
+	}
+	
+	LOCAL theta IS RTLS_dissip_theta_adaptive(y0, vy0, stg["engines"]["thrust"], stg["m_initial"]).
+	
+	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
+	LOCAL C1 IS VCRS(cur_pos,normvec):NORMALIZED.
+	RETURN rodrigues(C1, normvec, theta).
+}
 
 
 
 //c1 vector in upfg coordinates
 //takes velocity in upfg coordinates
-FUNCTION RTLS_C1 {
+FUNCTION RTLS_C1_old {
 	PARAMETER abort_t.
 	PARAMETER vel_vec.
 	parameter normvec.
@@ -349,7 +387,7 @@ FUNCTION setup_RTLS {
 	LOCAL normvec IS RTLS_normal().
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
-	SET RTLSAbort["C1"] TO RTLS_C1(abort_modes["t_abort"],abort_v, normvec).
+	SET RTLSAbort["C1"] TO RTLS_C1(RTLSAbort["C1"], normvec, vehicle["stages"][2]).
 	
 	SET RTLSAbort["pitcharound"]["refvec"] TO normvec.
 	SET RTLSAbort["pitcharound"]["target"] TO rodrigues(RTLSAbort["C1"],RTLSAbort["pitcharound"]["refvec"],2.5*VANG(RTLSAbort["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED))).
