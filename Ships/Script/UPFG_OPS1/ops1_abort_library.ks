@@ -195,7 +195,7 @@ FUNCTION RTLS_dissip_theta_adaptive {
 	
 	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
 
-	RETURN MIN(5,ARCSIN(limitarg(sintheta))).
+	RETURN MAX(5,ARCSIN(limitarg(sintheta))).
 }
 
 //c1 vector in upfg coordinates
