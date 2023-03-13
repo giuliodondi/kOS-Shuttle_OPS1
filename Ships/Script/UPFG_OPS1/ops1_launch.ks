@@ -40,6 +40,7 @@ function launch{
 										"VAOA",0,
 										"Surfvel",0,
 										"Orbvel",0,
+										"Vspeed",0,
 										"Incl",0,
 										"Ecctr",0
 		).

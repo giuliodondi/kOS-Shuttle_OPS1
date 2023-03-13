@@ -362,11 +362,12 @@ FUNCTION dataViz {
 		SET loglex["TWR"] TO get_TWR().
 		SET loglex["Throt"] TO stg["Throttle"]*100.
 		SET loglex["AZ(cmd)"] TO surfacestate["hdir"].
-		SET loglex["HAOA"] TO compass_for(v,SHIP:GEOPOSITION ) - compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ).
+		SET loglex["HAOA"] TO compass_for(progv,SHIP:GEOPOSITION ) - compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ).
 		SET loglex["Pitch"] TO surfacestate["vdir"].
-		SET loglex["VAOA"] TO VANG(v, SHIP:UP:VECTOR) - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR).
+		SET loglex["VAOA"] TO VANG(progv, SHIP:UP:VECTOR) - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR).
 		SET loglex["Surfvel"] TO SHIP:VELOCITY:SURFACE:MAG.
 		SET loglex["Orbvel"] TO SHIP:VELOCITY:ORBIT:MAG.
+		SET loglex["Vspeed"] TO SHIP:VERTICALSPEED.
 		SET loglex["Incl"] TO ORBIT:INCLINATION.
 		SET loglex["Ecctr"] TO ORBIT:ECCENTRICITY.
 
