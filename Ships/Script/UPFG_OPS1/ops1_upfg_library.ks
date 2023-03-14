@@ -182,7 +182,9 @@ FUNCTION upfg_wrapper {
 				
 				SET control["refvec"] TO SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 				
-				IF (upfgOutput["Tc"] <= 6 AND RTLSAbort["flyback_conv"] = 1) {
+				LOCAL pitchover_bias IS 0.5 * RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
+				
+				IF (upfgOutput["Tc"] <= (1 + pitchover_bias) AND RTLSAbort["flyback_conv"] = 1) {
 					addMessage("POWERED PITCH-AROUND TRIGGERED").
 					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.

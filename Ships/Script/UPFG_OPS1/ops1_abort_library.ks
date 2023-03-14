@@ -191,11 +191,11 @@ FUNCTION RTLS_dissip_theta_adaptive {
 	
 	LOCAL g0 IS 9.80665. 
 	
-	LOCAL dy IS 130000 - y0.
+	LOCAL dy IS 123000 - y0.
 	
 	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
 
-	RETURN CLAMP(ARCSIN(limitarg(sintheta)), 5, 85).
+	RETURN CLAMP(0.9 * ARCSIN(limitarg(sintheta)), 5, 85).
 }
 
 //c1 vector in upfg coordinates
@@ -244,6 +244,15 @@ FUNCTION RTLS_C1_old {
 	
 	RETURN rodrigues(C1, normvec, theta).
 	
+}
+
+FUNCTION RTLS_pitchover_t {
+	PARAMETER c1_vec.
+	PARAMETER pitcharound_vec.
+	
+	LOCAL pitchover_rate IS 15.		//degrees per second 
+	
+	RETURN VANG(pitcharound_vec, c1_vec)/pitchover_rate.
 }
 
 //RV-line , takes range to target site in metres
