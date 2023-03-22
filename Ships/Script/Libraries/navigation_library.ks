@@ -279,27 +279,20 @@ FUNCTION get_roll_prograde {
 }
 
 //get current pitch angles from the surface prograde vector
-//default mode (=1) will measure the absolute angle, always positive
-//mode=0 will measure positive or negative angles wrt the ship side vector
 FUNCTION get_pitch_prograde {
-	PARAMETEr mode IS 1.
 	
 	//LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	LOCAL progvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
 	LOCAL shiptopvec IS VXCL(progvec,SHIP:FACING:TOPVECTOR:NORMALIZED):NORMALIZED.
 	LOCAL facingvec IS SHIP:FACING:FOREVECTOR:NORMALIZED.
 	LOCAL sidevec IS VCRS(progvec,shiptopvec).
-	
-	IF (mode=0) {
-		RETURN signed_angle(
-							progvec,
-							facingvec,
-							sidevec,
-							0
-		).
-	} ELSE IF (mode=1) {
-		RETURN VANG(progvec,facingvec).
-	}
+
+	RETURN signed_angle(
+						progvec,
+						facingvec,
+						sidevec,
+						0
+	).
 }
 
 //get current yaw angle (sideslip) with repsect to the ship vertical

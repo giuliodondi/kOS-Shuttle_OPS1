@@ -293,4 +293,34 @@ FUNCTION average_value_factory {
 }
 
 
+//object that executes a piece of code in a loop
+FUNCTION loop_executor_factory {
+	parameter dt.
+	parameter runnable.
+
+	LOCAL this IS LEXICON().
+	
+	this:add("runnable", runnable).
+	
+	this:add("last_execution_t", TIME:SECONDS).
+	this:add("min_exec_time", dt).
+	this:add("preserve_", TRUE).
+	
+	this:add("stop_execution", {
+		SET this:preserve_ TO FALSE.
+	}).
+	
+	WHEN TIME:SECONDS>(this:last_execution_t + this:min_exec_time) THEN {
+		//DROPPRIORITY().
+		runnable().
+		
+		SET this:last_execution_t TO TIME:SECONDS.
+		IF (this:preserve_) {
+			PRESERVE.
+		}
+	}
+	
+	return this.
+}
+
 
