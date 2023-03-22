@@ -2,6 +2,7 @@
 //abort boundaries are defined with velocity in their own functions
 GLOBAL abort_modes IS LEXICON( 
 					"triggered",FALSE,
+					"t_abort_true",0,
 					"t_abort",0,
 					"abort_v",0,
 					"oms_dump",FALSE,
@@ -36,6 +37,7 @@ FUNCTION monitor_abort {
 	IF abort_detect {
 		addMessage("ENGINE OUT DETECTED.").
 		SET abort_modes["triggered"] TO TRUE.
+		SET abort_modes["t_abort_true"] TO current_t.
 		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 5 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
 	}
@@ -117,6 +119,15 @@ FUNCTION monitor_abort {
 //		RTLS FUNCTIONS 
 
 
+//bias first-stage trajectory scale for lofting
+FUNCTION RTLS_first_stage_lofting_scale {
+	PARAMETER abort_t.
+	
+	RETURN 0.2 + 0.35*(1 - abort_t/122).
+	
+}
+
+
 //to be called before launch, will fin the closest landing site 
 //to the launchpad
 FUNCTION get_RTLS_site {
@@ -191,11 +202,11 @@ FUNCTION RTLS_dissip_theta_adaptive {
 	
 	LOCAL g0 IS 9.80665. 
 	
-	LOCAL dy IS 123000 - y0.
+	LOCAL dy IS 120000 - y0.
 	
 	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
 
-	RETURN CLAMP(0.9 * ARCSIN(limitarg(sintheta)), 5, 85).
+	RETURN CLAMP(0.9 * ARCSIN(limitarg(sintheta)), 15, 85).
 }
 
 //c1 vector in upfg coordinates
