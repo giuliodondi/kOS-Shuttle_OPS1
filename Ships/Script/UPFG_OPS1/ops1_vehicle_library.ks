@@ -850,7 +850,7 @@ FUNCTION srb_staging {
 
 	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3 ) {
 		SET vehiclestate["staging_in_progress"] TO TRUE.
-		//SET control["steerdir"] TO "kill".
+		SET control["steerdir"] TO SHIP:FACING.
 		addMessage("STAND-BY FOR SRB SEP").
 		
 		
