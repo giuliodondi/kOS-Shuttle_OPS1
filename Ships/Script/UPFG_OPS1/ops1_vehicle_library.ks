@@ -247,8 +247,10 @@ function initialise_shuttle {
 	setup_engine_failure().
 	
 	WHEN (SHIP:Q > 0.28) THEN {
-		addMessage("THROTTLING DOWN").
-		SET vehicle["stages"][1]["Throttle"] TO 0.75.
+		IF NOT (abort_modes["triggered"]) {
+			addMessage("THROTTLING DOWN").
+			SET vehicle["stages"][1]["Throttle"] TO 0.75.
+		}
 	}
 	
 	PRINT " INITIALISATION COMPLETE" AT (0,3).
@@ -284,6 +286,12 @@ FUNCTION open_loop_pitch {
 	LOCAL refv IS 400.
 	
 	LOCAL scale IS 0.201.
+	
+	//bias trajectory
+	IF (abort_modes["triggered"] ) {
+		SET scale TO RTLS_first_stage_lofting_scale(abort_modes["t_abort_true"]).
+	}
+	
 	
 	IF curv<=v0 {
 		RETURN 90.
@@ -848,12 +856,6 @@ FUNCTION srb_staging {
 		
 		//WHEN (get_TWR()<0.98) THEN {
 		WHEN (get_srb_thrust()<400) THEN {	//try srb thrust triggering
-		
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
-			SET STEERINGMANAGER:ROLLTS TO 30.
-			//SET STEERINGMANAGER:YAWTS TO 4.
-			//SET STEERINGMANAGER:YAWPID:KD TO 0.1.
-			SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
 			
 			wait until stage:ready.
 			STAGE.

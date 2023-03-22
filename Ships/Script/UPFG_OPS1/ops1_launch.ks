@@ -150,6 +150,12 @@ declare function closed_loop_ascent{
 	drawUI().
 	getState().
 	
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+	SET STEERINGMANAGER:ROLLTS TO 30.
+	//SET STEERINGMANAGER:YAWTS TO 4.
+	//SET STEERINGMANAGER:YAWPID:KD TO 0.1.
+	SET STEERINGMANAGER:ROLLPID:KD TO 0.4.
+	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
