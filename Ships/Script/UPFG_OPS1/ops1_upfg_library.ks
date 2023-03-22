@@ -554,7 +554,6 @@ FUNCTION upfg {
 		LOCAL dmbo IS burnout_m - mbod.
 		
 		SET Tc TO mbo_T - tgo.
-		print "Tc : " + Tc at (0,49).
 		
 		IF (flyback_flag AND RTLSthrotflag) {
 			
@@ -563,7 +562,6 @@ FUNCTION upfg {
 			LOCAL newKk IS Kk + throtgain*Tc.
 			SET Kk TO MAX(0,MIN(1,newKk)).
 		}
-		print "KK : " + Kk at (0,50).
 	}
 	
 	//	RETURN - build new internal state instead of overwriting the old one
