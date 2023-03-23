@@ -158,39 +158,6 @@ FUNCTION RTLS_shifted_tgt_site_vector {
 	RETURN vecYZ(shifted_pos).
 }
 
-
-//dissipation angle as function of abort time
-FUNCTION RTLS_dissip_theta_time {
-	PARAMETER abort_t.
-	
-	LOCAL theta_vs_t IS LIST(
-						LIST(0,66),
-						LIST(30,64),
-						LIST(60,62),
-						LIST(90,58),
-						LIST(120,56),
-						LIST(150,52),
-						LIST(180,46),
-						LIST(210,39),
-						LIST(240,35)
-	).
-	
-	LOCAL theta_bias IS 0.
-	
-	RETURN INTPLIN( theta_vs_t, abort_t) + theta_bias. 
-
-}
-
-//dissipation angle as function of inertial velocity at abort
-FUNCTION RTLS_dissip_theta_vel {
-	PARAMETER vel.
-	
-	LOCAL theta_bias IS 0.
-	
-	RETURN 0.474 + 0.039698*vel - 7.8684*(1e-06)*(vel^2) + thetabias.
-}
-
-
 //calculate the theta angle required to achieve apoapsis at a set altitude 
 //approximate constant mass calculations
 //intended to be called in a loop until flyback
@@ -228,33 +195,6 @@ FUNCTION RTLS_C1 {
 	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
 	LOCAL C1 IS VCRS(cur_pos,normvec):NORMALIZED.
 	RETURN rodrigues(C1, normvec, theta).
-}
-
-
-
-//c1 vector in upfg coordinates
-//takes velocity in upfg coordinates
-FUNCTION RTLS_C1_old {
-	PARAMETER abort_t.
-	PARAMETER vel_vec.
-	parameter normvec.
-	
-	local thetabias is 0.
-	
-	local vel is vel_vec:MAG.
-	
-	LOCAL theta IS RTLs_dissip_theta_time(abort_t).
-	//LOCAL theta IS RTLs_dissip_theta_vel(vel).
-	
-	
-	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
-	
-	//LOCAL iz IS VCRS(vel_vec, tgtsitevec):NORMALIZED.
-	LOCAL C1 IS VCRS(tgtsitevec,normvec ):NORMALIZED.
-	
-	
-	RETURN rodrigues(C1, normvec, theta).
-	
 }
 
 FUNCTION RTLS_pitchover_t {
