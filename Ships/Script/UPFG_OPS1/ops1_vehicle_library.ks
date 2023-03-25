@@ -921,7 +921,7 @@ FUNCTION setup_engine_failure {
 					"time",engine_failure_time,
 					"type", "action",
 					"action",{
-								LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME").
+								LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME"):SUBLIST(0,2).
 								select_rand(englist):SHUTDOWN.
 					}
 			)
