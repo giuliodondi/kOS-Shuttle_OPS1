@@ -162,14 +162,12 @@ FUNCTION RTLS_shifted_tgt_site_vector {
 //approximate constant mass calculations
 //intended to be called in a loop until flyback
 FUNCTION RTLS_dissip_theta_adaptive {
-	PARAMETER y0.
+	PARAMETER dy.
 	PARAMETER vy0.
 	parameter thr.
 	PARAMETER m0.
 	
 	LOCAL g0 IS 9.80665. 
-	
-	LOCAL dy IS 120000 - y0.
 	
 	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
 
@@ -186,11 +184,14 @@ FUNCTION RTLS_C1 {
 	LOCAL y0 IS surfacestate["alt"].
 	LOCAL vy0 IS surfacestate["vs"].
 	
-	IF (vy0 < 100) {
-		RETURN C1_prev.
+	LOCAL dy IS 120000 - y0.
+	
+	IF (dy < 100) {
+		return C1_prev.
 	}
 	
-	LOCAL theta IS RTLS_dissip_theta_adaptive(y0, vy0, stg["engines"]["thrust"], stg["m_initial"]).
+	
+	LOCAL theta IS RTLS_dissip_theta_adaptive(dy, vy0, stg["engines"]["thrust"], stg["m_initial"]).
 	
 	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
 	LOCAL C1 IS VCRS(cur_pos,normvec):NORMALIZED.
