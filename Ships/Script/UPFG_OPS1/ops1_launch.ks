@@ -63,7 +63,7 @@ declare function countdown{
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
-	add_action_event(350, roll_heads_up@ ).
+	add_action_event(270, roll_heads_up@ ).
 	
 	
 	local line is 30.
@@ -134,7 +134,7 @@ declare function open_loop_ascent{
 		
 		local aimVec is HEADING(control["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
 		
-		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, vehicle["roll"], 3). }
+		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, control["roll_angle"], 3). }
 		
 		dataViz().
 		WAIT 0.
@@ -223,7 +223,7 @@ declare function closed_loop_ascent{
 		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
 		IF NOT vehiclestate["staging_in_progress"] { //AND usc["conv"]=1
-			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED, vehicle["roll"]).										
+			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED, control["roll_angle"]).										
 		} 
 		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
 			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		

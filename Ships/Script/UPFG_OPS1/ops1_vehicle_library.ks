@@ -349,19 +349,32 @@ FUNCTION thrustrot {
 	RETURN ref_fore - newthrvec.
 }
 
-
+//manage roll to heads-up manoeuvre
 FUNCTION roll_heads_up {
 
-	LOCAL tgt_roll IS 0.
+	//skip if rtls is in progress
+	IF (DEFINED RTLSAbort) {
+		RETURN.
+	}
 	
-	IF (vehicle["roll"] <> tgt_roll) {
-		SET vehicle["roll"] TO tgt_roll.
+	//setup the new roll and steering
+	if (vehicle["roll"] <> 0) {
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.8.
 		addMessage("ROLL TO HEADS-UP ATTITUDE").
+		SET vehicle["roll"] TO 0.
+	}
+	
+	//set a new control roll angle until we reach zero
+	IF (control["roll_angle"] > 3) {
+		SET control["roll_angle"] TO MAX(control["roll_angle"] - 7,0).
 		
-		WHEN (control["roll_angle"] = vehicle["roll"]) THEN {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
+		local tnext is TIME:SECONDS +1.
+		WHEN(TIME:SECONDS > tnext) THEN {
+			roll_heads_up().
 		}
+	
+	} ELSE {
+		SET control["roll_angle"] TO 0.
 	}
 	
 }
@@ -377,29 +390,14 @@ FUNCTION aimAndRoll {
 		
 	LOCAL steerVec IS aimVec.
 	
-	LOCAL newRollAng IS tgtRollAng.
+	LOCAL newRollAng IS control["roll_angle"].
 	
-	IF ABS(tgtRollAng - control["roll_angle"])>5 {
-		local rollsign is SIGN( unfixangle( tgtRollAng - control["roll_angle"] ) ).
-		set control["roll_angle"] TO fixangle(control["roll_angle"] + rollsign*5).
-		SET newRollAng TO control["roll_angle"].
-	}
+	print "control " + control["roll_angle"] at (5,50).
+	print "veh " +  vehicle["roll"] at (5,51).
 	
 	
 	LOCAL topVec IS VXCL(steerVec,control["refvec"]):NORMALIZED.
 	SET topVec TO rodrigues(topVec, steerVec, newRollAng).
-	
-	//if the target aiming vector is too far away in yaw calculate an intermediate vector
-	//project the target vector in the ship vertical plane, rotate this towards the target by 3 degrees in the yaw plane
-	//LOCAL thrustvec IS thrust_vec().
-	//IF VANG(thrustvec,steerVec) > 5 {
-	//	LOCAL steerVecproj IS VXCL(SHIP:FACING:STARVECTOR,steerVec).
-	//	
-	//	LOCAL aimnorm Is VCRS(steerVec, steerVecproj).
-	//	
-	//	SET steerVec TO rodrigues(steerVecproj,aimnorm,-5).
-	//
-	//}
 	
 	LOCAL thrustCorr IS thrustrot(steerVec,topVec).
 	
@@ -407,10 +405,10 @@ FUNCTION aimAndRoll {
 
 
 	//clearvecdraws().
-	//arrow(topVec,"topVec",v(0,0,0),30,0.05).
-	//arrow(aimVec,"aimVec",v(0,0,0),30,0.05).
-	//arrow(steerVec,"steerVec",v(0,0,0),30,0.05).
-	//arrow(thrustCorr,"thrustCorr",v(0,0,0),30,0.05).
+	//arrow(topVec,"topVec",v(0,0,0),40,0.05).
+	//arrow(aimVec,"aimVec",v(0,0,0),40,0.05).
+	//arrow(steerVec,"steerVec",v(0,0,0),40,0.05).
+	//arrow(thrustCorr,"thrustCorr",v(0,0,0),40,0.05).
 
 	RETURN outdir.
 }

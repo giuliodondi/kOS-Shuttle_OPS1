@@ -396,9 +396,6 @@ FUNCTION setup_RTLS {
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
 	
-	SET vehicle["roll"] TO 0.
-	
-	
 	start_oms_dump().
 
 	drawUI().

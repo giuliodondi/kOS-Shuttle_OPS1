@@ -182,8 +182,6 @@ FUNCTION upfg_wrapper {
 					SET RTLSAbort["flyback_conv"] TO MIN( 1, RTLSAbort["flyback_conv"] + 1).
 				}
 				
-				SET control["refvec"] TO SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-				
 				LOCAL pitchover_bias IS 0.5 * RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
 				
 				IF (upfgOutput["Tc"] <= (1 + pitchover_bias) AND RTLSAbort["flyback_conv"] = 1) {
@@ -201,6 +199,9 @@ FUNCTION upfg_wrapper {
 					//powered pitcharound					
 					//get the current thrust vector, project in the plane containing the usc vector (flyback guidance command) and C1,
 					//rotate ahead by a few degrees
+					
+					SET vehicle["roll"] TO 0.
+					SET control["roll_angle"] TO 0.
 					
 					SET control["refvec"] TO VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
 					
