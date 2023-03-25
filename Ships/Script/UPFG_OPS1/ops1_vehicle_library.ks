@@ -392,17 +392,12 @@ FUNCTION aimAndRoll {
 	
 	LOCAL newRollAng IS control["roll_angle"].
 	
-	print "control " + control["roll_angle"] at (5,50).
-	print "veh " +  vehicle["roll"] at (5,51).
-	
-	
 	LOCAL topVec IS VXCL(steerVec,control["refvec"]):NORMALIZED.
 	SET topVec TO rodrigues(topVec, steerVec, newRollAng).
 	
 	LOCAL thrustCorr IS thrustrot(steerVec,topVec).
 	
 	LOCAL outdir IS LOOKDIRUP(steerVec + thrustCorr, topVec).
-
 
 	//clearvecdraws().
 	//arrow(topVec,"topVec",v(0,0,0),40,0.05).
@@ -458,8 +453,10 @@ FUNCTION check_maxq {
 		addMessage("VEHICLE HAS REACHED MAX-Q").
 		surfacestate:REMOVE("q").
 		WHEN (SHIP:Q < 0.95*newq) THEN {
-			addMessage("THROTTLING UP").
-			SET vehicle["stages"][1]["Throttle"] TO 1.
+			IF (vehicle["stages"][1]["Throttle"] < 1) {
+				addMessage("GO AT THROTTLE-UP").
+				SET vehicle["stages"][1]["Throttle"] TO 1.
+			}
 		}
 	}
 
