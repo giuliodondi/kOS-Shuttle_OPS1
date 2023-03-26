@@ -236,6 +236,9 @@ declare function closed_loop_ascent{
  
 	SET usc["terminal"] TO TRUE.
 	
+	//min throttle for any case
+	SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 0.67.	
+	
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {
 		LOCAL pitchdowntgtvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
@@ -243,9 +246,7 @@ declare function closed_loop_ascent{
 		
 		LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.								  
 		
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.7.
-		
-		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 0.65.		
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.7.	
 		
 		LOCAL steervec IS SHIP:FACING:FOREVECTOR.
 		
