@@ -171,8 +171,14 @@ FUNCTION RTLS_dissip_theta_adaptive {
 	LOCAL g0 IS 9.80665. 
 	
 	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
+	
+	LOCAL theta IS 0.9 * ARCSIN(limitarg(sintheta)).
+	
+	IF (vy0 < 0) {
+		SET theta TO 1.5*theta.
+	}
 
-	RETURN CLAMP(0.9 * ARCSIN(limitarg(sintheta)), 15, 85).
+	RETURN CLAMP(theta, 15, 85).
 }
 
 //c1 vector in upfg coordinates
@@ -188,9 +194,8 @@ FUNCTION RTLS_C1 {
 	LOCAL dy IS 120000 - y0.
 	
 	IF (dy < 100) {
-		return C1_prev.
+		RETURN C1_prev.
 	}
-	
 	
 	LOCAL theta IS RTLS_dissip_theta_adaptive(dy, vy0, stg["engines"]["thrust"], stg["m_initial"]).
 	
@@ -304,7 +309,6 @@ FUNCTION setup_RTLS {
 	SET vehicle["stages"][2]["mode"] TO 1.
 	SET vehicle["stages"][2]["Throttle"] TO 1.
 	vehicle["stages"][2]:REMOVE("glim").
-	vehicle["stages"][2]:REMOVE("minThrottle").
 	SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
 	
 	LOCAL current_m IS SHIP:MASS*1000.
@@ -962,7 +966,6 @@ FUNCTION setup_TAL {
 	SET vehicle["stages"][2]["mode"] TO 1.
 	SET vehicle["stages"][2]["Throttle"] TO 1.
 	vehicle["stages"][2]:REMOVE("glim").
-	vehicle["stages"][2]:REMOVE("minThrottle").
 	SET vehicle["stages"][2]["engines"] TO build_ssme_lex().
 	
 	LOCAL current_m IS SHIP:MASS*1000.
@@ -1106,7 +1109,6 @@ FUNCTION setup_ATO {
 		SET vehicle["stages"][2]["mode"] TO 1.
 		SET vehicle["stages"][2]["Throttle"] TO 1.
 		vehicle["stages"][2]:REMOVE("glim").
-		vehicle["stages"][2]:REMOVE("minThrottle").
 		
 		LOCAL current_m IS SHIP:MASS*1000.
 		local res_left IS get_prop_mass(vehicle["stages"][2]).
@@ -1125,7 +1127,6 @@ FUNCTION setup_ATO {
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
 		vehicle["stages"][3]:REMOVE("glim").
-		vehicle["stages"][3]:REMOVE("minThrottle").
 		vehicle["stages"][3]:REMOVE("throt_mult").
 		SET vehicle["stages"][3]["engines"] TO build_ssme_lex().
 		
