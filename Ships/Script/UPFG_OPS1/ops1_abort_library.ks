@@ -1168,7 +1168,6 @@ FUNCTION setup_MECO_ENGOUT {
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
 		vehicle["stages"][3]:REMOVE("glim").
-		vehicle["stages"][3]:REMOVE("minThrottle").
 		vehicle["stages"][3]:REMOVE("throt_mult").
 		SET vehicle["stages"][3]["engines"] TO build_ssme_lex().
 		
@@ -1182,7 +1181,6 @@ FUNCTION setup_MECO_ENGOUT {
 		SET vehicle["stages"][4]["staging"]["type"] TO "depletion".
 		SET vehicle["stages"][4]["mode"] TO 1.
 		SET vehicle["stages"][4]["Throttle"] TO 1.
-		vehicle["stages"][4]:REMOVE("minThrottle").
 		SET vehicle["stages"][4]["engines"] TO build_ssme_lex().
 		
 		LOCAL current_m IS SHIP:MASS*1000.
