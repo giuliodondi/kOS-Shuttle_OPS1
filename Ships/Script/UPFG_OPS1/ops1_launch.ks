@@ -63,7 +63,7 @@ declare function countdown{
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
-	add_action_event(270, roll_heads_up@ ).
+	add_action_event(350, roll_heads_up@ ).
 	
 	
 	local line is 30.
