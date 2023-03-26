@@ -237,7 +237,7 @@ declare function closed_loop_ascent{
 	SET usc["terminal"] TO TRUE.
 	
 	//min throttle for any case
-	SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 0.67.	
+	LOCK THROTTLE TO throtteValueConverter(0.67).
 	
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {

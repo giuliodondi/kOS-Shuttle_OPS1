@@ -422,19 +422,30 @@ FUNCTION throttleControl {
 	local stg IS get_stage().
 	local throtval is stg["Throttle"].
 	
-	LOCAL minthrot IS 0.
-	IF stg:HASKEY("minThrottle") {
-		SET minthrot TO stg["minThrottle"].
-	}
-	
 	IF stg["mode"] = 2   {
 		SET throtval TO stg["throt_mult"]*SHIP:MASS*1000.
 		SET usc["lastthrot"] TO throtval.
 	}
 
-	RETURN CLAMP((throtval - minthrot)/(1 - minthrot),0.005,1).
+	RETURN throtteValueConverter(throtval).
 }
 
+
+//converts between absolute throttle value (percentage of max thrust)
+//and throttle percentage relative to the range min-max which KSP uses
+FUNCTION throtteValueConverter {
+	PARAMETER abs_throt.
+	
+	local stg IS get_stage().
+	local throtval is stg["Throttle"].
+
+	LOCAL minthrot IS 0.
+	IF stg:HASKEY("minThrottle") {
+		SET minthrot TO stg["minThrottle"].
+	}
+
+	RETURN CLAMP((abs_throt - minthrot)/(1 - minthrot),0.005,1).
+}
 
 
 
