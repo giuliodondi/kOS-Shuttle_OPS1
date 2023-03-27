@@ -28,6 +28,8 @@ function launch{
 	if logdata=TRUE {	
 		GLOBAL loglex IS LEXICON(
 										"Time",0,
+										"Lat",0,
+										"Lng",0,
 										"Altitude",0,
 										"Dwnrg Dst",0,
 										"Stage",0,

@@ -355,6 +355,8 @@ FUNCTION dataViz {
 		//prepare list of values to log.
 		
 		SET loglex["Time"] TO TIME:SECONDS - vehicle["ign_t"].
+		SET loglex["Lat"] TO SHIP:GEOPOSITION:LAT.
+		SET loglex["Lng"] TO SHIP:GEOPOSITION:LNG.
 		SET loglex["Altitude"] TO SHIP:ALTITUDE/1000.
 		SET loglex["Dwnrg Dst"] TO downrangedist(launchpad,SHIP:GEOPOSITION ).
 		SET loglex["Stage"] TO vehiclestate["cur_stg"].
@@ -362,9 +364,9 @@ FUNCTION dataViz {
 		SET loglex["TWR"] TO get_TWR().
 		SET loglex["Throt"] TO stg["Throttle"]*100.
 		SET loglex["AZ(cmd)"] TO surfacestate["hdir"].
-		SET loglex["HAOA"] TO compass_for(progv,SHIP:GEOPOSITION ) - compass_for(SHIP:FACING:VECTOR,SHIP:GEOPOSITION ).
+		SET loglex["HAOA"] TO get_yaw_prograde().
 		SET loglex["Pitch"] TO surfacestate["vdir"].
-		SET loglex["VAOA"] TO VANG(progv, SHIP:UP:VECTOR) - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR).
+		SET loglex["VAOA"] TO get_pitch_prograde().
 		SET loglex["Surfvel"] TO SHIP:VELOCITY:SURFACE:MAG.
 		SET loglex["Orbvel"] TO SHIP:VELOCITY:ORBIT:MAG.
 		SET loglex["Vspeed"] TO SHIP:VERTICALSPEED.
