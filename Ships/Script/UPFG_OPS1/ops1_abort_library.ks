@@ -5,6 +5,11 @@ GLOBAL abort_modes IS LEXICON(
 					"t_abort_true",0,
 					"t_abort",0,
 					"abort_v",0,
+					"staging",LEXICON(
+							"v",0,
+							"gamma",0,
+							"alt",0
+							),
 					"oms_dump",FALSE,
 					"RTLS",LEXICON(
 							"active",TRUE,
@@ -22,7 +27,6 @@ GLOBAL abort_modes IS LEXICON(
 							)
 							
 ).
-
 
 
 //abort monitor and trigger 
@@ -159,49 +163,68 @@ FUNCTION RTLS_shifted_tgt_site_vector {
 	RETURN vecYZ(shifted_pos).
 }
 
-//calculate the theta angle required to achieve apoapsis at a set altitude 
-//approximate constant mass calculations
-//intended to be called in a loop until flyback
-FUNCTION RTLS_dissip_theta_adaptive {
-	PARAMETER dy.
-	PARAMETER vy0.
-	parameter thr.
-	PARAMETER m0.
+//taken from the paper on rtls trajectory shaping
+//reference theta + corrections for off-nominal conditions at staging
+//all velocities are inertial (orbital), v_i is velocity at abort or staging
+FUNCTION RTLS_dissip_theta_pert {
+	PARAMETER v_i.
+	PARAMETER v_stg.
+	PARAMETER gamma_stg.
+	PARAMETER alt_stg.
 	
-	LOCAL g0 IS 9.80665. 
+	LOCAL vi2 IS v_i^2.
 	
-	LOCAL sintheta IS (g0 - (vy0^2)/(2*dy))*m0/thr.
+	//rs-25 nominal staging
+	//LOCAL dv IS v_stg - 1498.12.
+	//LOCAL dgamma IS gamma_stg - 28.79.
+	//LOCAL dalt IS alt_stg - 47219.
 	
-	LOCAL theta IS 0.9 * ARCSIN(limitarg(sintheta)).
+	//rs-25D nominal staging 
+	LOCAL dv IS v_stg - 1617.
+	LOCAL dgamma IS gamma_stg - 27.604.
+	LOCAL dalt IS alt_stg - 49222.8.
 	
-	IF (vy0 < 0) {
-		SET theta TO 1.5*theta.
-	}
+	LOCAL theta_nom IS 89.526 - 0.0396982*v_i + 7.86842e-6*vi2.
+	
+	LOCAL dalt_corr IS (3.31 -2.214567e-3*v_i + 4.693065e-7*vi2)*dalt.
+    
+    LOCAL dv_corr IS (450 - 0.3356299*v_i + 6.58751e-5*vi2)*dv.
+    
+    LOCAL dgamma_corr IS (67600 - 48.9173*v_i + 9.924325e-3*vi2)*dgamma.
+    
+    LOCAL dtheta_dv IS (26809 - 16.5682*v_i + 2.281949e-3*vi2).
+    
+    LOCAL theta_pert IS  theta_nom - ( dalt_corr + dv_corr )/dtheta_dv.
+	
+	print round(theta_nom,2) + " " + round(theta_pert,2) at (5,57).
+	
+	RETURN CLAMP(theta_pert, 30, 88).
 
-	RETURN CLAMP(theta, 15, 85).
 }
 
 //c1 vector in upfg coordinates
-//
+//meant to be called once
 FUNCTION RTLS_C1 {
-	parameter C1_prev.
 	parameter normvec.
-	parameter stg.
 	
-	LOCAL y0 IS surfacestate["alt"].
-	LOCAL vy0 IS surfacestate["vs"].
-	
-	LOCAL dy IS 120000 - y0.
-	
-	IF (dy < 100) {
-		RETURN C1_prev.
-	}
-	
-	LOCAL theta IS RTLS_dissip_theta_adaptive(dy, vy0, stg["engines"]["thrust"], stg["m_initial"]).
+	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["gamma"], abort_modes["staging"]["alt"]).
 	
 	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
-	LOCAL C1 IS VCRS(cur_pos,normvec):NORMALIZED.
-	RETURN rodrigues(C1, normvec, theta).
+	LOCAL horiz IS VCRS(cur_pos,normvec):NORMALIZED.
+	LOCAL C1 IS rodrigues(horiz, normvec, theta).
+	
+	RETURN C1.
+	
+	//limit c1 not to be below the current steering
+	//this assumes the shuttle is upside down (add the engines angle rather than subrtract)
+	//doesn't work
+	//LOCAL ship_proj IS VXCL(normvec, vecYZ(SHIP:FACINg:FOREVECTOR)):NORMALIZED.
+	//
+	//IF (VANG(horiz, ship_proj) + 13 ) > VANG(horiz, C1) {
+	//	RETURN ship_proj.
+	//} ELSE {
+	//	RETURN C1.
+	//}
 }
 
 FUNCTION RTLS_pitchover_t {
@@ -353,7 +376,7 @@ FUNCTION setup_RTLS {
 	LOCAL normvec IS RTLS_normal().
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
-	SET RTLSAbort["C1"] TO RTLS_C1(RTLSAbort["C1"], normvec, vehicle["stages"][2]).
+	SET RTLSAbort["C1"] TO RTLS_C1(normvec).
 	
 	SET RTLSAbort["pitcharound"]["refvec"] TO normvec.
 	SET RTLSAbort["pitcharound"]["target"] TO rodrigues(RTLSAbort["C1"],RTLSAbort["pitcharound"]["refvec"],2.5*VANG(RTLSAbort["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED))).

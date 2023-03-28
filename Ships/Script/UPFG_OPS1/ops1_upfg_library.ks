@@ -167,12 +167,8 @@ FUNCTION upfg_wrapper {
 		//dissipation and flyback trigger logic
 		IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
 			IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
-			
-				//dissipation thrust vector
-				if (upfgOutput["Tc"] > 15) {
-					SET RTLSAbort["C1"] TO  RTLS_C1(RTLSAbort["C1"], target_orbit["normal"], vehicle["stages"][vehiclestate["cur_stg"]]).
-					SET usc["lastvec"] TO RTLSAbort["C1"].
-				}
+				
+				SET usc["lastvec"] TO RTLSAbort["C1"].
 				
 				SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"],upfgOutput["steering"]).
 				
