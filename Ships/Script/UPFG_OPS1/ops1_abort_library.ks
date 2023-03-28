@@ -192,7 +192,7 @@ FUNCTION RTLS_dissip_theta_pert {
     
     LOCAL dgamma_corr IS (67600 - 48.9173*v_i + 9.924325e-3*vi2)*dgamma.
     
-    LOCAL dtheta_dv IS (26809 - 16.5682*v_i + 2.281949e-3*vi2).
+    LOCAL dtheta_dv IS (26809 - 16.5682*v_i + 2.281949e-3*vi2)*0.3048.
     
     LOCAL theta_pert IS  theta_nom - ( dalt_corr + dv_corr )/dtheta_dv.
 	
