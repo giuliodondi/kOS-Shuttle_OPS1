@@ -128,7 +128,7 @@ FUNCTION monitor_abort {
 FUNCTION RTLS_first_stage_lofting_scale {
 	PARAMETER abort_t.
 	
-	RETURN 0.2 + 0.35*(1 - abort_t/122).
+	RETURN 0.2 + 0.22*(1 - abort_t/122).
 	
 }
 
