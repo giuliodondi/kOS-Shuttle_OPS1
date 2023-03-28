@@ -120,6 +120,11 @@ declare function open_loop_ascent{
 		addMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		
+		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(get_roll_lvlh() - control["roll_angle"]) < 7 THEN {
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.	//by now we are heads-down going uphill
+			addMessage("ROLL PROGRAM COMPLETE").
+		}
+		
 		WHEN vehiclestate["staging_in_progress"] THEN {
 			SET steer_flag TO FALSE.
 		}
@@ -136,7 +141,9 @@ declare function open_loop_ascent{
 		
 		local aimVec is HEADING(control["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
 		
-		IF steer_flag { set control["steerdir"] TO aimAndRoll(aimVec, control["roll_angle"], 3). }
+		IF steer_flag {
+			set control["steerdir"] TO aimAndRoll(aimVec, control["roll_angle"], 3).
+		}
 		
 		dataViz().
 		WAIT 0.
@@ -153,7 +160,7 @@ declare function closed_loop_ascent{
 	getState().
 	
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.3.
 	SET STEERINGMANAGER:ROLLTS TO 30.
 	//SET STEERINGMANAGER:YAWTS TO 4.
 	//SET STEERINGMANAGER:YAWPID:KD TO 0.1.
