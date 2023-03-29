@@ -430,75 +430,7 @@ FUNCTION setup_RTLS {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-FUNCTION GRTLS_dataViz {
-
-	
-	PRINT "         GLIDE-RTLS GUIDANCE    "  AT (0,1).
-	PRINT "                          "  AT (0,2).
-	
-	IF (vehiclestate["ops_mode"] = 5) {
-	PRINT "            ALPHA RECOVERY    " AT (0,3).
-	} ELSE IF (vehiclestate["ops_mode"] = 6) {
-	PRINT "            HOLDING PITCH    " AT (0,3).
-	} ELSE IF (vehiclestate["ops_mode"] = 7) {
-	PRINT "               NZ HOLD      " AT (0,3).
-	}
-				   
-								   
-	PRINT "                     "  AT (0,4).
-	PRINT "       M.E.T.      : "  AT (0,5).
-	PRINT "                     "  AT (0,6).
-	PRINT "    SURFACE ALT    : "  AT (0,7).
-	PRINT "    VERTICAL SPD   : "  AT (0,8).
-	PRINT "    VERTICAL AOA   : "  AT (0,9).
-	PRINT "                     "  AT (0,10).
-	PRINT "    DOWNRANGE DST  : "  AT (0,11).
-	PRINT "      AZ ERROR     : "  AT (0,12).
-	PRINT "                     "  AT (0,13).
-	PRINT "    CUR G FORCE    : "  AT (0,14).
-	PRINT "    TGT G FORCE    : "  AT (0,15).
-	PRINT "                     "  AT (0,16).
-	PRINT "     CUR PITCH     : "  AT (0,17).
-	PRINT "     CUR ROLL      : "  AT (0,18).
-   
-
-
-
-
-
-	PRINTPLACE(sectotime(TIME:SECONDS - vehicle["ign_t"]),12,22,5).
-
-
-	PRINTPLACE(ROUND(SHIP:ALTITUDE/1000 , 2) + " km",12,22,7).
-	PRINTPLACE(ROUND(SHIP:VERTICALSPEED,1) + " m/s",12,22,8).
-	PRINTPLACE(ROUND(VANG(SHIP:SRFPROGRADE:VECTOR, SHIP:UP:VECTOR) - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR),3) + " deg",12,22,9).
-
-	PRINTPLACE(ROUND(downrangedist(abort_modes["RTLS"]["tgt_site"],SHIP:GEOPOSITION ),2) + " km",12,22,11).
-
-	PRINTPLACE(ROUND(az_error(SHIP:GEOPOSITION,abort_modes["RTLS"]["tgt_site"],SHIP:VELOCITY:SURFACE),1) + " deg",12,22,12).
-
-
-	PRINTPLACE(ROUND(NZHOLD["cur_nz"],1) ,12,22,14).
-	PRINTPLACE(ROUND(NZHOLD["tgt_nz"],1) ,12,22,15).
-	
-	PRINTPLACE(ROUND(get_pitch(),1) + " deg",12,22,17).
-	PRINTPLACE(ROUND(get_roll(),1) + " deg",12,22,18).
-	
-	
-
-}
-
+	// GRTLS
 
 
 
