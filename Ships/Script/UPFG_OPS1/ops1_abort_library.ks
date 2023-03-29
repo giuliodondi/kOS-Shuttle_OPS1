@@ -310,12 +310,12 @@ FUNCTION RTLS_burnout_mass {
 
 
 FUNCTION RTLS_boundary{
-	RETURN SHIP:VELOCITY:SURFACE:MAG > 2280.
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2180.
 }
 
 //compare current velocity with negative return boundary to see if we should flyback immediately
 FUNCTION RTLS_immediate_flyback {
-	RETURN SHIP:VELOCITY:SURFACE:MAG > 2220.
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2120.
 }
 
 FUNCTION setup_RTLS {
