@@ -25,29 +25,7 @@ function launch{
 	prepare_launch().	
 	
 	//need to have initalised the vehicle first for the vessel name
-	if logdata=TRUE {	
-		GLOBAL loglex IS LEXICON(
-										"Time",0,
-										"Lat",0,
-										"Lng",0,
-										"Altitude",0,
-										"Dwnrg Dst",0,
-										"Stage",0,
-										"Mass",0,
-										"TWR",0,
-										"Throt",0,
-										"AZ(cmd)",0,
-										"HAOA",0,
-										"Pitch",0,
-										"VAOA",0,
-										"Surfvel",0,
-										"Orbvel",0,
-										"Vspeed",0,
-										"Incl",0,
-										"Ecctr",0
-		).
-		log_data(loglex,"./LOGS/" + vehicle["name"] + "_log").
-	}
+	prepare_telemetry().
 	
 	countdown().
 	open_loop_ascent().

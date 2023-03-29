@@ -348,33 +348,8 @@ FUNCTION dataViz {
 	//messages
 	message_Viz().
 	
-
-	if logdata=TRUE {
+	log_telemetry().
 	
-		
-		//prepare list of values to log.
-		
-		SET loglex["Time"] TO TIME:SECONDS - vehicle["ign_t"].
-		SET loglex["Lat"] TO SHIP:GEOPOSITION:LAT.
-		SET loglex["Lng"] TO SHIP:GEOPOSITION:LNG.
-		SET loglex["Altitude"] TO SHIP:ALTITUDE/1000.
-		SET loglex["Dwnrg Dst"] TO downrangedist(launchpad,SHIP:GEOPOSITION ).
-		SET loglex["Stage"] TO vehiclestate["cur_stg"].
-		SET loglex["Mass"] TO stg["m_initial"].
-		SET loglex["TWR"] TO get_TWR().
-		SET loglex["Throt"] TO stg["Throttle"]*100.
-		SET loglex["AZ(cmd)"] TO surfacestate["hdir"].
-		SET loglex["HAOA"] TO get_yaw_prograde().
-		SET loglex["Pitch"] TO surfacestate["vdir"].
-		SET loglex["VAOA"] TO get_pitch_prograde().
-		SET loglex["Surfvel"] TO SHIP:VELOCITY:SURFACE:MAG.
-		SET loglex["Orbvel"] TO SHIP:VELOCITY:ORBIT:MAG.
-		SET loglex["Vspeed"] TO SHIP:VERTICALSPEED.
-		SET loglex["Incl"] TO ORBIT:INCLINATION.
-		SET loglex["Ecctr"] TO ORBIT:ECCENTRICITY.
-
-		log_data(loglex).
-	}
 
 }
 
@@ -434,9 +409,63 @@ FUNCTION GRTLS_dataViz {
 	PRINTPLACE(ROUND(get_pitch(),1) + " deg",12,22,17).
 	PRINTPLACE(ROUND(get_roll(),1) + " deg",12,22,18).
 	
-	
+	log_telemetry().
 
 }
 
 
 
+FUNCTION prepare_telemetry {
+	if logdata=TRUE {	
+		GLOBAL loglex IS LEXICON(
+										"Time",0,
+										"Lat",0,
+										"Lng",0,
+										"Altitude",0,
+										"Dwnrg Dst",0,
+										"Stage",0,
+										"Mass",0,
+										"TWR",0,
+										"Throt",0,
+										"AZ(cmd)",0,
+										"HAOA",0,
+										"Pitch",0,
+										"VAOA",0,
+										"Surfvel",0,
+										"Orbvel",0,
+										"Vspeed",0,
+										"Incl",0,
+										"Ecctr",0
+		).
+		log_data(loglex,"./LOGS/" + vehicle["name"] + "_log").
+	}
+}
+
+FUNCTION log_telemetry {
+	if logdata=TRUE {
+		LOCAL stg IS get_stage().
+		
+		//prepare list of values to log.
+		
+		SET loglex["Time"] TO TIME:SECONDS - vehicle["ign_t"].
+		SET loglex["Lat"] TO SHIP:GEOPOSITION:LAT.
+		SET loglex["Lng"] TO SHIP:GEOPOSITION:LNG.
+		SET loglex["Altitude"] TO SHIP:ALTITUDE/1000.
+		SET loglex["Dwnrg Dst"] TO downrangedist(launchpad,SHIP:GEOPOSITION ).
+		SET loglex["Stage"] TO vehiclestate["cur_stg"].
+		SET loglex["Mass"] TO stg["m_initial"].
+		SET loglex["TWR"] TO get_TWR().
+		SET loglex["Throt"] TO stg["Throttle"]*100.
+		SET loglex["AZ(cmd)"] TO surfacestate["hdir"].
+		SET loglex["HAOA"] TO get_yaw_prograde().
+		SET loglex["Pitch"] TO surfacestate["vdir"].
+		SET loglex["VAOA"] TO get_pitch_prograde().
+		SET loglex["Surfvel"] TO SHIP:VELOCITY:SURFACE:MAG.
+		SET loglex["Orbvel"] TO SHIP:VELOCITY:ORBIT:MAG.
+		SET loglex["Vspeed"] TO SHIP:VERTICALSPEED.
+		SET loglex["Incl"] TO ORBIT:INCLINATION.
+		SET loglex["Ecctr"] TO ORBIT:ECCENTRICITY.
+
+		log_data(loglex).
+	}
+}
