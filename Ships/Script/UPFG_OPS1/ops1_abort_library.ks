@@ -599,10 +599,9 @@ FUNCTION GRTLS {
 	
 	
 
-	
+	LOCAL nz_decr IS 0.
 	
 	UNTIL FALSE {
-		
 	
 		LOCAL prev_nz IS NZHOLD["cur_nz"].
 		
@@ -617,16 +616,28 @@ FUNCTION GRTLS {
 			IF (NZHOLD["tgt_nz"] = 0) {
 				set_target_nz().
 			}
-					
-			//want to switch to mode 7 when the current nz starts to decrease or when it beomes greater than the target nz
-			IF ( vehiclestate["ops_mode"]=6 AND NZHOLD["cur_nz"]>0 AND (prev_nz >= NZHOLD["cur_nz"] OR (NZHOLD["tgt_nz"]>0 AND NZHOLD["cur_nz"] >= NZHOLD["tgt_nz"])) ) {
-				SET vehiclestate["ops_mode"] TO 7.
-			}
-			
 			
 			SET deltanz TO NZHOLD["cur_nz"] -  NZHOLD["tgt_nz"].
 			
-			IF (vehiclestate["ops_mode"] = 7 ) {
+			IF (vehiclestate["ops_mode"]=6) {
+				IF (NZHOLD["cur_nz"]>0) {
+					//switch if we exceed the nz threshold
+					IF (NZHOLD["tgt_nz"]>0 AND NZHOLD["cur_nz"] >= NZHOLD["tgt_nz"]) {
+						SET vehiclestate["ops_mode"] TO 7.
+					} ELSE {
+						//see if nz has peaked, if so register
+						IF (prev_nz >= NZHOLD["cur_nz"]) {
+							SET nz_decr TO nz_decr + 1.
+							//three strikes and we switch modes
+							IF nz_decr = 3 {
+								SET vehiclestate["ops_mode"] TO 7.
+							}
+						} ELSE {
+							SET nz_decr TO 0.
+						}
+					}
+				}
+			} ELSE IF (vehiclestate["ops_mode"] = 7 ) {
 				SET pitchv TO MAX(pitchf,MIN(pitch0,nz_update_pitch(pitchv))).
 				SET NZHOLD["cmd_pch"] TO pitchv.
 			}
