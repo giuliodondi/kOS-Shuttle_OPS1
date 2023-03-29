@@ -7,7 +7,6 @@ GLOBAL abort_modes IS LEXICON(
 					"abort_v",0,
 					"staging",LEXICON(
 							"v",0,
-							"gamma",0,
 							"alt",0
 							),
 					"oms_dump",FALSE,
@@ -165,36 +164,35 @@ FUNCTION RTLS_shifted_tgt_site_vector {
 
 //taken from the paper on rtls trajectory shaping
 //reference theta + corrections for off-nominal conditions at staging
-//all velocities are inertial (orbital), v_i is velocity at abort or staging
+//all velocities are surface, v_i is velocity at abort or staging
 FUNCTION RTLS_dissip_theta_pert {
-	PARAMETER v_i.
+	PARAMETER v_r.
 	PARAMETER v_stg.
-	PARAMETER gamma_stg.
 	PARAMETER alt_stg.
+	PARAMETER thr.
 	
-	LOCAL vi2 IS v_i^2.
+	LOCAL vr2 IS v_r^2.
 	
 	//rs-25 nominal staging
 	//LOCAL dv IS v_stg - 1498.12.
-	//LOCAL dgamma IS gamma_stg - 28.79.
 	//LOCAL dalt IS alt_stg - 47219.
 	
 	//rs-25D nominal staging 
-	LOCAL dv IS v_stg - 1617.
-	LOCAL dgamma IS gamma_stg - 27.604.
+	LOCAL dv IS v_stg - 1297.
 	LOCAL dalt IS alt_stg - 49222.8.
+	LOCAL thr_corr IS 4300000/thr.
 	
-	LOCAL theta_nom IS 89.526 - 0.0396982*v_i + 7.86842e-6*vi2.
-	
-	LOCAL dalt_corr IS (3.31 -2.214567e-3*v_i + 4.693065e-7*vi2)*dalt.
+	LOCAL theta_nom IS  (77.628302208 - 0.0346624*v_r + 7.86842e-6*vr2).
     
-    LOCAL dv_corr IS (450 - 0.3356299*v_i + 6.58751e-5*vi2)*dv.
+    LOCAL dalt_corr IS (2.649396 -1.91421084e-3*v_r + 4.693065e-7*vr2)*dalt.
     
-    LOCAL dgamma_corr IS (67600 - 48.9173*v_i + 9.924325e-3*vi2)*dgamma.
+    LOCAL dv_corr IS (349.344 - 0.2934698*v_r + 6.58751e-5*vr2)*dv.
     
-    LOCAL dtheta_dv IS (26809 - 16.5682*v_i + 2.281949e-3*vi2)*0.3048.
+    LOCAL dtheta_dv IS (21740.8 -15.1078*v_r + 2.281949e-3*vr2)*0.3048.
     
     LOCAL theta_pert IS  theta_nom - ( dalt_corr + dv_corr )/dtheta_dv.
+	
+	SET theta_pert TO ARCSIN(limitarg(thr_corr*SIN(theta_pert))).
 	
 	print round(theta_nom,2) + " " + round(theta_pert,2) at (5,57).
 	
@@ -207,7 +205,7 @@ FUNCTION RTLS_dissip_theta_pert {
 FUNCTION RTLS_C1 {
 	parameter normvec.
 	
-	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["gamma"], abort_modes["staging"]["alt"]).
+	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["alt"], get_stage()["engines"]["thrust"] ).
 	
 	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
 	LOCAL horiz IS VCRS(cur_pos,normvec):NORMALIZED.

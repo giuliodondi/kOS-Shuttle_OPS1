@@ -867,13 +867,12 @@ FUNCTION srb_staging {
 			STAGE.
 			
 			//measure conditions at staging 
-			LOCAL v_inertial IS SHIP:VELOCITY:ORBIT:MAG.
-			SET abort_modes["abort_v"] TO v_inertial.	//if an abort hasn't been triggered yet it wil be overwritten
-			SET abort_modes["staging"]["v"] TO v_inertial.
-			SET abort_modes["staging"]["gamma"] TO 90 - VANG(SHIP:VELOCITY:ORBIT:NORMALIZED, SHIP:UP:VECTOR).
+			LOCAL v_surf IS SHIP:VELOCITY:SURFACE:MAG.
+			SET abort_modes["abort_v"] TO v_surf.	//if an abort hasn't been triggered yet it wil be overwritten
+			SET abort_modes["staging"]["v"] TO v_surf.
 			SET abort_modes["staging"]["alt"] TO SHIP:ALTITUDE.
 			
-			print round(abort_modes["abort_v"],1) + " " + round(abort_modes["staging"]["v"],2) + " " + round(abort_modes["staging"]["gamma"],3) + " " + round(abort_modes["staging"]["alt"],1) at (5,55).
+			print round(abort_modes["abort_v"],1) + " " + round(abort_modes["staging"]["v"],2) + " " + round(abort_modes["staging"]["alt"],1) at (5,55).
 
 		
 			increment_stage().
