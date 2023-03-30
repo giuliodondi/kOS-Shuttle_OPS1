@@ -872,13 +872,9 @@ FUNCTION srb_staging {
 			SET abort_modes["staging"]["v"] TO v_surf.
 			SET abort_modes["staging"]["alt"] TO SHIP:ALTITUDE.
 			
-			print round(abort_modes["abort_v"],1) + " " + round(abort_modes["staging"]["v"],2) + " " + round(abort_modes["staging"]["alt"],1) at (5,55).
-
-		
 			increment_stage().
 			
 			SET vehicle["handover"]["time"] TO vehiclestate["staging_time"] - vehicle["ign_t"] + 5.
-			
 		}
 	}
 	
