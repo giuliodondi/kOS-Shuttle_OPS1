@@ -104,21 +104,30 @@ Bear in mind that only **intact aborts** are covered right now. A double engine 
 The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Oscillations are expected and should be fine, unless they are too severe.
 
 
-## RTLS abort 
+## Return to Launch Site (RTLS) abort 
 
-### Works ok with RS-25D variants, behaviour is a bit strange with the lower-thrust RS-25 but I have still been able to perform the abort successfully
+RTLS is triggered if an engine fails before 2180 m/s surface-relative velocity is reached. The boundary is called **negative return** and a TAL abort is commanded after that. This abort scenario is quite involved and has a powered phase (until MECO) and a Glide phase after that.
 
-RTLs is triggered if an engine fails before 2280 m/s surface-relative velocity is reached. The boundary is called **negative return** and a TAL abort is commanded after that.  
-The actual abort guidance is not activated until the vehicle enters second stage, if the engine goes down after SRB sep, guidance is activated immediately.  
+Powered RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
+- Altitude about 79 km
+- Moving towards the launch site with velocity that depends on distance at MECO
+- Less than 2% propellant remaining, no more than 20 s of burn time on two engines
 
-The script performs automatically all three phases of RTLS:
-- **Dissipation**, flying outbound for a certain time to waste fuel. Guidance is open-loop, limited to pitching up by an angle that depends on the time of engine failure. The script uses the PEG algorithm as a predictor to estimate the right time to turn around. If RTLS is triggered very close to the negative return boundary, this step is skipped.
-- **Flyback**, where the shuttle points back to the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. 
-The target MECO conditions are 78 km altitude and variable distance from the launch site, at a velocity that depends on MECO distance. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 60 seconds before MECO as it is a bit unstable, thus the 2% constraint might actually be violated in some cases, but not by much.
-- **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° and performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory.  
+There are several phases to RTLS abort:
+- **Lofting** if the engine is lost before SRB sep, to try to achieve close to nominal altitude and vertical speed. Actual active RTLS guidance kicks in after SRB sep
+- **Dissipation**, flying outbound for a certain time to waste fuel. Guidance is open-loop, limited to pitching up by an angle that depends the surface velocity at engine failure (or SRB sep).  
+The script uses the PEG algorithm as a predictor to estimate the fuel needed to reverse course, when this matches the fuel remaining minus 2%, the dissipation phase ends. If RTLS is triggered very close to the negative return boundary, this step is skipped.
+Automatic OMS dump is initiated during fuel dissipation.
+- **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 40 seconds before MECO as it is a bit unstable. 
+The OMS fuel dump will cease before or at MECO during flyback.
+- **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controllign vertical G forces.  
+At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 30km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
 
-At the end of these phases the Shuttle will be at around 30km descending gently. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
-During dissipation and flyback, the script will also burn the OMS engines to dump fuel. This is completely automatic.  
+### Results from my tests
+
+I tested and tweaked powered-RTLS guidance extensively, the results are good but not as consistent as I'd like.
+
+![](kOS-UPFG_OPS1/Ships/Script/UPFG_OPS1/rtls_traj.png)
 
 I tested early aborts all the way to negative return. The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
 Guidance might lose convergence a couple times after pitch-around since the active throttling is not as stable as I'd like. Also guidance is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort.  
