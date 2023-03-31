@@ -1,4 +1,5 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
+## Updated 31/03/2023
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
 Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
@@ -109,7 +110,7 @@ The Shuttle has its engines pointed away from the main vehicle axis and as such 
 RTLS is triggered if an engine fails before 2180 m/s surface-relative velocity is reached. The boundary is called **negative return** and a TAL abort is commanded after that. This abort scenario is quite involved and has a powered phase (until MECO) and a Glide phase after that.
 
 Powered RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
-- Altitude about 79 km
+- Altitude about 80 km
 - Moving towards the launch site with velocity that depends on distance at MECO
 - Less than 2% propellant remaining, no more than 20 s of burn time on two engines
 
@@ -125,9 +126,16 @@ At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 3
 
 ### Results from my tests
 
-I tested and tweaked powered-RTLS guidance extensively, the results are good but not as consistent as I'd like.
+Here I present my test results for RTLS aborts during an STS-1-like mission (original RS-25 engines, Standard-weight ET, 40° inclination, minimal payload). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to a handful of seconds before Negative Return. The plots include both Powered and GLide RTLS phases 
 
-![](kOS-UPFG_OPS1/Ships/Script/UPFG_OPS1/rtls_traj.png)
+![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_traj.png)
+
+The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory.  
+You can see the lofting action for aborts prior to SRB-sep. The trajecotries are generally more depressed for early aborts (the propellant mass is high and acceleration is low) and the maximum altitude reached during the manoeuvre is quite inconsistent. MECO happens at the "hump" at 80km, form there on you can see the effect of aerobraking during Glide-RTLS. Guidance does not try to force the MECO downrange distance, which is evident in the final downrange distance at the end of Glide-RTLS
+
+![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_vel.png)
+
+![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_rvline.png)
 
 I tested early aborts all the way to negative return. The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
 Guidance might lose convergence a couple times after pitch-around since the active throttling is not as stable as I'd like. Also guidance is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort.  
