@@ -135,11 +135,18 @@ You can see the lofting action for aborts prior to SRB-sep. The trajecotries are
 
 ![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_vel.png)
 
+The second plot is horizontal velocity vs. altitude. Here you can se clearly:
+- when the engine was lost (the point of deviaton from the dashed nominal line)
+- when flyback was triggered (the point where the lines "bounce to the left"
+- that the Shuttle is already on its way down when flyback is triggered, in the case of early aborts
+- that the Shuttle does not come to a dead stop at the inversion point, as there is some sideways motion
+- that all the MECO velocities are different but tend to converge during Glide-RTLS
+
 ![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_rvline.png)
 
-I tested early aborts all the way to negative return. The earlier the abort the longer the fuel dissipation phase lasts and the further away the Shuttle will be when it finally starts to fly back. At Negative Return there is no fuel dissipation at all.  
-Guidance might lose convergence a couple times after pitch-around since the active throttling is not as stable as I'd like. Also guidance is not super-precise about cutoff conditions so your results may vary depeding on when you trigger the abort.  
-The Glide-RTLS phase is more iffy as there is no closed-loop guidance, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
+The final plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate on the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. The range to the landing site uopn arrival on the RV line is not important as long as the velocity is right.
+
+The Glide-RTLS phase, which starts after arrival on the RV line, is completely open-loop, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
 
 
 ## TAL abort
