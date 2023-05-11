@@ -534,20 +534,7 @@ FUNCTION GRTLS {
 	
 	reset_pids().
 	
-	LISt ENGINES IN englist.
-	GLOBAL gimbals IS 0.
-	FOR e IN englist {
-		IF e:HASSUFFIX("gimbal") {
-			SET gimbals TO e:GIMBAL.
-			BREAK.
-		}
-	}
-	gimbals:DOACTION("free gimbal", TRUE).
-	//gg:DOEVENT("Show actuation toggles").
-	gimbals:DOACTION("toggle gimbal roll", TRUE).
-	gimbals:DOACTION("toggle gimbal yaw", TRUE).
-	
-	activate_flaps(flap_control["parts"]).
+	initialise_flap_control(flap_control).
 
 	SET aimvec TO rodrigues(aimvec,rightvec,-pitch0).
 	
@@ -576,18 +563,18 @@ FUNCTION GRTLS {
 		LOCK STEERING TO P_att.
 	}
 	
+	//dap controller object
+	LOCAL dap IS dap_controller_factory().
+	
 	
 	//run the control loop 
 	//faster than the main loop 
-	LOCAL attitude_time_upd IS TIME:SECONDS.
-	WHEN TIME:SECONDS>attitude_time_upd + 0.5 THEN {
-		SET attitude_time_upd TO TIME:SECONDS.
-		//steer to the new pitch and roll 
-		SET P_att TO update_attitude(P_att,pitchv,rollv).
-
-		
-		PRESERVE.
-	}
+	local control_loop is loop_executor_factory(
+								0.3,
+								{
+									SET P_att TO dap:reentry_auto(rollv,pitchv).
+								}
+							).
 	
 	
 	LOCAL deltanz IS  -  NZHOLD["tgt_nz"].
@@ -608,9 +595,6 @@ FUNCTION GRTLS {
 		SET NZHOLD TO update_g_force(NZHOLD).
 		
 		IF (vehiclestate["ops_mode"] >= 6 ) {
-	
-			//read off the gimbal angle to get the pitch control input 
-			flap_control["pitch_control"]:update(gimbals:PITCHANGLE).
 			SET flap_control TO flaptrim_control(TRUE, flap_control).
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
