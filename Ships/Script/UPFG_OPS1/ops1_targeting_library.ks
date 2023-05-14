@@ -307,21 +307,15 @@ FUNCTION prepare_launch {
 	}
 
 	FUNCTION warp_window{
-	
 		parameter liftofftime.
-		
-		LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
-		
 
-		UNTIL timetolaunch <=0.1 {
+		UNTIL FALSE {
 		
-			SET timetolaunch TO liftofftime - TIME:SECONDS.
+			LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
 			
-			IF timetolaunch > 3600 or timetolaunch < 0    {set warp to 4.}
-			ELSE IF timetolaunch > 400     {set warp to 3.}
-			ELSE IF timetolaunch > 60  {set warp to 2.}
-			ELSE IF timetolaunch > 1  {set warp to 1.}
-			ELSE 							{set warp to 0.}
+			warp_controller(timetolaunch, TRUE, 30).
+			
+			IF (timetolaunch <=0.1) {BREAK.}
 			
 			PRINT "                                                               " at (1,23).
 			PRINT "	TIME TO WINDOW : " + sectotime(timetolaunch) at (1,23).

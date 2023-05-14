@@ -324,3 +324,40 @@ FUNCTION loop_executor_factory {
 }
 
 
+//given a lapse of time to wait, manages ksp warp
+FUNCTION warp_controller {
+	PARAMETER time_span.
+	PARAMETER auto_warp.
+	PARAMETER final_wait IS 30.
+	
+	LOCAL cur_warp IS warp.
+	
+	LOCAL new_warp IS cur_warp.
+	
+	IF time_span > (3600 + final_wait) or time_span < 0 {
+		set new_warp to 4.
+	}
+	ELSE IF time_span > (400 + final_wait) {
+		set new_warp to 3.
+	}
+	ELSE IF time_span > (60 + final_wait) {
+		set new_warp to 2.
+	}
+	ELSE IF time_span > final_wait {
+		set new_warp to 1.
+	}
+	ELSE {
+		set new_warp to 0.
+	}
+	
+	IF NOT auto_warp {
+		set new_warp to MIN(new_warp, cur_warp).
+	}
+	
+	IF warp <> new_warp {
+		set warp to new_warp.
+	}
+	
+	
+}
+
