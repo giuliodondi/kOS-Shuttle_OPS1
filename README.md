@@ -30,6 +30,8 @@ In particular, you will only run one of two script files:
 - **shuttle.ks** to launch the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
 - **shuttle3a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
 
+There is also a **node.ks** script, this is a little manoeuvre node executor that I use to execute OMS burns in orbit, it takes care of the offset OMS thrust position (so it even works with a single OMS burn) and is compatible with nodes created with Principia
+
 
 # Setup  
 
