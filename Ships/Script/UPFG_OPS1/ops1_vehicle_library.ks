@@ -316,38 +316,6 @@ FUNCTION open_loop_pitch {
 
 
 
-//compute net thrust vector as thrust-weighted average of engines position 
-//relative to the ship raw frame
-//obtain the difference between fore vector and thrust vector.
-//then, given input reference "fore" and "up" vectors, rotate in that frame
-FUNCTION thrustrot {
-
-	PARAMETER ref_fore.
-	PARAMETER ref_up.
-	
-	local norm is VCRS(ref_fore,ref_up).
-
-	LOCAL thrvec IS v(0,0,0).
-	local offs is v(0,0,0).
-	LOCAL thr is 0.
-	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				SET thr TO thr + (e:THRUST).
-				//set x to x + 1.
-				set offs to offs -e:POSITION:NORMALIZED*e:THRUST.
-			}
-		}
-	}	
-	set thrvec to (offs/thr):NORMALIZED .
-	local ship_fore IS SHIP:FACING:VECTOR:NORMALIZED.
-	
-	LOCAL newthrvec IS rodrigues(ref_fore,norm,-VANG(ship_fore,thrvec)):NORMALIZED*thrvec:MAG.
-	
-	RETURN ref_fore - newthrvec.
-}
 
 //manage roll to heads-up manoeuvre
 FUNCTION roll_heads_up {
@@ -376,36 +344,6 @@ FUNCTION roll_heads_up {
 	} ELSE {
 		SET control["roll_angle"] TO 0.
 	}
-	
-}
-
-
-
-//	Returns a kOS direction for given aim vector, reference up vector and roll angle.
-//corrects for thrust offset
-FUNCTION aimAndRoll {
-	PARAMETER aimVec.
-	PARAMETER tgtRollAng.
-	PARAMETER maxrot IS 20.
-		
-	LOCAL steerVec IS aimVec.
-	
-	LOCAL newRollAng IS control["roll_angle"].
-	
-	LOCAL topVec IS VXCL(steerVec,control["refvec"]):NORMALIZED.
-	SET topVec TO rodrigues(topVec, steerVec, newRollAng).
-	
-	LOCAL thrustCorr IS thrustrot(steerVec,topVec).
-	
-	LOCAL outdir IS LOOKDIRUP(steerVec + thrustCorr, topVec).
-
-	//clearvecdraws().
-	//arrow(topVec,"topVec",v(0,0,0),40,0.05).
-	//arrow(aimVec,"aimVec",v(0,0,0),40,0.05).
-	//arrow(steerVec,"steerVec",v(0,0,0),40,0.05).
-	//arrow(thrustCorr,"thrustCorr",v(0,0,0),40,0.05).
-
-	RETURN outdir.
 }
 
 //given current vehicle fore vector, computes where the thrust is pointing
@@ -427,25 +365,15 @@ FUNCTION throttleControl {
 		SET usc["lastthrot"] TO throtval.
 	}
 
-	RETURN throtteValueConverter(throtval).
-}
-
-
-//converts between absolute throttle value (percentage of max thrust)
-//and throttle percentage relative to the range min-max which KSP uses
-FUNCTION throtteValueConverter {
-	PARAMETER abs_throt.
-	
-	local stg IS get_stage().
-	local throtval is stg["Throttle"].
-
 	LOCAL minthrot IS 0.
 	IF stg:HASKEY("minThrottle") {
 		SET minthrot TO stg["minThrottle"].
 	}
-
-	RETURN CLAMP((abs_throt - minthrot)/(1 - minthrot),0.005,1).
+	
+	RETURN throtteValueConverter(throtval, minthrot).
 }
+
+
 
 
 
@@ -635,31 +563,6 @@ FUNCTION const_G_t_m {
 }
 
 
-//measures current total engine thrust an isp, as well as theoretical max engine thrust at this altitude
-
-FUNCTION get_thrust_isp {
-
-	LOCAL thr is 0.
-	LOCAL iisspp IS 0.
-	LOCAL maxthr is 0.			   
-	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				SET thr TO thr + (e:THRUST * 1000).
-				SET iisspp TO iisspp + e:isp*(e:THRUST * 1000).
-				SET maxthr TO maxthr + (e:AVAILABLETHRUST*1000).									
-			}
-		}
-	}	
-	
-	vehiclestate["avg_thr"]:update(thr).
-	
-	RETURN LIST(vehiclestate["avg_thr"]:average(),iisspp,maxthr).
-}
-
-
 
 FUNCTION get_TWR {
 	RETURN vehiclestate["avg_thr"]:average()/(1000*SHIP:MASS*g0).
@@ -703,8 +606,11 @@ FUNCTION getState {
 	
 	LOCAL cur_stg IS get_stage().
 	
-	LOCAL x IS get_thrust_isp().
-	LOCAL avg_thrust is x[0].
+	LOCAL x IS get_current_thrust_isp().
+	
+	vehiclestate["avg_thr"]:update(x[0]:MAG).
+	
+	LOCAL avg_thrust is vehiclestate["avg_thr"]:average().
 	LOCAL avg_isp is x[1].
 
 	IF NOT (vehiclestate["staging_in_progress"]) {

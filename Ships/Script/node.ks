@@ -1,98 +1,17 @@
 RUNPATH("0:/Libraries/maths_library").
 RUNPATH("0:/Libraries/misc_library").
+RUNPATH("0:/Libraries/control_library").
 
 GLOBAL g0 IS 9.80665.
 
-FUNCTION thrustrot {
-
-	PARAMETER ref_fore.
-	PARAMETER ref_up.
-
-	LOCAL thrvec IS v(0,0,0).
-	local offs is v(0,0,0).
-	LOCAL thr is 0.
-	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				SET thr TO thr + (e:MAXTHRUST).
-				//set x to x + 1.
-				local vel is -e:POSITION:NORMALIZED*e:MAXTHRUST.
-				set offs to offs + vel.
-			}
-		}
-	}	
-	set thrvec to (offs/thr):NORMALIZED .
-	local ship_fore IS SHIP:FACING:VECTOR:NORMALIZED.
-	
-	local out is ship_fore - thrvec.
-	
-	RETURN out.
-}
-
-
-
-
-//	Returns a kOS direction for given aim vector, reference up vector and roll angle.
-//corrects for thrust offset
-FUNCTION aimAndRoll {
-	DECLARE PARAMETER aimVec.	//	Expects a vector
-	DECLARE PARAMETER upVec.	//	Expects a vector
-	DECLARE PARAMETER rollAng.	//	Expects a scalar
-	
-	
-	//clearvecdraws().
-	//arrow(upVec,"upvec",v(0,0,0),10,0.05).
-	
-	SET upVec TO VXCL(aimVec,upVec):NORMALIZED.
-	SET upVec TO rodrigues(upVec, aimVec, rollAng).
-	
-	//print "      " at (2,45).
-	//print rollAng at (2,45).
-	
-	
-	//arrow(aimVec,"forevec",v(0,0,0),10,0.05).
-	//arrow(upVec,"topvec",v(0,0,0),10,0.05).
-	
-	LOCAL current_up IS VXCL(aimVec,SHIP:FACING:TOPVECTOR):NORMALIZED.
-	//arrow(current_up,"current_up",v(0,0,0),10,0.05).
-
-	SET aimVec TO aimVec + thrustrot(aimVec,upVec).
-	
-
-	RETURN LOOKDIRUP(aimVec, upVec).
-}
-
-
-//measures current total engine thrust an isp, as well as theoretical max engine thrust at this altitude
-
-FUNCTION get_thrust_isp {
-
-
-	LOCAL thr is 0.
-	LOCAL iisspp IS 0.		   
-	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				SET thr TO thr + (e:AVAILABLETHRUST * 1000).
-				SET iisspp TO iisspp + e:vacuumisp*(e:AVAILABLETHRUST * 1000).								
-			}
-		}
-	}	
-	
-	RETURN LIST(thr,iisspp).
-}
 
 FUNCTION burnDT {
 	PARAMETER dV.
 	
 	
-	LOCAL out IS get_thrust_isp().
+	LOCAL out IS get_max_thrust_isp().
 	LOCAL iisp IS out[1].
-	LOCAL thr IS out[0].
+	LOCAL thr IS out[0]:MAG.
 	
 	LOCAL vex IS g0*iisp.
 	
@@ -193,7 +112,7 @@ FUNCTION loop {
 			SET upvec TO SHIP:FACING:TOPVECTOR.
 		}
 		
-		SET P_steer TO aimAndRoll(nodevec, upvec , rollangle). 
+		SET P_steer TO aimAndRoll(nodevec, upvec , rollangle, FALSE). 
 		
 		IF ignitionflag AND (quitflag OR abortflag) {BREAK.}
 		

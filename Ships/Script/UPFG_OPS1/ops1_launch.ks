@@ -11,6 +11,7 @@ function launch{
 	RUNPATH("0:/Libraries/misc_library").	
 	RUNPATH("0:/Libraries/maths_library").	
 	RUNPATH("0:/Libraries/navigation_library").	
+	RUNPATH("0:/Libraries/control_library").	
 	RUNPATH("0:/UPFG_OPS1/ops1_interface").
 	RUNPATH("0:/UPFG_OPS1/ops1_vehicle_library").
 	RUNPATH("0:/UPFG_OPS1/ops1_targeting_library").
@@ -120,7 +121,7 @@ declare function open_loop_ascent{
 		local aimVec is HEADING(control["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
 		
 		IF steer_flag {
-			set control["steerdir"] TO aimAndRoll(aimVec, control["roll_angle"], 3).
+			set control["steerdir"] TO aimAndRoll(aimVec, control["refvec"], control["roll_angle"]).
 		}
 		
 		dataViz().
@@ -210,7 +211,7 @@ declare function closed_loop_ascent{
 		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
 		IF NOT vehiclestate["staging_in_progress"] { //AND usc["conv"]=1
-			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED, control["roll_angle"]).										
+			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED, control["refvec"], control["roll_angle"]).									
 		} 
 		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
 			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		
