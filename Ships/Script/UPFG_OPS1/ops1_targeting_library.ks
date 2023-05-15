@@ -301,7 +301,7 @@ FUNCTION prepare_launch {
 		
 			LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
 			
-			warp_controller(timetolaunch, TRUE, 30).
+			warp_controller(timetolaunch, TRUE, 1).
 			
 			IF (timetolaunch <=0.1) {BREAK.}
 			
