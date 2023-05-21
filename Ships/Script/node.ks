@@ -175,9 +175,10 @@ FUNCTION loop {
 	}
 	
 	
-	//WHEN (VANG(P_steer:VECTOR,SHIP:FACING:FOREVECTOR) < 5 ) THEN {
-	//	SET SteeringManager:MAXSTOPPINGTIME TO 1.
-	//}
+	WHEN (VANG(P_steer:VECTOR,SHIP:FACING:FOREVECTOR) < 15 ) THEN {
+		//update it when we're close to the node so that we don't spin around 
+		SET upvec TO SHIP:FACING:TOPVECTOR.
+	}
 	
 	
 
