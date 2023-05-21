@@ -155,7 +155,7 @@ FUNCTION prepare_launch {
 		LOCAL currentLan IS VANG(currentNode, SOLARPRIMEVECTOR).
 		IF VDOT(V(0,1,0), VCRS(currentNode, SOLARPRIMEVECTOR)) < 0 { SET currentLan TO 360 - currentLan. }
 		
-		LOCAL LAN_out IS currentLan + (vehicle["launchTimeAdvance"]+ 10.1)*360/SHIP:ORBIT:BODY:ROTATIONPERIOD.
+		LOCAL LAN_out IS currentLan + (vehicle["launchTimeAdvance"]+ 1.1)*360/SHIP:ORBIT:BODY:ROTATIONPERIOD.
 		
 		RETURN LAN_out.
 	
