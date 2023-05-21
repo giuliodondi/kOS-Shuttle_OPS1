@@ -304,8 +304,6 @@ declare function closed_loop_ascent{
 			STAGE.
 			
 			WHEN ( TIME:SECONDS > etsep_t + 15) THEN {
-				close_umbilical().
-				disable_TVC().
 				SET vehiclestate["ops_mode"] TO 4.
 			}
 		}
@@ -339,7 +337,8 @@ declare function closed_loop_ascent{
 	UNLOCK STEERING.
 	SAS ON.
 	
-	
+	close_umbilical().
+	disable_TVC().
 	
 	drawUI().
 	UNTIL AG9 {
