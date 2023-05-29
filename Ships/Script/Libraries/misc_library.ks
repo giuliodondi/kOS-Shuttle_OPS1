@@ -69,9 +69,9 @@ FUNCTION log_data {
 			}
 		} ELSE {
 			local logcount is 0.
-			GLOBAL logname is logname_string + logcount + ".csv".
+			GLOBAL logname is logname_string + "_" + logcount + ".csv".
 			until false {
-				set logname to logname_string + logcount + ".csv".
+				set logname to logname_string + "_" + logcount + ".csv".
 				IF EXISTS(logname)=TRUE {
 					set logcount to logcount + 1.
 				}
