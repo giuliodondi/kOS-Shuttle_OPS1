@@ -952,11 +952,21 @@ FUNCTION get_ext_tank_part {
 
 
 FUNCTION activate_fuel_cells {
+
+	LOCAL partslist IS LIST().
+	for p in SHIP:PARTSDUBBEDPATTERN("ShuttleOrbiter*") {
+		partslist:ADD(p).
+	}
+	for p in SHIP:PARTSDUBBED("ShuttleEngMount") {
+		partslist:ADD(p).
+	}
 	
-	for m in SHIP:PARTSDUBBED("ShuttleEngMount")[0]:MODULESNAMED("ModuleResourceConverter") {
-		for an in m:ALLACTIONNAMES {
-			IF an:CONTAINS("start fuel cell") {
-				m:DOACTION(an, true).
+	for p in partslist {
+		for m in p:MODULESNAMED("ModuleResourceConverter") {
+			for an in m:ALLACTIONNAMES {
+				IF an:CONTAINS("start fuel cell") {
+					m:DOACTION(an, true).
+				}
 			}
 		}
 	}
@@ -975,7 +985,22 @@ FUNCTION disable_TVC {
 
 //close umbilical doors
 FUNCTION close_umbilical {
-	SHIP:PARTSDUBBED("ShuttleEngMount")[0]:GETMODULE("ModuleAnimateGeneric"):doaction("toggle et door", true).
+
+	LOCAL partslist IS LIST().
+	for p in SHIP:PARTSDUBBEDPATTERN("ShuttleOrbiter*") {
+		partslist:ADD(p).
+	}
+	for p in SHIP:PARTSDUBBED("ShuttleEngMount") {
+		partslist:ADD(p).
+	}
+	
+	for p in partslist {
+		for m in p:MODULESNAMED("ModuleAnimateGeneric") {
+			if m:hasaction("toggle et door") {
+				m:doaction("toggle et door", true).
+			}
+		}
+	}
 }
 
 
