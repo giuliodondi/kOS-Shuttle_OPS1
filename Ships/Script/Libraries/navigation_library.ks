@@ -5,6 +5,20 @@
 
 //GENERAL NAVIGATION FUNCTIONS 
 
+//converts a distance between two points on the surface of the body from km into degrees
+FUNCTION dist2degrees {
+	PARAMETER dist.
+
+	RETURN rad2deg(dist*1000/BODY:RADIUS).
+}
+
+//converts a distance between two points on the surface of the body from degrees into km
+FUNCTION degrees2dist {
+	PARAMETER deg_.
+	
+	RETURN deg2rad(deg_) * BODY:RADIUS / 1000.
+
+}
 
 //given a position vector returns altitude above the body datum
 FUNCTION bodyalt {
@@ -157,7 +171,7 @@ FUNCTION new_position {
 	}
 	
 	
-	LOCAL alpha1 IS rad2deg(dist*1000/BODY:RADIUS).
+	LOCAL alpha1 IS dist2degrees(dist).
 	
 	LOCAL lat2 IS ARCSIN( SIN(pos:LAT)*COS(alpha1) + COS(pos:LAT)*SIN(alpha1)*COS(bng) ).
 	LOCAL lng2 IS pos:LNG + ARCTAN2( SIN(bng)*SIN(alpha1)*COS(pos:LAT) , COS(alpha1) - SIN(pos:LAT)*SIN(lat2) ).
@@ -263,9 +277,6 @@ declare function t_to_eta {
 
 }
 		
-
-
-
 
 //VEHICLE-SPECIFIC FUNCTIONS
 
