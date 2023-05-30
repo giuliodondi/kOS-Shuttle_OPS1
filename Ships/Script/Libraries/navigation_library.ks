@@ -180,6 +180,19 @@ FUNCTION new_position {
 
 }
 
+//returns a vector centered at a position and pointing towards a given azimuth
+FUNCTION vector_pos_bearing {
+	PARAMETER pos.
+	PARAMETER az.
+	
+	LOCAL northpole IS V(0,1,0).
+	LOCAL east_ IS -VCRS(northpole, pos:NORMALIZED).
+	LOCAL north_ IS -VCRS(pos:NORMALIZED, east_).
+	
+	RETURN rodrigues(north_, pos:NORMALIZED, az).
+
+}
+
 
 //determine which site is the closest to the current position.
 // takes in a lexicon of sites which are themselves lexicons
@@ -218,6 +231,34 @@ FUNCTION get_closest_site {
 }
 
 
+//surface azimuth for an orbit with given inclination and direction at latitude
+FUNCTION get_orbit_azimuth {
+	PARAMETEr incl.
+	PARAMETER lat.
+	PARAMETER southerly.
+	
+	LOCAL retro IS (abs(incl) > 90).
+	
+	LOCAL equatorial_angle IS incl.
+	IF retro {
+		SET equatorial_angle TO 180 - equatorial_angle.
+	}
+	
+	LOCAL azimuth IS ABS(COS(equatorial_angle)/COS(lat)).
+	SET azimuth TO ARCSIN(limitarg(azimuth)).
+	
+	//mirror the angle w.r.t. the local north direction for retrograde launches
+	IF retro {
+		SET azimuth TO - azimuth.
+	}
+	
+	//mirror the angle w.r.t the local east direction for southerly launches
+	IF southerly {
+		SET azimuth TO 180 - azimuth.
+	}
+	
+	RETURN fixangle(azimuth).	//get the inertial launch hazimuth
+}
 
 
 //ORBITAL MECHANICS FUNCTIONS

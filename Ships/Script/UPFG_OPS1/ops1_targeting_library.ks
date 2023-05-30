@@ -228,42 +228,11 @@ FUNCTION prepare_launch {
 	FUNCTION launchAzimuth {
 	
 		//	Expects global variables "target_orbit" as lexicons
-		
-		LOCAL targetInc IS target_orbit["inclination"].
-		
-		//internal flag for retrograde launches, northerly or southerly alike
-		LOCAL retro IS (targetInc > 90).
-		
-		//flag for southerly launches 
-		LOCAL southerly IS (target_orbit["direction"]="south").
-		
-
-		LOCAL targetVel IS target_orbit["velocity"]*COS(target_orbit["angle"]).				//	But we already have our desired velocity, however we must correct for the flight path angle (only the tangential component matters here)
-		
 		LOCAL siteLat IS SHIP:GEOPOSITION:LAT.
 		
-		//calculate preliminary inertial azimuth 
-		LOCAL equatorial_angle IS targetInc.
-		IF retro {
-			SET equatorial_angle TO 180 - equatorial_angle.
-		}
+		LOCAL Binertial IS get_orbit_azimuth(target_orbit["inclination"], siteLat, (target_orbit["direction"]="south")).
 		
-		LOCAL Binertial IS ABS(COS(equatorial_angle)/COS(siteLat)).
-		SET Binertial TO ARCSIN(limitarg(Binertial)).
-		
-		//mirror the angle w.r.t. the local north direction for retrograde launches
-		IF retro {
-			SET Binertial TO - Binertial.
-		}
-		
-		//mirror the angle w.r.t the local east direction for southerly launches
-		IF southerly {
-			SET Binertial TO 180 - Binertial.
-		}
-		
-		SET Binertial TO fixangle(Binertial).	//get the inertial launch hazimuth
-		
-		
+		LOCAL targetVel IS target_orbit["velocity"]*COS(target_orbit["angle"]).				//	But we already have our desired velocity, however we must correct for the flight path angle (only the tangential component matters here)
 		
 		//get launch azimuth angle wrt due east=0
 		LOCAL Vbody IS (2*CONSTANT:PI*SHIP:BODY:RADIUS/SHIP:BODY:ROTATIONPERIOD)*COS(siteLat).
