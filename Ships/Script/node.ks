@@ -174,13 +174,6 @@ FUNCTION loop {
 		}
 	}
 	
-	
-	WHEN (VANG(P_steer:VECTOR,SHIP:FACING:FOREVECTOR) < 15 ) THEN {
-		//update it when we're close to the node so that we don't spin around 
-		SET upvec TO SHIP:FACING:TOPVECTOR.
-		SET P_steer TO aimAndRoll(nodevec, upvec , rollangle). 
-	}
-	
 	LOCAL abortflag IS FALSE.
 
 	UNTIL FALSE {
@@ -194,7 +187,11 @@ FUNCTION loop {
 			//SET nodeDV TO nxtnode:deltav:MAG.
 		}
 		
-		SET upvec TO rotate_upvec(nodevec,upvec).
+		IF (VANG(P_steer:VECTOR,SHIP:FACING:FOREVECTOR) < 10 ) {
+			SET upvec TO rotate_upvec(nodevec,upvec).
+		} ELSE {
+			SET upvec TO SHIP:FACING:TOPVECTOR.
+		}
 		
 		SET P_steer TO aimAndRoll(nodevec, upvec , rollangle). 
 		
@@ -202,7 +199,7 @@ FUNCTION loop {
 		
 		IF NOT ignitionflag {
 			LOCAL node_eta IS nextnode:ETA.
-			warp_controller(node_eta, FALSE, 20).
+			warp_controller(node_eta, FALSE, 25).
 			PRINTPLACE("Node ETA : " + sectotime(node_eta),30,0,4).
 		} ELSE {
 			PRINTPLACE("Shutdown : " + sectotime(shutdownT - TIME:SECONDS),30,0,4).
