@@ -178,11 +178,16 @@ FUNCTION loop {
 	WHEN (VANG(P_steer:VECTOR,SHIP:FACING:FOREVECTOR) < 15 ) THEN {
 		//update it when we're close to the node so that we don't spin around 
 		SET upvec TO SHIP:FACING:TOPVECTOR.
+		SET P_steer TO aimAndRoll(nodevec, upvec , rollangle). 
 	}
 	
-	
+	LOCAL abortflag IS FALSE.
 
 	UNTIL FALSE {
+	
+		IF (ignitionflag AND SHIP:CONTROL:PILOTMAINTHROTTLE < 0.01) {
+			SET abortflag TO TRUE.
+		}
 	
 		IF HASNODE {
 			set nodevec tO nxtnode:deltav:NORMALIZED. 
@@ -193,11 +198,11 @@ FUNCTION loop {
 		
 		SET P_steer TO aimAndRoll(nodevec, upvec , rollangle). 
 		
-		IF ignitionflag AND quitflag {BREAK.}
+		IF ignitionflag AND (quitflag OR abortflag) {BREAK.}
 		
 		IF NOT ignitionflag {
 			LOCAL node_eta IS nextnode:ETA.
-			warp_controller(node_eta, FALSE, 60).
+			warp_controller(node_eta, FALSE, 20).
 			PRINTPLACE("Node ETA : " + sectotime(node_eta),30,0,4).
 		} ELSE {
 			PRINTPLACE("Shutdown : " + sectotime(shutdownT - TIME:SECONDS),30,0,4).
@@ -206,8 +211,14 @@ FUNCTION loop {
 		wait 0.1.
 	
 	}
-
-	PRINTPLACE("Killing rotation...",30,0,4).
+	
+	IF (abortflag) {
+		PRINTPLACE("Manoeuvre aborted by the pilot",30,0,4).
+	} ELSE {
+		PRINTPLACE("Manoeuvre complete",30,0,4).
+	}
+	
+	PRINTPLACE("Killing rotation...",30,0,6).
 	
 	LOCK STEERING TO "kill".
 	
