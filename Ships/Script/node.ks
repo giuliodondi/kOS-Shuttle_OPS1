@@ -178,7 +178,7 @@ FUNCTION loop {
 
 	UNTIL FALSE {
 	
-		IF (ignitionflag AND SHIP:CONTROL:PILOTMAINTHROTTLE < 0.01) {
+		IF (ignitionflag AND NOT quitflag AND SHIP:CONTROL:PILOTMAINTHROTTLE < 0.01) {
 			SET abortflag TO TRUE.
 		}
 	
