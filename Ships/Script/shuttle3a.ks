@@ -5,21 +5,14 @@
 
 //for Vandenberg launches
 
+//FWC SRBs, RS-25A, 11.4 ton payload
 GLOBAL target_orbit IS LEXICON (	
-								"periapsis",30,
+								"periapsis",0,
 								"apoapsis",195,
 								"inclination",-104,
-								"Cutoff Altitude",120,
+								"Cutoff Altitude",112,
 								"end",0	
 ).
-
-//GLOBAL target_orbit IS LEXICON (	
-//								"periapsis",30,
-//								"apoapsis",220,
-//								"inclination",-87,
-//								"Cutoff Altitude",115,
-//								"end",0								//don't remove this
-//).
 
 
 // uncomment this line to trigger automatically an engine failure. Alternatively shutdown manually one of the engines 
