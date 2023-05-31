@@ -200,13 +200,13 @@ FUNCTION drawUI {
 		PRINTPLACE("APOAPSIS: " + ROUND(APOAPSIS/1000,1) + " km  |  PERIAPSIS: " + ROUND(PERIAPSIS/1000,1) + " km",61,1,msgloc + 4).
 		PRINTPLACE("INCLINATION:  " + ROUND(ORBIT:INCLINATION,3) + " deg  |  LAN: " + ROUND(ORBIT:LAN,3) + " deg  |  TRUE ANOM.: " + ROUND(ORBIT:TRUEANOMALY,2) + " deg",61,1,msgloc + 6).
 		
-		local str is "Ap err: " + ROUND(abs((1 - APOAPSIS/(target_orbit["Apoapsis"]*1000))*100),3) + "% ".
-		set str to str + "| Pe err: " + ROUND(abs((1 - PERIAPSIS/(target_orbit["Periapsis"]*1000))*100),3) + "%".
+		local str is "Ap err: " + ROUND(abs((1 - APOAPSIS/(1 + target_orbit["Apoapsis"]*1000))*100),3) + "% ".
+		set str to str + "| Pe err: " + ROUND(abs((1 - PERIAPSIS/(1 + target_orbit["Periapsis"]*1000))*100),3) + "%".
 		
 		PRINTPLACE(str,61,1,msgloc + 8).
 		
-		set str to "Incl err: " + ROUND(abs((1 - ORBIT:INCLINATION/target_orbit["Inclination"])*100),3) + "% ".
-		set str to str + "| LAN err: " + ROUND(abs((1 - ORBIT:LAN/target_orbit["LAN"])*100),3) + "% ".
+		set str to "Incl err: " + ROUND(abs((1 - ORBIT:INCLINATION/(0.001 + target_orbit["Inclination"]))*100),3) + "% ".
+		set str to str + "| LAN err: " + ROUND(abs((1 - ORBIT:LAN/(0.001 + target_orbit["LAN"]))*100),3) + "% ".
 		set str to str + "| True Anomaly err: " + ROUND(abs(ORBIT:TRUEANOMALY - target_orbit["eta"] ),2) + "deg ".
 
 		PRINTPLACE(str,61,1,msgloc + 10).
