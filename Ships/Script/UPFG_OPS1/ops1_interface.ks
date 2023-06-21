@@ -437,7 +437,7 @@ FUNCTION prepare_telemetry {
 										"Incl",0,
 										"Ecctr",0
 		).
-		log_data(loglex,"./LOGS/" + vehicle["name"] + "_log").
+		log_data(loglex,"./UPFG_OPS1/LOGS/" + vehicle["name"] + "_log").
 	}
 }
 
