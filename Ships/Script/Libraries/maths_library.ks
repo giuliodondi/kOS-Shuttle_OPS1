@@ -52,6 +52,26 @@ function clamp {
 
 }
 
+//the value of the argument which is algebraically between the other two
+function midval {
+	parameter x_.
+	parameter y_.
+	parameter z_.
+	
+	local maxx is max(max(x_, y_), z_).
+	local minn is min(min(x_, y_), z_).
+	
+	return x_ + y_ + z_ - maxx - minn.
+	
+	//if ((x_ >= y_ AND x_ <= z_) OR (x_ <= y_ AND x_ >= z_)) {
+	//	return x_.
+	//} else if ((y_ >= x_ AND y_ <= z_) OR (y_ <= x_ AND y_ >= z_)) {
+	//	return y_.
+	//} else {
+	//	return z_.
+	//}
+}
+
 //keeps a value within the interval starting from lower_val and lower_val + int_width, wrapping around if it falls outside
 FUNCTION wraparound {
 	PARAMETER val.

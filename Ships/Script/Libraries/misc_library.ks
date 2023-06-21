@@ -137,6 +137,47 @@ FUNCTION arrow_body {
 
 }
 
+//draw a vector  with label centered on the ship and scaled to 10 times its length
+FUNCTION arrow_ship {
+	PARAMETER vec.
+	PARAMETER lab.
+	PARAMETER scl IS 10.
+	PARAMETER wdh IS 0.5.
+	
+	VECDRAW(
+      v(0,0,0),
+      vec,
+      RGB(1,0,0),
+      lab,
+      scl,
+      TRUE,
+      wdh
+    ).
+
+}
+
+
+//draw a vector centered on geolocation for target redesignation
+//scales with distance from ship for visibility
+FUNCTION pos_arrow {
+	PARAMETER pos.
+	PARAMETEr stringlabel.
+	
+	LOCAL start IS pos:POSITION.
+	LOCAL end IS (pos:POSITION - SHIP:ORBIT:BODY:POSITION).
+	
+	VECDRAW(
+      start,//{return start.},
+      end:NORMALIZED*5000,//{return end.},
+      RGB(1,0,0),
+      stringlabel,
+      1,
+      TRUE,
+      3
+    ).
+
+}
+
 
 
 //converts the universal clock in seconds
