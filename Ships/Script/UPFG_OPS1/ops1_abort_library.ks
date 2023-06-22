@@ -238,7 +238,8 @@ FUNCTION RTLS_pitchover_t {
 FUNCTION RTLS_rvline {
 	PARAMETER rng.
 	
-	RETURN 0.0032*rng + 600.
+	RETURN 0.0032*rng + 700.		
+	//RETURN 0.0032*rng + 600.		//this was the best before realistic aerodynamics
 	//RETURN 0.00250*rng + 1000.
 	//RETURN 0.00242*rng + 768.7.
 	
