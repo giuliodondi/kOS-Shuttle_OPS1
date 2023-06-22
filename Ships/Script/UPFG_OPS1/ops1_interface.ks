@@ -67,7 +67,7 @@ FUNCTION drawUI {
 	PRINT "|                        SURFACE DATA                         |" AT (0,15).
 	PRINT "|                                                             |" AT (0,16).
 	PRINT "|  SURFACE ALT    :               DOWNRANGE DST  :            |" AT (0,17).
-	PRINT "|  VERTICAL SPD   :               HORIZ SPD      :            |" AT (0,18).
+	PRINT "|  VERTICAL SPD   :               DOWNRANGE SPD  :            |" AT (0,18).
 	PRINT "|  SURF PITCH     :               INERT AZIMUTH  :            |" AT (0,19).
 	PRINT "|  VERTICAL AOA   :               HORIZONTAL AOA :            |" AT (0,20).
 	PRINT "|                                                             |" AT (0,21).
@@ -238,7 +238,7 @@ FUNCTION dataViz {
 	PRINTPLACE(ROUND(SHIP:VERTICALSPEED,1) + " m/s",12,19,surfloc+1).
 	
 	PRINTPLACE(ROUND(downrangedist(launchpad,SHIP:GEOPOSITION ),2) + " km",12,50,surfloc).
-	PRINTPLACE(ROUND(SHIP:GROUNDSPEED,1) + " m/s",12,50,surfloc+1).
+	PRINTPLACE(ROUND(current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE),1) + " m/s",12,50,surfloc+1).
 	
 	local progv is 0.
 	
@@ -440,6 +440,7 @@ FUNCTION prepare_telemetry {
 										"Surfvel",0,
 										"Orbvel",0,
 										"Vspeed",0,
+										"Dwnrg surfvel",0,
 										"Incl",0,
 										"Ecctr",0
 		).
@@ -469,9 +470,11 @@ FUNCTION log_telemetry {
 		SET loglex["Surfvel"] TO SHIP:VELOCITY:SURFACE:MAG.
 		SET loglex["Orbvel"] TO SHIP:VELOCITY:ORBIT:MAG.
 		SET loglex["Vspeed"] TO SHIP:VERTICALSPEED.
+		SET loglex["Dwnrg surfvel"] TO current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE).
 		SET loglex["Incl"] TO ORBIT:INCLINATION.
 		SET loglex["Ecctr"] TO ORBIT:ECCENTRICITY.
 
 		log_data(loglex).
 	}
 }
+ 

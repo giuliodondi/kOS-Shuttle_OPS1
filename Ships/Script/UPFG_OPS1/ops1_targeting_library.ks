@@ -8,6 +8,25 @@ GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0).
 
 //			VARIOUS TARGETING FUNCTIONS
 
+//for logging data in case of RTLS
+//calculates the horizontal component of surface velocity 
+//projected along the plane of current position and launchpad
+FUNCTION current_horiz_dwnrg_speed {
+	PARAMETER pos.
+	PARAMETER srfvel.
+
+	LOCAL launchvec IS pos2vec(launchpad).
+	LOCAL posvec IS pos2vec(pos).
+	
+	LOCAL norm is VCRS(posvec, launchvec):NORMALIZED.
+	LOCAL dwnrgvec IS posvec - launchvec.
+	
+	LOCAL horizvel IS VXCL(posvec, srfvel).
+	SET horizvel TO VXCL(norm, horizvel).
+	
+	RETURN VDOT(dwnrgvec:NORMALIZED, horizvel).
+
+}
 
 // normal vector of the current instantaneous orbital plane
 //to be compatible with TargetNormal, it's the left-handed cross prod of position and velocity
