@@ -17,7 +17,13 @@ FUNCTION addMessage {
 		P_vizMsg:REMOVE(rem_list[k]).
 	}
 	
-	P_vizMsg:INSERT(0,LEXICON("msg",msg,"ttl",tt + ttl)) .
+	P_vizMsg:INSERT(
+					0,
+					LEXICON(
+							"msg","T+" + sectotime(TIME:SECONDS - vehicle["ign_t"],"") + ": " + msg,
+							"ttl",tt + ttl
+					)
+	) .
 }
 
 FUNCTION message_Viz {

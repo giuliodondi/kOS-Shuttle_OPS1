@@ -201,25 +201,27 @@ FUNCTION local_time_seconds {
 //converts a time value into a hours,minutes,seconds string
 declare function sectotime {
 	parameter t.
+	parameter space is " ".
+	
 	local string is "".
 	if t<0 {
 		set t to ABS(t).
 		set string to string + "-".
 	}
 	if t<60 {
-		set string to string + FLOOR(t) + " s".	
+		set string to string + FLOOR(t) + space + "s".	
 	}
 	else {
 		local minutes is FLOOR(t/60).
 		if minutes<60 {
 			local sec is FLOOR(t - minutes*60).
-			set string to string + minutes + " m " + sec+ " s".
+			set string to string + minutes + space + "m " + sec + space + "s".
 		}
 		else {
 			local sec is FLOOR(t - minutes*60).	
 			local hr is FLOOR(minutes/60).
 			set minutes to minutes - hr*60.
-			set string to string + hr + " h " + minutes + " m " + sec+ " s".
+			set string to string + hr + space + "h " + minutes + space + "m " + sec + space + "s".
 		}
 	}
 	return string.
