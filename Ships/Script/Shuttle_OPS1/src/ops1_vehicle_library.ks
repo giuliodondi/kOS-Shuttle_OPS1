@@ -240,7 +240,7 @@ function initialise_shuttle {
 		vehicle["stages"]:ADD(new_stg_4).
 	} 
 	
-	SET vehicle["trajectory_scale"] TO vehicle_traj_scale().
+	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
 	
 	SET control["roll_angle"] TO vehicle["roll"].
 
@@ -276,21 +276,20 @@ FUNCTION debug_vehicle {
 
 									//CONTROL FUNCTIONS
 
-//default trajectory scale factor 
+//default trajectory steepness factor 
 //bias given deltas of cutoff altitude and engine thrust with respect to reference
-FUNCTION vehicle_traj_scale {
+FUNCTION vehicle_traj_steepness {
 
 	//reference thrust is rs-25D
-	LOCAL ssme_thr_delta IS vehicle["SSME"]["thrust"] - 2319.9.
+	LOCAL ssme_thr_fac IS 2319.9/vehicle["SSME"]["thrust"].
 	
 	//reference alt is 112 km.
-	LOCAL cut_alt_delta IS (target_orbit["radius"]:MAG - SHIP:BODY:RADIUS)/1000 - 112.
+	LOCAL cut_alt_fac IS target_orbit["Cutoff Altitude"]/112.
 	
-	LOCAL scale_ IS 0.201.
+	//base + alt correction + thrust correction
+	LOCAL steep_ IS 1 + 0.14*cut_alt_fac + 0.05*ssme_thr_fac.
 	
-	//bias scale 
-	
-	RETURN scale_.
+	RETURN steep_.
 }
 
 
@@ -302,11 +301,11 @@ FUNCTION open_loop_pitch {
 	
 	LOCAL refv IS 400.
 	
-	LOCAL scale_ IS vehicle["trajectory_scale"].
+	LOCAL steep_fac IS vehicle["traj_steepness"].
 	
 	//bias trajectory in case of first-stage rtls
 	IF (abort_modes["triggered"] ) {
-		SET scale_ TO RTLS_first_stage_lofting_scale(scale_, abort_modes["t_abort_true"]).
+		SET steep_fac TO RTLS_first_stage_lofting_scale(steep_fac, abort_modes["t_abort_true"]).
 	}
 	
 	
@@ -314,7 +313,7 @@ FUNCTION open_loop_pitch {
 		RETURN 90.
 	} ELSE {
 		
-		LOCAL p1 IS -0.0068.
+		LOCAL p1 IS -0.0068/(steep_fac^2).
 		LOCAL p2 IS 28.8.
 		LOCAL p3 IS 26300.
 		LOCAL q1 IS 3.923.
@@ -322,8 +321,6 @@ FUNCTION open_loop_pitch {
 		LOCAL x IS curv + refv - v0.
 	
 		LOCAL out IS (p1*x^2 + p2*x + p3)/(x + q1).
-		
-		SET out TO out*(1 + scale_*(1 - out/90)).
 		
 		LOCAL bias IS out - surfacestate["vdir"].
 		

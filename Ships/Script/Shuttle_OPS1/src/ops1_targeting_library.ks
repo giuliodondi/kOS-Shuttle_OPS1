@@ -417,7 +417,6 @@ FUNCTION prepare_launch {
 		LOCAL cut_alt IS target_orbit["periapsis"].
 		IF target_orbit:HASKEY("Cutoff Altitude") {
 			SET cut_alt TO target_orbit["Cutoff Altitude"].
-			target_orbit:REMOVE("Cutoff Altitude").
 		}
 		IF cut_alt<target_orbit["periapsis"] {
 			SET cut_alt TO target_orbit["periapsis"].
