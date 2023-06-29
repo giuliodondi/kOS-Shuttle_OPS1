@@ -26,4 +26,4 @@ GLOBAL target_orbit IS LEXICON (
 GLOBAL logdata Is false.
 
 
-RUNPATH("0:/UPFG_OPS1/ops1_launch").
+RUNPATH("0:/Shuttle_OPS1/src/ops1_launch").

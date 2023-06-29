@@ -11,12 +11,14 @@ function launch{
 	RUNPATH("0:/Libraries/misc_library").	
 	RUNPATH("0:/Libraries/maths_library").	
 	RUNPATH("0:/Libraries/navigation_library").	
-	RUNPATH("0:/Libraries/control_library").	
-	RUNPATH("0:/UPFG_OPS1/ops1_interface").
-	RUNPATH("0:/UPFG_OPS1/ops1_vehicle_library").
-	RUNPATH("0:/UPFG_OPS1/ops1_targeting_library").
-	RUNPATH("0:/UPFG_OPS1/ops1_upfg_library").
-	RUNPATH("0:/UPFG_OPS1/ops1_abort_library").
+	RUNPATH("0:/Libraries/vehicle_library").	
+	
+	
+	RUNPATH("0:/Shuttle_OPS1/src/ops1_interface").
+	RUNPATH("0:/Shuttle_OPS1/src/ops1_vehicle_library").
+	RUNPATH("0:/Shuttle_OPS1/src/ops1_targeting_library").
+	RUNPATH("0:/Shuttle_OPS1/src/ops1_upfg_library").
+	RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
 	
 	PRINT " PROGRAM LIBRARIES LOADED" AT (0,1).
 	
