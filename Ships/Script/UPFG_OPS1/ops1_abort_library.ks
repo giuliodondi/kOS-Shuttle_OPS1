@@ -125,9 +125,10 @@ FUNCTION monitor_abort {
 
 //bias first-stage trajectory scale for lofting
 FUNCTION RTLS_first_stage_lofting_scale {
+	PARAMETER cur_scale.
 	PARAMETER abort_t.
 	
-	RETURN 0.2 + 0.22*(1 - abort_t/122).
+	RETURN cur_scale + 0.22*(1 - abort_t/122).
 	
 }
 

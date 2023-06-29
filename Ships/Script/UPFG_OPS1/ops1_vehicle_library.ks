@@ -285,11 +285,11 @@ FUNCTION open_loop_pitch {
 	
 	LOCAL refv IS 400.
 	
-	LOCAL scale IS 0.201.
+	LOCAL scale_ IS 0.201.
 	
 	//bias trajectory
 	IF (abort_modes["triggered"] ) {
-		SET scale TO RTLS_first_stage_lofting_scale(abort_modes["t_abort_true"]).
+		SET scale_ TO RTLS_first_stage_lofting_scale(scale_, abort_modes["t_abort_true"]).
 	}
 	
 	
@@ -306,7 +306,7 @@ FUNCTION open_loop_pitch {
 	
 		LOCAL out IS (p1*x^2 + p2*x + p3)/(x + q1).
 		
-		SET out TO out*(1 + scale*(1 - out/90)).
+		SET out TO out*(1 + scale_*(1 - out/90)).
 		
 		LOCAL bias IS out - surfacestate["vdir"].
 		
