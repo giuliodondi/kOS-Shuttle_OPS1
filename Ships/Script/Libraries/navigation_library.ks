@@ -266,19 +266,18 @@ FUNCTION get_orbit_azimuth {
 
 //computes time taken from periapsis to given true anomaly
 //for differences of true anomalies call twice and subtract times
-declare function eta_to_dt {
-
-	parameter etaa.
+function eta_to_dt {
+	parameter eta_.
 	parameter sma.
 	parameter ecc.
 
-	local COS_ee IS (ecc + COS(fixangle(etaa)))/(1 + ecc*COS(fixangle(etaa))).
+	local COS_ee IS (ecc + COS(fixangle(eta_)))/(1 + ecc*COS(fixangle(eta_))).
 
 	LOCAL ee IS ARCCOS(limitarg(COS_ee)).			
 
 	LOCAL mean_an IS deg2rad(ee)  - ecc*SIN(ee).
 	
-	IF etaa>180 { SET mean_an TO 2*CONSTANT:PI - mean_an.}
+	IF eta_>180 { SET mean_an TO 2*CONSTANT:PI - mean_an.}
 	
 	LOCAL n IS SQRT(sma^3/(SHIP:ORBIT:BODY:MU)).
 	
@@ -289,19 +288,19 @@ declare function eta_to_dt {
 //given true anomaly at t0 and a time interval, computes new true anomaly
 //approximation correct at ecc^3
 
-declare function t_to_eta {
-	parameter etaa0.
+function t_to_eta {
+	parameter eta_.
 	parameter dt.
 	parameter sma.
 	parameter ecc.
 	
 	
-	local COS_ee IS (ecc + COS(fixangle(etaa0)))/(1 + ecc*COS(fixangle(etaa0))). 
+	local COS_ee IS (ecc + COS(fixangle(eta_)))/(1 + ecc*COS(fixangle(eta_))). 
 	LOCAL ee IS ARCCOS(limitarg(COS_ee)).
 
 	LOCAL mean_an IS deg2rad(ee)  - ecc*SIN(ee).
 	
-	IF etaa0>180 { SET mean_an TO 2*CONSTANT:PI - mean_an.}
+	IF eta_>180 { SET mean_an TO 2*CONSTANT:PI - mean_an.}
 	
 
 	LOCAL n IS SQRT(sma^3/(SHIP:ORBIT:BODY:MU)).
@@ -317,7 +316,54 @@ declare function t_to_eta {
 	RETURN fixangle(rad2deg(out)).
 
 }
-		
+
+//calculates velocity at altitude
+//altitude must be measured from the body centre
+function orbit_alt_vel {
+	parameter h.
+	parameter sma.
+	
+	RETURN SQRT( BODY:MU * ( 2/h - 1/sma  ) ).
+}
+
+//calculates eta at altitude
+//altitude must be measured from the body centre
+function orbit_alt_eta {
+	parameter h.
+	parameter sma.
+	parameter ecc.
+	
+	LOCAL eta_ IS (sma * (1 - ecc^2) / h - 1) / ecc.
+	
+	RETURN ARCCOS(eta_).
+}
+	
+//calculates fpa at altitude
+//altitude must be measured from the body centre
+function orbit_alt_fpa {
+	parameter h.
+	parameter sma.
+	parameter ecc.
+	
+	LOCAL eta_ IS orbit_alt_eta(h, sma, ecc).
+	
+	LOCAL gamma IS ecc * SIN(eta_) / (1 + ecc * COS(eta_) ).
+	
+	//assumed upwards
+	RETURN ARCTAN(gamma).
+}	
+
+//calculates alttude at given eta
+//altitude will be measured from the body centre
+FUNCTION orbit_eta_alt {
+	parameter eta_.
+	parameter sma.
+	parameter ecc.
+	
+	return sma*(1 - ecc^2)/(1 + ecc*COS(eta_)).
+
+}
+
 
 //VEHICLE-SPECIFIC FUNCTIONS
 
