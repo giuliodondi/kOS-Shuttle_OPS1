@@ -51,7 +51,7 @@ FUNCTION drawUI {
 	CLEARSCREEN.
 	
 	PRINT "|=============================================================|"  AT (0,1).
-	PRINT "|         UNIFIED POWERED FLIGHT GUIDANCE ALGORITHM           |"  AT (0,2).
+	PRINT "|         SPACE SHUTTLE OPS1 ASCENT GUIDANCE PROGRAM          |"  AT (0,2).
 	PRINT "|                                                             |"  AT (0,3).
 	PRINT "|                                                             |"  AT (0,4).
 	PRINT "|                                                             |"  AT (0,5).
