@@ -55,6 +55,7 @@ function initialise_shuttle {
 						"name",SHIP:NAME,
 						"ign_t", 0,
 						"launchTimeAdvance", 300,
+						"trajectory_scale",0,
 						"preburn",5.1,
 						"roll",180,
 						"handover", LEXICON("time", srb_time + 5),
@@ -239,7 +240,7 @@ function initialise_shuttle {
 		vehicle["stages"]:ADD(new_stg_4).
 	} 
 	
-
+	SET vehicle["trajectory_scale"] TO vehicle_traj_scale().
 	
 	SET control["roll_angle"] TO vehicle["roll"].
 
@@ -275,6 +276,22 @@ FUNCTION debug_vehicle {
 
 									//CONTROL FUNCTIONS
 
+//default trajectory scale factor 
+//bias given deltas of cutoff altitude and engine thrust with respect to reference
+FUNCTION vehicle_traj_scale {
+
+	//reference thrust is rs-25D
+	LOCAL ssme_thr_delta IS vehicle["SSME"]["thrust"] - 2319.9.
+	
+	//reference alt is 112 km.
+	LOCAL cut_alt_delta IS (target_orbit["radius"]:MAG - SHIP:BODY:RADIUS)/1000 - 112.
+	
+	LOCAL scale_ IS 0.201.
+	
+	//bias scale 
+	
+	RETURN scale_.
+}
 
 
 //open-loop pitch profile for first stage ascent
@@ -285,9 +302,9 @@ FUNCTION open_loop_pitch {
 	
 	LOCAL refv IS 400.
 	
-	LOCAL scale_ IS 0.201.
+	LOCAL scale_ IS vehicle["trajectory_scale"].
 	
-	//bias trajectory
+	//bias trajectory in case of first-stage rtls
 	IF (abort_modes["triggered"] ) {
 		SET scale_ TO RTLS_first_stage_lofting_scale(scale_, abort_modes["t_abort_true"]).
 	}
