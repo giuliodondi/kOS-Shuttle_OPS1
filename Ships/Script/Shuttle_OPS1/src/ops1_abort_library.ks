@@ -124,11 +124,10 @@ FUNCTION monitor_abort {
 
 
 //bias first-stage trajectory scale for lofting
-FUNCTION RTLS_first_stage_lofting_scale {
-	PARAMETER cur_scale.
+FUNCTION RTLS_first_stage_lofting_bias {
 	PARAMETER abort_t.
 	
-	RETURN cur_scale + 0.22*(1 - abort_t/122).
+	RETURN 0.33*(1 - abort_t/122).
 	
 }
 
@@ -319,6 +318,7 @@ FUNCTION RTLS_immediate_flyback {
 }
 
 FUNCTION setup_RTLS {
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
 
 	IF (DEFINED RTLSAbort) {
 		RETURN.
@@ -353,7 +353,7 @@ FUNCTION setup_RTLS {
 		
 	IF (flyback_immediate) {
 		addMessage("POWERED PITCH-AROUND TRIGGERED").
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.
 	}
 	
 	GLOBAL RTLSAbort IS LEXICON (

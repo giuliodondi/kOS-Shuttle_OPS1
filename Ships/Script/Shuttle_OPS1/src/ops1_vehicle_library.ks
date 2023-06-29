@@ -305,22 +305,23 @@ FUNCTION open_loop_pitch {
 	
 	//bias trajectory in case of first-stage rtls
 	IF (abort_modes["triggered"] ) {
-		SET steep_fac TO RTLS_first_stage_lofting_scale(steep_fac, abort_modes["t_abort_true"]).
+		SET steep_fac TO steep_fac + RTLS_first_stage_lofting_bias(abort_modes["t_abort_true"]).
 	}
-	
 	
 	IF curv<=v0 {
 		RETURN 90.
 	} ELSE {
 		
-		LOCAL p1 IS -0.0068/(steep_fac^2).
+		LOCAL p1 IS -0.0068.
 		LOCAL p2 IS 28.8.
 		LOCAL p3 IS 26300.
 		LOCAL q1 IS 3.923.
 		
 		LOCAL x IS curv + refv - v0.
 	
-		LOCAL out IS (p1*x^2 + p2*x + p3)/(x + q1).
+		LOCAL out IS CLAMP((p1*x^2 + p2*x + p3)/(x + q1), 0, 90).
+		
+		SET out TO out + (steep_fac - 1)*(90 - out)^0.7.
 		
 		LOCAL bias IS out - surfacestate["vdir"].
 		
@@ -769,9 +770,9 @@ FUNCTION increment_stage {
 FUNCTION srb_staging {
 	IF vehiclestate["staging_in_progress"] {RETURN.}
 
-	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 3 ) {
+	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 4 ) {
 		SET vehiclestate["staging_in_progress"] TO TRUE.
-		SET control["steerdir"] TO SHIP:FACING.
+		//SET control["steerdir"] TO SHIP:FACING.
 		addMessage("STAND-BY FOR SRB SEP").
 		
 		

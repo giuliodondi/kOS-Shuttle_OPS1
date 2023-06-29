@@ -322,6 +322,9 @@ declare function closed_loop_ascent{
 	//to disable RCS separation maneouvre
 	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 	
+	close_umbilical().
+	disable_TVC().
+	
 	// IF RTLS enter GRTLS loop and exit
 	IF (DEFINED RTLSAbort) {
 		LIST ENGINES IN Eng.
@@ -330,14 +333,11 @@ declare function closed_loop_ascent{
 		RETURN.
 	}
 	
-	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
-	
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
 	SAS ON.
 	
-	close_umbilical().
-	disable_TVC().
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 	
 	drawUI().
 	UNTIL AG9 {

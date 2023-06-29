@@ -206,7 +206,7 @@ FUNCTION upfg_wrapper {
 					SET usc["lastvec"] TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"],15). 
 					
 					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
-						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
+						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
 						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
 						//do it again for good measure
 						SET RTLSAbort["flyback_flag"] TO TRUE.
