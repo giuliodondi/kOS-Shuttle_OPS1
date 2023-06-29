@@ -346,11 +346,6 @@ FUNCTION roll_heads_up {
 	}
 }
 
-//given current vehicle fore vector, computes where the thrust is pointing
-FUNCTION thrust_vec {
-	RETURN SHIP:FACING:VECTOR:NORMALIZED - thrustrot(SHIP:FACING:FOREVECTOR,SHIP:FACING:TOPVECTOR).
-}
-
 
 
 
