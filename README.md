@@ -130,12 +130,12 @@ At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 3
 
 Here I present my test results for RTLS aborts during an STS-1-like mission (original RS-25 engines, Standard-weight ET, 40° inclination, minimal payload). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to a handful of seconds before Negative Return. The plots include both Powered and GLide RTLS phases 
 
-![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_traj.png)
+![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj.png)
 
 The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory.  
 You can see the lofting action for aborts prior to SRB-sep. The trajecotries are generally more depressed for early aborts (the propellant mass is high and acceleration is low) and the maximum altitude reached during the manoeuvre is quite inconsistent. MECO happens at the "hump" at 80km, form there on you can see the effect of aerobraking during Glide-RTLS. Guidance does not try to force the MECO downrange distance, which is evident in the final downrange distance at the end of Glide-RTLS
 
-![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_vel.png)
+![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_vel.png)
 
 The second plot is horizontal velocity vs. altitude. Here you can se clearly:
 - when the engine was lost (the point of deviaton from the dashed nominal line)
@@ -144,7 +144,7 @@ The second plot is horizontal velocity vs. altitude. Here you can se clearly:
 - that the Shuttle does not come to a dead stop at the inversion point, as there is some sideways motion
 - that all the MECO velocities are different but tend to converge during Glide-RTLS
 
-![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/UPFG_OPS1/rtls_rvline.png)
+![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_rvline.png)
 
 The final plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate on the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. The range to the landing site uopn arrival on the RV line is not important as long as the velocity is right.
 
