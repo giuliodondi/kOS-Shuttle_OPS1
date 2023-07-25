@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
-## Updated 31/03/2023
+## Updated July 2023
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
 Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
@@ -78,11 +78,54 @@ There is no longer any need for a specific vessel configuration file as the scri
 As mentioned, the mission is started by running **shuttle.ks**. Running this script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch a few seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch. It is possible to launch in the orbital plane of a ship in orbit by selecting it as a target in the map view **BEFORE** running the script. This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.  
 Fuel cells are automatically activated at liftoff. On a nominal mission a roll to heads-up attitude is performed at T+5:50.  
 
+
 Although the Shuttle was a two-stage vehicle, the script treats it as a four-stage vehicle:
 - stage 1 is the SRB atmospheric phase, with open-loop guidance. It terminates 5 seconds after SRB sep.
 - stage 2 is closed-loop PEG guidance with the engines at full constant throttle. It terminates when the acceleration reaches 3G
 - stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached. For missions with very heavy payloads this might be the last phase overall, as fuel will be depleted before the minimum throttle setting is reached.
 - stage 4 s closed-loop PEG guidance with the engines at minimum throttle. It terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch. 
+
+The script now implements a functional GUI which re-creates the real-world Space Shuttle monitor displays during ascent. Although the GUI is fully functional, so far it is just a fancy display since there is no possibility of manual control.
+
+### ASCENT TRAJ 1 display
+
+![ascent_traj_1_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/ascent_traj1_gui.png)
+
+This is the display during the majority of first stage, until right before SRB separation.
+- At the top you have the display title and the running mission elapsed time
+- On the left data box you have vertical speed (H-dot) and the roll (R), pitch (P) and yaw (Y) angles with respect to the surface prograde direction
+- On the right data box you have:
+    - a slider indicating the current acceleration in units of G
+    - the remaining propellant quantity (PROP) as a percentage
+    - the current throttle setting as a percentage of Rated Power Level (more on this later)
+    - TGO and VGO are inactive during first stage
+- In the middle is a plot of surface velocity on the X axis versus altitude on the Y axis. The line represents a nominal ascent trajectory. The numbered ticks indicate roughly the surface pitch that the Shuttle should have at that moment
+    - The yellow triangle indicates the Shuttle's state right now
+    - The circle is the predicted state 30 seconds into the future, the prediction is a trajectory integration assuming the thrust direction is invariant, this is why the circle will 
+      travel above the line
+- at the bottom you have a message box detailing the status of the underlying script
+
+### ASCENT TRAJ 2 display
+
+![ascent_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/ascent_traj2_gui.png)
+
+This is the display from the final moments of first stage all the way to MECO, during nominal ascent, TAL and ATO aborts (RTLS has its own display).
+
+- The left data box is identical to the TRAJ1 display
+- the right data box is also identical to the TRAJ1 display, with the exception of the TGO and VGO fields which are now active:
+    - TGO is the guidance calculated time-to-go until the MECO target is reached
+    - VGO is the guidance calculated velocity-to-go in m/s until the MECO target is reached
+- both fields will be yellow when the guidance algorithm is unconverged, then turn green once the algorithm stabilises
+- At the top, below the title, you have the MECO velocity indicator. It's a slider which ranges from 7000 to 8000 m/s and the CO symbol indicates the desired cutoff speed. The triangle indicates the current orbital velocity and should stop at the CO mark at MECO.
+- In the middle is now a plot of orbital velocity on the X axis versus aLtitude on the Y axis. The long central curve is the nominal trajectory, which droops during the late stages of ascent (this is normal and realistic).
+    - The track to the left of the nominal trajectory is the trajectory for a retrograde launch out of Vandenberg.
+    - The track on the right below nominal is the drooped trajecotry in case of a TAL or ATO abort, ideally the Shuttle should never cross below this track
+
+### Meaning of Rated Power Level and the THR indicator
+
+The Space Shuttle Main Engine had several performance improvements in its operational life, and you have all the variants at your disposal in KSP RO.  
+The caveat is that "full power" is an ambiguous term in this situation. For this reason we define the Rated Power Level (100% RPL) as 2090 kN, the max thrust of the original variant. 
+This is significant because for the later part of the Shuttle program, when they used the RS-25D variant, the nominal throttle setting was 104% RPL and boosted to the full 109% RPL in case of an abort. This was done to reduce wear and risk of failure on the engines, it's all realistic and simulated by the script.
 
 After MECO the script wil automatically:
 - trigger ET sep
