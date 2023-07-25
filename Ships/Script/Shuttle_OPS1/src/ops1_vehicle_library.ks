@@ -7,6 +7,7 @@ GLOBAL vehiclestate IS LEXICON(
 	"staging_time", 0,
 	"staging_in_progress", FALSE,
 	"m_burn_left", 0,
+	"thr_vec", v(0,0,0),
 	"avg_thr", average_value_factory(6)
 ).
 
@@ -59,6 +60,7 @@ function initialise_shuttle {
 						"preburn",5.1,
 						"roll",180,
 						"handover", LEXICON("time", srb_time + 5),
+						"maxThrottle",0,	
 						"stages",LIST(),
 						"SSME",0
 	).
@@ -68,6 +70,9 @@ function initialise_shuttle {
 	//add the ssme type to the vessel name 
 	
 	SET vehicle["name"] TO vehicle["name"] + " " + vehicle["SSME"]["type"].
+	
+	//limit upper throttle in nominal case
+	SET vehicle["maxThrottle"] TO vehicle["SSME"]["maxThrottle"].
 
 	
 	local veh_res IS res_dens_init(
@@ -120,7 +125,7 @@ function initialise_shuttle {
 		),
 		"ign_t", 0,
 		"Tstage",srb_time,
-		"Throttle",1,
+		"Throttle",vehicle["maxThrottle"],
 		"minThrottle",vehicle["SSME"]["minThrottle"],	//needed for the max q throttle down
 		"engines",	engines_lex,
 		"ext_tank",et_part,
@@ -144,7 +149,7 @@ function initialise_shuttle {
 		"glim", 3,
 		"ign_t", 0,
 		"Tstage",0,
-		"Throttle",1,
+		"Throttle",vehicle["maxThrottle"],
 		"minThrottle",vehicle["SSME"]["minThrottle"],
 		"engines",	engines_lex,
 		"ext_tank",et_part,
@@ -155,7 +160,7 @@ function initialise_shuttle {
 	//will the stage exceed the g limit?
 	LOCAL x IS glim_t_m(new_stg_2).
 	If x[0] <= 0 {
-		PRINT ("ERROR! THE VEHICLE WILL NEVER EXCEED THE 3G ACCELERATION LIMIT. VERIFY PAYLOAD MASS WITHIN LIMITS") AT (1,40).
+		PRINT ("ERROR! THE VEHICLE WILL NEVER EXCEED THE 3G ACCELERATION LIMIT. VERIFY PAYLOAD MASS WITHIN LIMITS") AT (1,5).
 		LOCAL X IS 1/0.
 	}
 	
@@ -180,7 +185,7 @@ function initialise_shuttle {
 		"glim",new_stg_2["glim"],
 		"ign_t", 0,
 		"Tstage",0,
-		"Throttle",1,
+		"Throttle",vehicle["maxThrottle"],
 		"minThrottle",vehicle["SSME"]["minThrottle"],
 		"throt_mult",0,
 		"engines",	engines_lex,
@@ -247,14 +252,15 @@ function initialise_shuttle {
 
 	setup_engine_failure().
 	
+	//initialise first stage thrust at 100% rpl 
+	SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(1).
+	
 	WHEN (SHIP:Q > 0.28) THEN {
 		IF NOT (abort_modes["triggered"]) {
-			addMessage("THROTTLING DOWN").
-			SET vehicle["stages"][1]["Throttle"] TO 0.75.
+			addGUIMessage("THROTTLING DOWN").
+			SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(0.7).
 		}
 	}
-	
-	PRINT " INITIALISATION COMPLETE" AT (0,3).
 	
 }
 
@@ -278,10 +284,11 @@ FUNCTION debug_vehicle {
 
 //default trajectory steepness factor 
 //bias given deltas of cutoff altitude and engine thrust with respect to reference
+//engine thrust with reference to 104% rpl
 FUNCTION vehicle_traj_steepness {
 
 	//reference thrust is rs-25D
-	LOCAL ssme_thr_fac IS 2319.9/vehicle["SSME"]["thrust"].
+	LOCAL ssme_thr_fac IS (1.045*get_rpl_thrust())/(vehicle["SSME"]["thrust"]*vehicle["SSME"]["maxThrottle"]).
 	
 	//reference alt is 112 km.
 	LOCAL cut_alt_fac IS target_orbit["Cutoff Altitude"]/112.
@@ -343,7 +350,7 @@ FUNCTION roll_heads_up {
 	//setup the new roll and steering
 	if (vehicle["roll"] <> 0) {
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.8.
-		addMessage("ROLL TO HEADS-UP ATTITUDE").
+		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 		SET vehicle["roll"] TO 0.
 	}
 	
@@ -374,6 +381,9 @@ FUNCTION throttleControl {
 		SET throtval TO stg["throt_mult"]*SHIP:MASS*1000.
 		SET usc["lastthrot"] TO throtval.
 	}
+	
+	set throtval to min(vehicle["maxThrottle"],throtval).
+	set stg["Throttle"] to throtval.
 
 	LOCAL minthrot IS 0.
 	IF stg:HASKEY("minThrottle") {
@@ -384,8 +394,13 @@ FUNCTION throttleControl {
 }
 
 
+//for terminal guidance, fix the throttle at minimum
+FUNCTION fix_minimum_throttle {
+	local stg IS get_stage().
 
+	set vehicle["maxThrottle"] to stg["minThrottle"].
 
+}
 
 
 
@@ -399,11 +414,11 @@ FUNCTION check_maxq {
 	IF (newq >=  surfacestate["q"] ) {
 		SET surfacestate["q"] TO newq.
 	} ELSE {
-		addMessage("VEHICLE HAS REACHED MAX-Q").
+		addGUIMessage("VEHICLE HAS REACHED MAX-Q").
 		surfacestate:REMOVE("q").
 		WHEN (SHIP:Q < 0.95*newq) THEN {
 			IF (vehicle["stages"][1]["Throttle"] < 1) {
-				addMessage("GO AT THROTTLE-UP").
+				addGUIMessage("GO AT THROTTLE-UP").
 				SET vehicle["stages"][1]["Throttle"] TO 1.
 			}
 		}
@@ -538,7 +553,7 @@ FUNCTION glim_t_m {
 	PARAMETER stg.
 	local out is LIST(0,0).
 	
-	local mbreak is stg["engines"]["thrust"]/(stg["glim"]*g0).
+	local mbreak is stg["engines"]["thrust"] * stg["Throttle"]/(stg["glim"]*g0).
 	IF mbreak > stg["m_final"]  {
 		SET out[1] TO mbreak.
 		SET out[0] TO (stg["m_initial"] - mbreak)/(stg["engines"]["flow"] * stg["Throttle"]).
@@ -618,7 +633,9 @@ FUNCTION getState {
 	
 	LOCAL x IS get_current_thrust_isp().
 	
-	vehiclestate["avg_thr"]:update(x[0]:MAG).
+	SET vehiclestate["thr_vec"] TO x[0].
+	
+	vehiclestate["avg_thr"]:update(vehiclestate["thr_vec"]:MAG).
 	
 	LOCAL avg_thrust is vehiclestate["avg_thr"]:average().
 	LOCAL avg_isp is x[1].
@@ -760,7 +777,7 @@ FUNCTION increment_stage {
 	vehiclestate["avg_thr"]:reset().
 	
 	WHEN TIME:SECONDS > vehiclestate["staging_time"] + 0.5 THEN {
-		addMessage("STAGING SEQUENCE COMPLETE").
+		addGUIMessage("STAGING SEQUENCE COMPLETE").
 		SET vehiclestate["staging_in_progress"] TO FALSE.
 	}
 
@@ -773,7 +790,7 @@ FUNCTION srb_staging {
 	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 4 ) {
 		SET vehiclestate["staging_in_progress"] TO TRUE.
 		//SET control["steerdir"] TO SHIP:FACING.
-		addMessage("STAND-BY FOR SRB SEP").
+		addGUIMessage("STAND-BY FOR SRB SEP").
 		
 		
 		//WHEN (get_TWR()<0.98) THEN {
@@ -866,6 +883,11 @@ FUNCTION get_ext_tank_part {
 	RETURN SHIP:PARTSDUBBED("ShuttleExtTank")[0].
 }
 
+//return the ET propellant fraction left
+function get_et_prop_fraction {
+	return vehiclestate["m_burn_left"]/730874.
+}
+
 
 FUNCTION activate_fuel_cells {
 
@@ -941,7 +963,7 @@ FUNCTION stop_oms_dump {
 			FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
 				oms:SHUTDOWN.
 			}
-			addMessage("OMS DUMP STOPPED").
+			addGUIMessage("OMS DUMP STOPPED").
 			SET abort_modes["oms_dump"] TO FALSE.
 		}
 	}
@@ -972,8 +994,8 @@ FUNCTION parse_ssme {
 		"isp",0,
 		"thrust",0,
 		"flow",0,
-		"minThrottle",0
-	
+		"minThrottle",0,
+		"maxThrottle",0
 	).
 	
 	//count SSMEs, not necessary per se but a useful check to see if we're flying a DECQ shuttle
@@ -985,7 +1007,7 @@ FUNCTION parse_ssme {
 			SET ssme_count TO ssme_count + 1.
 			
 			IF (ssme:CONFIG <> ssmelex["type"]) {
-				PRINT ("ERROR! THE VEHICLE SEEMS TO HAVE MISMATCHED SSME TYPES") AT (1,40).
+				PRINT ("ERROR! THE VEHICLE SEEMS TO HAVE MISMATCHED SSME TYPES") AT (1,5).
 				LOCAL X IS 1/0.
 			}
 			
@@ -1003,7 +1025,7 @@ FUNCTION parse_ssme {
 	}
 	
 	IF (ssme_count <> 3 ) {
-		PRINT ("ERROR! THE VEHICLE SEEMS TO HAVE THE WRONG NUMBER OF SSMEs") AT (1,40).
+		PRINT ("ERROR! THE VEHICLE SEEMS TO HAVE THE WRONG NUMBER OF SSMEs") AT (1,5).
 		LOCAL X IS 1/0.
 	}
 	
@@ -1015,7 +1037,8 @@ FUNCTION parse_ssme {
 	SET ssmelex["thrust"] TO ssmelex["thrust"]/ssme_count.
 	SET ssmelex["flow"] TO ssmelex["flow"]/ssme_count.
 
-	
+	//calculate max throttle given nominal power level of 104.5%
+	SET ssmelex["maxThrottle"] TO min(1.045*get_rpl_thrust()/ssmelex["thrust"], 1).
 	
 	RETURN ssmelex.
 	
@@ -1031,6 +1054,28 @@ FUNCTION build_ssme_lex {
 				"resources",LIST("LqdHydrogen","LqdOxygen")
 	).
 
+
+}
+
+//100 percent rated power level in kn in vacuum (1ssme)
+function get_rpl_thrust {
+	return 2090.
+}
+
+//given a throttle value as a percentage of rpl, converts it into absolute percentage
+FUNCTION convert_ssme_throt_rpl {
+	parameter rpl_throt.
+	
+	local stg IS get_stage().
+	local ssme_thr IS stg["engines"]["thrust"]/3000.
+	
+	//first work out the rpl level of the engines' max thrust 
+	
+	local max_rpl_thr is ssme_thr/get_rpl_thrust().
+	
+	//then do the proportion with 100% commanded throttle 
+	
+	return rpl_throt/max_rpl_thr.
 
 }
 
@@ -1051,6 +1096,10 @@ FUNCTION SSME_out {
 		
 		SET vehicle["SSME"]["active"] TO SSMEcount.
 		
+		LOCAL cur_stg IS get_stage().
+
+		SET cur_stg["engines"] TO build_ssme_lex().
+		
 		RETURN TRUE.
 	}
 
@@ -1064,4 +1113,15 @@ FUNCTION SSME_flameout {
 		}
 	}
 	RETURN FALSE.
+}
+
+//get the ssme instantaneous vacuum thrust as percentage
+function get_ssme_throttle {
+	
+	local stg IS get_stage().
+	local throtval is stg["Throttle"].
+	
+	local ssme_thr IS throtval* stg["engines"]["thrust"]/(vehicle["SSME"]["active"] * 1000).
+	
+	return ssme_thr/get_rpl_thrust().
 }

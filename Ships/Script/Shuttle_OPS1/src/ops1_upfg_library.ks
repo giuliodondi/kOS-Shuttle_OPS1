@@ -8,8 +8,38 @@ RUNPATH("0:/Libraries/cser_sg_simple").
 
 GLOBAL upfgFinalizationTime IS 5.		//	When time-to-go gets below that, keep attitude stable and simply count down time to cutoff.
 GLOBAL upfgConvergenceTgo IS 1.	//	Maximum difference between consecutive UPFG T-go predictions that allow accepting the solution.
-GLOBAL upfgConvergenceVec IS 15.	//	Maximum angle between guidance vectors calculated by UPFG between stages that allow accepting the solution.
+GLOBAL upfgConvergenceVec IS 20.	//	Maximum angle between guidance vectors calculated by UPFG between stages that allow accepting the solution.
 	
+
+GLOBAL upfgInternal IS LEXICON(
+		"cser", 0,
+		"rbias", V(0, 0, 0),
+		"rd", V(0, 0, 0),
+		"rgrav", V(0, 0, 0),
+		"vgrav", V(0, 0, 0),
+		"time", 0,
+		"tgo", 0,
+		"v", V(0, 0, 0),
+		"vgo", V(0, 0, 0),
+		"lambda", V(1,0,0),
+		"lambdadot", V(0,0,0),
+		"t_lambda",0,
+		"steering",V(1,0,0),
+		"throtset",0,
+		"flyback_flag",FALSE,
+		"mbod",0,
+		"dmbo",0,
+		"Tc",0
+	).
+GLOBAL usc IS LEXICON(
+		"iter",-2,
+		"conv",-2,
+		"itercount",0,
+		"lastvec",V(1,0,0),
+		"lastiter",0,
+		"lastthrot",0,
+		"terminal",FALSE
+	).
 	
 
 									//	UPFG HANDLING FUNCTIONS
@@ -101,6 +131,8 @@ FUNCTION upfg_wrapper {
 
 	LOCAL currentIterationTime IS surfacestate["MET"].
 	
+	LOCAL iterationDeltaTime IS ABS(currentIterationTime - usc["lastiter"]).
+	
 	//clearvecdraws().
 	//arrow(vecyz(upfgOutput["steering"]),"iF1",v(0,0,0),50,0.05)
 	
@@ -108,28 +140,26 @@ FUNCTION upfg_wrapper {
 	
 	SET upfgInternal["throtset"] TO usc["lastthrot"].
 	
+	LOCAL upfg_function_handle IS upfg_regular@.
+	
 	IF (DEFINED RTLSAbort) {
 		SET upfgInternal["mbod"] TO vehicle["mbod"].
+		SET upfg_function_handle TO upfg_rtls@.
 	}
 	
-	
-	LOCAL out IS upfg(
+	LOCAL out IS upfg_function_handle:CALL(
 		currentIterationTime,
 		vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]),
 		target_orbit,
 		upfgInternal
 	).
 	
-	
-	
 	LOCAL upfgOutput IS out[0].
 	SET target_orbit TO out[1].
-	
 	
 	IF NOT usc["terminal"] {
 		IF usc["conv"]<1 {SET usc["itercount"] TO usc["itercount"]+1.}
 		
-		LOCAL iterationDeltaTime IS ABS(currentIterationTime - usc["lastiter"]).
 		IF vehiclestate["staging_in_progress"] {
 			SET iterationDeltaTime TO 0.
 			SET upfgOutput["time"] TO upfgInternal["time"].
@@ -181,13 +211,12 @@ FUNCTION upfg_wrapper {
 				LOCAL pitchover_bias IS 0.5 * RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
 				
 				IF (upfgOutput["Tc"] <= (1 + pitchover_bias) AND RTLSAbort["flyback_conv"] = 1) {
-					addMessage("POWERED PITCH-AROUND TRIGGERED").
+					addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
 					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
 					SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
 					SET RTLSAbort["flyback_flag"] TO TRUE.
 					SET upfgOutput["flyback_flag"] TO TRUE.
-					drawUI().
 				} 
 				
 			} 
@@ -203,7 +232,7 @@ FUNCTION upfg_wrapper {
 					
 					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
 								
-					SET usc["lastvec"] TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"],15). 
+					SET usc["lastvec"] TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], iterationDeltaTime * 20). 
 					
 					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
 						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
@@ -247,7 +276,7 @@ FUNCTION resetUPFG {
 	PARAMETER upfgOutput.
 	
 
-	addMessage("RESETTING UPFG").
+	addGUIMessage("RESETTING UPFG").
 	LOCAL lastvec IS usc["lastvec"].
 	LOCAL x IS setupUPFG(target_orbit).
 	SET upfgOutput[0] TO x[0].
@@ -265,7 +294,7 @@ FUNCTION resetUPFG {
 
 //		UPFG MAIN ROUTINE
 
-FUNCTION upfg {
+FUNCTION upfg_regular {
 
 	DECLARE FUNCTION compute_iF {
 		PARAMETER time_.
@@ -299,25 +328,6 @@ FUNCTION upfg {
 	LOCAL t40flag IS tgo<40.
 	
 	LOCAL g0 IS 9.80665. 
-	
-	LOCAL s_mode IS tgt_orb["mode"].
-	
-	LOCAL flyback_flag IS FALSE.
-	LOCAL mbod IS 0.
-	LOCAL dmbo IS 0.
-	LOCAL Tc IS 0.
-	LOCAL burnout_m IS 0.
-	LOCAL mbo_T IS 0.
-	LOCAL RTLSthrotflag IS tgo>60.
-	
-	IF (s_mode = 5) {
-		SET mbod TO  previous["mbod"].
-		SET flyback_flag TO previous["flyback_flag"].
-		IF (NOT flyback_flag ) {
-			SET Kk TO 0.99.
-		}
-	}
-
 	
 	//	1
 	LOCAL n IS vehicle:LENGTH.
@@ -355,39 +365,33 @@ FUNCTION upfg {
 	
 	//	3
 	IF SM[0]=1 {
-		SET aT[0] TO fT[0]*Kk / m.
+		SET aT[0] TO fT[0] / m.
 	} ELSE IF SM[0]=2 {
 		SET aT[0] TO aL[0].
 	}
 	SET tu[0] TO ve[0] / aT[0].
 	
 	LOCAL Li IS LIST().
+	LOCAL Lsum IS 0.
+	FROM { LOCAL i IS 0. } UNTIL i>=n-1 STEP { SET i TO i+1. } DO {
+		IF SM[i]=1 {
+			Li:ADD( ve[i]*LN(tu[i]/(tu[i]-tb[i])) ).
+		} ELSE IF SM[i]=2 {
+			Li:ADD( aL[i]*tb[i] ).
+		} ELSE Li:ADD( 0 ).
+		SET Lsum TO Lsum + Li[i].
 		
-	IF (s_mode = 5) {
-		Li:ADD(vgo:MAG).
-		SET burnout_m TO m*CONSTANT:E^(-Li[0]/ve[0]).
-		SET mbo_T TO (m - mbod)/md[0].
-	} ELSE {
-		LOCAL Lsum IS 0.
-		FROM { LOCAL i IS 0. } UNTIL i>=n-1 STEP { SET i TO i+1. } DO {
-			IF SM[i]=1 {
-				Li:ADD( ve[i]*LN(tu[i]/(tu[i]-tb[i])) ).
-			} ELSE IF SM[i]=2 {
-				Li:ADD( aL[i]*tb[i] ).
-			} ELSE Li:ADD( 0 ).
-			SET Lsum TO Lsum + Li[i].
-			
-			IF Lsum>vgo:MAG {
-				RETURN upfg(
-					t,
-					vehicle:SUBLIST(0,vehicle:LENGTH-1),
-					tgt_orb,
-					previous
-				).
-			}
+		IF Lsum>vgo:MAG {
+			RETURN upfg_regular(
+				t,
+				vehicle:SUBLIST(0,vehicle:LENGTH-1),
+				tgt_orb,
+				previous
+			).
 		}
-		Li:ADD(vgo:MAG - Lsum).
 	}
+	Li:ADD(vgo:MAG - Lsum).
+	
 	
 	LOCAL tgoi IS LIST().
 	FROM { LOCAL i IS 0. } UNTIL i>=n STEP { SET i TO i+1. } DO {
@@ -492,25 +496,14 @@ FUNCTION upfg {
 	//	8
 	LOCAL rp IS r_cur + v_cur*tgo + rgrav + rthrust.
 	
-	IF (NOT t40flag) OR ( s_mode=5 ) {
+	IF (NOT t40flag) {
 		SET rp TO VXCL(iy,rp).
 	}
 	
 	LOCAL vd IS v(0,0,0).
 	
 	//some code duplication but helps readability
-	IF s_mode=5 {
-		LOCAL out IS RTLS_cutoff_params(tgt_orb,rp,flyback_flag).
-		SET tgt_orb TO out[0].
-		SET vd TO  out[1].
-		
-		IF (t40flag) {
-			SET tgt_orb["radius"] TO rp.
-		}
-		
-		SET rd TO tgt_orb["radius"].
-	
-	} ELSE IF s_mode=6 {
+	IF (tgt_orb["mode"]=6) {
 		LOCAL ix IS rp:NORMALIZED.
 		SET iz TO VCRS(ix,iy):NORMALIZED.
 
@@ -518,7 +511,7 @@ FUNCTION upfg {
 		SET rd TO tgt_orb["radius"]:MAG*ix.	
 		SET vd TO iz*tgt_orb["velocity"].
 	
-	} ELSE IF s_mode=7 {
+	} ELSE IF (tgt_orb["mode"]=7) {
 		LOCAL ix IS rp:NORMALIZED.
 		SET iz TO VCRS(ix,iy):NORMALIZED.
 		
@@ -549,25 +542,199 @@ FUNCTION upfg {
 
 	SET vgo TO vd - v_cur - vgrav + vbias.
 	
-	IF (s_mode = 5) {
-		LOCAL dmbo IS burnout_m - mbod.
-		
-		SET Tc TO mbo_T - tgo.
-		
-		IF (flyback_flag AND RTLSthrotflag) {
-			
-			LOCAL throtgain IS -dt*2e-3.
-			
-			LOCAL newKk IS Kk + throtgain*Tc.
-			SET Kk TO MAX(0,MIN(1,newKk)).
-		}
-	}
-	
 	//	RETURN - build new internal state instead of overwriting the old one
 	LOCAL current IS LEXICON(
 		"cser", cser,
 		"rbias", rbias,
 		"rd", rd,
+		"rp", rp,
+		"rgrav", rgrav,
+		"time", t,
+		"tgo", tgo,
+		"v", v_cur,
+		"vgo", vgo,
+		"lambda", lambda,
+		"lambdadot", lambdadot,
+		"t_lambda",(t + K_),
+		"steering",iF_,
+		"throtset",Kk,
+		"flyback_flag",false,
+		"dmbo",0,
+		"mbod",0,
+		"Tc",0
+	).
+	
+	
+	RETURN LIST(current,tgt_orb).
+}
+
+FUNCTION upfg_rtls {
+
+	DECLARE FUNCTION compute_iF {
+		PARAMETER time_.
+		LOCAL out IS  lambda + lambdadot*time_.
+		RETURN out:NORMALIZED.
+	}
+	
+	PARAMETER t.
+	PARAMETER vehicle.
+	PARAMETER tgt_orb.
+	PARAMETER previous.
+	
+	LOCAL dt IS t - previous["time"].
+	LOCAL v_cur IS orbitstate["velocity"].
+	LOCAL vgo IS previous["vgo"] - (v_cur - previous["v"]).
+	LOCAL tgo IS previous["tgo"].
+	LOCAL lambda IS previous["lambda"].
+	LOCAL lambdadot IS previous["lambdadot"].
+		
+	LOCAL r_cur IS orbitstate["radius"].
+	LOCAL cser IS previous["cser"].
+	LOCAL rd IS previous["rd"].
+	LOCAL rbias IS previous["rbias"].
+	LOCAL rgrav IS previous["rgrav"].
+	LOCAL iy IS tgt_orb["normal"]:NORMALIZED.
+	LOCAL iz IS VCRS(rd,iy):NORMALIZED.
+	LOCAL m IS vehicle[0]["m_initial"].
+	LOCAL Kk IS previous["throtset"].
+	
+	LOCAL t40flag IS tgo<40.
+	
+	LOCAL g0 IS 9.80665. 
+	
+	LOCAL s_mode IS tgt_orb["mode"].
+	
+	LOCAL flyback_flag IS FALSE.
+	LOCAL mbod IS 0.
+	LOCAL dmbo IS 0.
+	LOCAL Tc IS 0.
+	LOCAL burnout_m IS 0.
+	LOCAL mbo_T IS 0.
+	LOCAL RTLSthrotflag IS tgo>60.
+	
+
+	SET mbod TO  previous["mbod"].
+	SET flyback_flag TO previous["flyback_flag"].
+	IF (NOT flyback_flag ) {
+		SET Kk TO 0.96.
+	}
+	
+
+	
+	//	1
+	LOCAL n IS 1.
+	LOCAL aL IS 0.
+	LOCAL fT IS Kk*vehicle[0]["engines"]["thrust"].
+	LOCAL md IS Kk*vehicle[0]["engines"]["flow"].
+	LOCAL ve IS vehicle[0]["engines"]["isp"]*g0.
+	
+	LOCAL aT IS fT / m.
+	LOCAL tu IS ve/aT.
+	LOCAL tb IS vehicle[0]["Tstage"].
+	
+	//	3
+	LOCAL Li IS vgo:MAG.
+	SET burnout_m TO m*CONSTANT:E^(-Li/ve).
+	SET mbo_T TO (m - mbod)/md.
+	
+	SET tb TO tu * (1-CONSTANT:E^(-Li/ve)).
+	
+	LOCAL tgoi IS LIST(tb).
+	
+	SET tgo TO tgoi[0].
+	
+	//	4
+	LOCAL L_ IS Li.
+	LOCAL J_ IS tu*Li - ve*tb .
+	LOCAL S_ IS -J_ + tb*Li .
+	LOCAL Q_ IS S_*tu - 0.5*ve*tb^2.
+	LOCAL P_ IS Q_*tu - 0.5*ve*tb^2 * (tb/3).
+	
+	LOCAL H_ IS J_*tgo - Q_.
+	LOCAL K_ IS J_/L_.
+	
+	
+	//	5
+	IF vgo:MAG <>0 { SET lambda TO vgo:NORMALIZED.}
+	IF previous["tgo"]>0 {
+		SET rgrav TO (tgo/previous["tgo"])^2 * rgrav.
+	}
+	
+	LOCAL rgo IS rd - (r_cur + v_cur*tgo + rgrav).
+	LOCAL iz IS VCRS(rd,iy):NORMALIZED.
+	LOCAL rgoxy IS rgo - VDOT(iz,rgo)*iz.
+	LOCAL rgoz IS (S_ - VDOT(lambda,rgoxy)) / VDOT(lambda,iz).
+	SET rgo TO rgoxy + rgoz*iz + rbias.
+	LOCAL lambdade IS Q_ - S_*K_.
+	
+	IF (NOT t40flag) {
+		SET lambdadot TO (rgo - S_*lambda) / lambdade.
+	}
+	
+	
+	LOCAL iF_ IS compute_iF(-K_).
+	LOCAL phi IS VANG(iF_,lambda)*CONSTANT:DEGTORAD.
+	LOCAL phidot IS -phi/K_.
+	LOCAL vthrust IS (L_ - 0.5*L_*phi^2 - J_*phi*phidot - 0.5*H_*phidot^2).
+	SET vthrust TO vthrust*lambda - (L_*phi + J_*phidot)*lambdadot:NORMALIZED.
+	LOCAL rthrust IS S_ - 0.5*S_*phi^2 - Q_*phi*phidot - 0.5*P_*phidot^2.
+	SET rthrust TO rthrust*lambda - (S_*phi + Q_*phidot)*lambdadot:NORMALIZED.
+	SET vbias TO vgo - vthrust.
+	SET rbias TO rgo - rthrust.
+	
+	
+	//	7
+	
+	
+	LOCAL rc1 IS r_cur - 0.1*rthrust - (tgo/30)*vthrust.
+	LOCAL vc1 IS v_cur + 1.2*rthrust/tgo - 0.1*vthrust.
+	LOCAL pack IS cse(rc1, vc1, tgo, cser).
+	SET cser TO pack[2].
+	SET rgrav TO pack[0] - rc1 - vc1*tgo.
+	LOCAL vgrav IS pack[1] - vc1.
+	
+	
+	//	8
+	LOCAL rp IS r_cur + v_cur*tgo + rgrav + rthrust.
+	
+	SET rp TO VXCL(iy,rp).
+	
+	LOCAL vd IS v(0,0,0).
+	
+
+	LOCAL out IS RTLS_cutoff_params(tgt_orb,rp,flyback_flag).
+	SET tgt_orb TO out[0].
+	SET vd TO  out[1].
+	
+	IF (t40flag) {
+		SET tgt_orb["radius"] TO rp.
+	}
+	
+	SET rd TO tgt_orb["radius"].
+	
+
+	SET vgo TO vd - v_cur - vgrav + vbias.
+	
+	
+
+	LOCAL dmbo IS burnout_m - mbod.
+		
+	SET Tc TO mbo_T - tgo.
+	
+	IF (flyback_flag AND RTLSthrotflag) {
+		
+		LOCAL throtgain IS -dt*2e-3.
+		
+		LOCAL newKk IS Kk + throtgain*Tc.
+		SET Kk TO MAX(0,MIN(1,newKk)).
+	}
+
+	//	RETURN - build new internal state instead of overwriting the old one
+	LOCAL current IS LEXICON(
+		"cser", cser,
+		"rbias", rbias,
+		"rd", rd,
+		"rp", rp,
 		"rgrav", rgrav,
 		"time", t,
 		"tgo", tgo,

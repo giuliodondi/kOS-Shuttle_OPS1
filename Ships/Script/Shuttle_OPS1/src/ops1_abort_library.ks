@@ -38,11 +38,12 @@ FUNCTION monitor_abort {
 	LOCAL current_t IS TIME:SECONDS - vehicle["ign_t"].
 	
 	IF abort_detect {
-		addMessage("ENGINE OUT DETECTED.").
+		addGUIMessage("ENGINE OUT DETECTED.").
 		SET abort_modes["triggered"] TO TRUE.
 		SET abort_modes["t_abort_true"] TO current_t.
 		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 5 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
+		SET vehicle["maxThrottle"] TO 1.
 		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 1.
 	}
 
@@ -54,19 +55,19 @@ FUNCTION monitor_abort {
 			IF RTLS_boundary() {
 				SET abort_modes["RTLS"]["active"] TO FALSE.
 				SET abort_modes["TAL"]["active"] TO TRUE.
-				addMessage("NEGATIVE RETURN").
+				addGUIMessage("NEGATIVE RETURN").
 			}
 		} ELSE IF abort_modes["TAL"]["active"] {
 			IF TAL_boundary() {
 				SET abort_modes["TAL"]["active"] TO FALSE.
 				SET abort_modes["ATO"]["active"] TO TRUE.
-				addMessage("PRESS TO ATO.").
+				addGUIMessage("PRESS TO ATO.").
 			}
 		} ELSE IF abort_modes["ATO"]["active"] {
 			IF ATO_boundary() {
 				SET abort_modes["ATO"]["active"] TO FALSE.
 				SET abort_modes["MECO"]["active"] TO TRUE.
-				addMessage("PRESS TO MECO.").
+				addGUIMessage("PRESS TO MECO.").
 			}
 		}
 	
@@ -74,7 +75,7 @@ FUNCTION monitor_abort {
 		//check if conditions are right to setup the abort
 		IF (abort_modes["RTLS"]["active"] ) {
 			IF abort_detect {
-				addMessage("ABORT RTLS AT "+sectotime(abort_modes["t_abort"])).
+				addGUIMessage("ABORT RTLS AT "+sectotime(abort_modes["t_abort"])).
 			}
 		
 			//need to check the time becase we wait for second stage for RTLS
@@ -84,14 +85,14 @@ FUNCTION monitor_abort {
 			}
 		} ELSE IF (abort_modes["TAL"]["active"] ) {
 			IF abort_detect {
-				addMessage("ABORT TAL AT "+sectotime(abort_modes["t_abort"])).
+				addGUIMessage("ABORT TAL AT "+sectotime(abort_modes["t_abort"])).
 			}
 			//no need to check the time for TAL
 			SET abort_modes["TAL"]["active"] TO FALSE.
 			setup_TAL().
 		}  ELSE IF (abort_modes["ATO"]["active"] ) {
 			IF abort_detect {
-				addMessage("ABORT ATO / AOA AT "+sectotime(abort_modes["t_abort"])).
+				addGUIMessage("ABORT ATO / AOA AT "+sectotime(abort_modes["t_abort"])).
 			}
 			//no need to check the time for ATO / AOA
 			SET abort_modes["ATO"]["active"] TO FALSE.
@@ -99,7 +100,7 @@ FUNCTION monitor_abort {
 		
 		}  ELSE IF (abort_modes["MECO"]["active"] ) {
 			IF abort_detect {
-				addMessage("PRESSING TO MECO").
+				addGUIMessage("PRESSING TO MECO").
 			}
 
 			SET abort_modes["MECO"]["active"] TO FALSE.
@@ -194,8 +195,6 @@ FUNCTION RTLS_dissip_theta_pert {
 	
 	SET theta_pert TO ARCSIN(limitarg(thr_corr*SIN(theta_pert))).
 	
-	print round(theta_nom,2) + " " + round(theta_pert,2) at (5,57).
-	
 	RETURN CLAMP(theta_pert, 30, 88).
 
 }
@@ -229,7 +228,7 @@ FUNCTION RTLS_pitchover_t {
 	PARAMETER c1_vec.
 	PARAMETER pitcharound_vec.
 	
-	LOCAL pitchover_rate IS 15.		//degrees per second 
+	LOCAL pitchover_rate IS 20.		//degrees per second 
 	
 	RETURN VANG(pitcharound_vec, c1_vec)/pitchover_rate.
 }
@@ -291,6 +290,9 @@ FUNCTION RTLS_cutoff_params {
 	SET vel TO vel + vEarth.
 	
 	if (flyback_flag) {
+		//for display, this value is unreliable before flyback
+		SET tgt_orb["rtls_cutv"] TO rv_vel.
+	
 		//set new normal to normal of the plane containing current pos and target vel
 		SET tgt_orb["normal"] TO VCRS( -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED) , vel:NORMALIZED  ).
 	}
@@ -304,7 +306,7 @@ FUNCTION RTLS_cutoff_params {
 
 FUNCTION RTLS_burnout_mass {
 
-	SET vehicle["mbod"] TO vehicle["stages"][vehicle["stages"]:LENGTH - 1]["m_final"] + 10000.
+	SET vehicle["mbod"] TO vehicle["stages"][vehicle["stages"]:LENGTH - 1]["m_final"] + 6000.
 }
 
 
@@ -314,7 +316,7 @@ FUNCTION RTLS_boundary{
 
 //compare current velocity with negative return boundary to see if we should flyback immediately
 FUNCTION RTLS_immediate_flyback {
-	RETURN SHIP:VELOCITY:SURFACE:MAG > 2120.
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2100.
 }
 
 FUNCTION setup_RTLS {
@@ -323,6 +325,9 @@ FUNCTION setup_RTLS {
 	IF (DEFINED RTLSAbort) {
 		RETURN.
 	}
+	
+	//do it immediately so it's ready when the gui first wants to update it 
+	make_rtls_traj2_disp().
 	
 	//need to do the vehicle performance recalculations first because we need to know the time to burnout
 	
@@ -352,11 +357,11 @@ FUNCTION setup_RTLS {
 	LOCAL flyback_immediate IS RTLS_immediate_flyback().
 		
 	IF (flyback_immediate) {
-		addMessage("POWERED PITCH-AROUND TRIGGERED").
+		addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.
 	}
 	
-	GLOBAL RTLSAbort IS LEXICON (
+	LOCAL abort_lex IS LEXICON (
 								"t_abort",t_abort,
 								"C1",v(0,0,0),
 								"Tc",0,
@@ -373,13 +378,14 @@ FUNCTION setup_RTLS {
 								"flyback_flag",flyback_immediate
 	).
 	
+	
 	LOCAL normvec IS RTLS_normal().
 	
 	LOCAL abort_v IS abort_modes["abort_v"]*vecYZ(SHIP:VELOCITY:ORBIT:NORMALIZED).
-	SET RTLSAbort["C1"] TO RTLS_C1(normvec).
+	SET abort_lex["C1"] TO RTLS_C1(normvec).
 	
-	SET RTLSAbort["pitcharound"]["refvec"] TO normvec.
-	SET RTLSAbort["pitcharound"]["target"] TO rodrigues(RTLSAbort["C1"],RTLSAbort["pitcharound"]["refvec"],2.5*VANG(RTLSAbort["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED))).
+	SET abort_lex["pitcharound"]["refvec"] TO normvec.
+	SET abort_lex["pitcharound"]["target"] TO rodrigues(abort_lex["C1"],abort_lex["pitcharound"]["refvec"],2.5*VANG(abort_lex["C1"],vecYZ(-SHIP:ORBIT:BODY:POSITION:NORMALIZED))).
 	
 	
 	//calculate the range shift to use for RVline calculations
@@ -393,8 +399,8 @@ FUNCTION setup_RTLS {
 	LOCAL delta_tgt_pos IS tgt_site_meco - tgt_site_now.
 	
 	//should be negative if we're moving east (the taget site will move towards us during flyback) and positive if west (tgtsite will be moving away)
-	//SET RTLSAbort["MECO_range_shift"] TO -VDOT(SHIP:VELOCITY:SURFACE:NORMALIZED,delta_tgt_pos:NORMALIZED)*range_dist.
-	SET RTLSAbort["MECO_range_shift"] TO -range_dist.
+	//SET abort_lex["MECO_range_shift"] TO -VDOT(SHIP:VELOCITY:SURFACE:NORMALIZED,delta_tgt_pos:NORMALIZED)*range_dist.
+	SET abort_lex["MECO_range_shift"] TO -range_dist.
 	
 	
 	
@@ -407,6 +413,7 @@ FUNCTION setup_RTLS {
 							"velocity",2200,
 							"angle",172,
 							"range",500*1000,
+							"rtls_cutv",2200,
 							"Periapsis",0,
 							"Apoapsis",0,
 							"inclination",target_orbit["inclination"],
@@ -416,7 +423,7 @@ FUNCTION setup_RTLS {
 	).
 	
 	
-	SET upfgConvergenceTgo TO 1.8.
+	SET upfgConvergenceTgo TO 2.2.
 	SET upfgFinalizationTime TO 15.
 	SET upfgInternal["flyback_flag"] TO flyback_immediate.
 
@@ -425,10 +432,8 @@ FUNCTION setup_RTLS {
 	
 	
 	start_oms_dump().
-
-	drawUI().
 	
-
+	GLOBAL RTLSAbort IS abort_lex.
 }
 
 
@@ -448,9 +453,10 @@ FUNCTION set_target_nz {
 
 FUNCTION nz_update_pitch {
 	PARAMETER cur_pch.
+	PARAMETER delta_nz IS 0.
 
 
-	LOCAL deltapch IS - 0.9*NZHOLD["dt"].
+	LOCAL deltapch IS - (0.9 + delta_nz*2)*NZHOLD["dt"].
 	SET cur_pch TO cur_pch + deltapch.
 	
 	 
@@ -723,7 +729,8 @@ FUNCTION GRTLS {
 					}
 				}
 			} ELSE IF (vehiclestate["ops_mode"] = 7 ) {
-				SET pitchv TO MAX(pitchf,MIN(pitch0,nz_update_pitch(pitchv))).
+				LOCAL delta_nz IS MAX(0, NZHOLD["cur_nz"] - NZHOLD["tgt_nz"]).
+				SET pitchv TO MAX(pitchf,MIN(pitch0, nz_update_pitch(pitchv, delta_nz))).
 				SET NZHOLD["cmd_pch"] TO pitchv.
 			}
 			
@@ -837,11 +844,11 @@ FUNCTION get_TAL_site {
 			SET selectedSite TO select_rand(candidate_sites).
 		}
 		
-		addMessage("SELECTED TAL SITE IS " + selectedSite).
+		addGUIMessage("SELECTED TAL SITE IS " + selectedSite).
 		
 	
 	} ELSE {
-		addMessage("SELECTED TAL SITE IS " + TAL_site).
+		addGUIMessage("SELECTED TAL SITE IS " + TAL_site).
 		SET selectedSite TO TAL_site.
 	}
 	
@@ -1053,15 +1060,14 @@ FUNCTION setup_TAL {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
+	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
+	
 	start_oms_dump().
 	
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
 	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 20) ) THEN {
 		roll_heads_up().
 	}
-	
-
-	drawUI().
 }
 
 	
@@ -1188,7 +1194,7 @@ FUNCTION setup_ATO {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
-	drawUI().
+	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 }
 
 
@@ -1241,8 +1247,5 @@ FUNCTION setup_MECO_ENGOUT {
 	
 	SET upfgInternal TO resetUPFG(upfgInternal).
 	
-	
-	drawUI().
-
-
+	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 }

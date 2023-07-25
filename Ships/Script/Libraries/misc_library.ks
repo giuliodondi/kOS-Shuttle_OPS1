@@ -225,6 +225,82 @@ declare function sectotime {
 	return string.
 }
 
+//converts a time value into a hours,minutes,seconds string with colon separators
+//full format prints zeros in every place
+declare function sectotime_simple {
+	parameter t.
+	parameter full_format is false.
+	
+	local t_local is t.
+	
+	local days is 0.
+	local hours is 0.
+	local mins is 0.
+	local secs is 0.
+	local sign_str is " ".
+	
+	if t_local<0 {
+		set sign_str to "-". 
+		set t_local to ABS(t_local).
+	}
+	
+	if (t_local > 86400) {
+		set days to floor(t_local/86400).
+		set t_local to t_local - 86400*days.
+	}
+	
+	if (t_local > 3600) {
+		set hours to floor(t_local/3600).
+		set t_local to t_local - 3600*hours.
+	}
+	
+	if (t_local > 60) {
+		set mins to floor(t_local/60).
+		set t_local to t_local - 60*mins.
+	}
+	
+	set secs to floor(t_local).
+	
+	
+	
+	local day_str is "".
+	local hour_str is "".
+	local min_str is "".
+	local sec_str is "".
+	
+	if (full_format OR days>0) {
+		set day_str to days + ":".
+		
+		if (days < 10) {
+			set day_str to "0" + day_str.
+		}
+	}
+	
+	if (full_format OR hours>0) {
+		set hour_str to hours + ":".
+		
+		if (hours < 10) {
+			set hour_str to "0" + hour_str.
+		}
+	}
+	
+	if (full_format OR mins>0) {
+		set min_str to mins + ":".
+		
+		if (mins < 10) {
+			set min_str to "0" + min_str.
+		}
+	}
+	
+	set sec_str to secs.
+	
+	if (secs < 10) {
+			set sec_str to "0" + sec_str.
+		}
+	
+	return sign_str + day_str + hour_str + min_str + sec_str.
+	
+}
 
 
 //select a random element from a list

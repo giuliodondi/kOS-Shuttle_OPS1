@@ -296,6 +296,9 @@ FUNCTION prepare_launch {
 
 	FUNCTION warp_window{
 		parameter liftofftime.
+		
+		LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
+		addGUIMessage("TIME TO WINDOW : " + sectotime(timetolaunch)).
 
 		UNTIL FALSE {
 		
@@ -305,19 +308,12 @@ FUNCTION prepare_launch {
 			
 			IF (timetolaunch <=0.1) {BREAK.}
 			
-			PRINT "                                                               " at (1,23).
-			PRINT "	TIME TO WINDOW : " + sectotime(timetolaunch) at (1,23).
 			Wait 0.
 		}
 		set warp to 0.
 	
 	
 	}
-
-
-	
-	
-	PRINT " PREPARING TO LAUNCH " AT (0,5).
 	
 	target_orbit:ADD("radius", 0) .
 	target_orbit:ADD("velocity", 0) .
@@ -325,9 +321,6 @@ FUNCTION prepare_launch {
 	target_orbit:ADD("angle", 0) .
 	target_orbit:ADD("periarg", 0) .
 	target_orbit:ADD("mode", 0) .
-	
-	
-	PRINT " COMPUTING IN-PLANE TARGET ORBITAL PARAMETERS" AT (0,7).
 	
 	IF target_orbit["periapsis"]>target_orbit["apoapsis"] {
 		local x is target_orbit["apoapsis"].
@@ -342,10 +335,6 @@ FUNCTION prepare_launch {
 	target_orbit:ADD("ecc", (ap - pe)/(ap + pe)).
 	
 	
-	
-	PRINT " COMPUTING TARGET ORBITAL PLANE" AT (0,9).
-	
-	
 	IF NOT target_orbit:HASKEY("inclination") {
 		target_orbit:ADD("inclination", ABS(SHIP:GEOPOSITION:LAT)).
 	}
@@ -355,9 +344,6 @@ FUNCTION prepare_launch {
 	IF NOT target_orbit:HASKEY("direction") {
 		target_orbit:ADD("direction", "nearest").
 	}
-	
-	
-	PRINT " COMPUTING TARGET LAN" AT (0,11).
 
 	//the second check only filters targets in earth orbit e.g. no interplanetary targets
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
@@ -404,9 +390,6 @@ FUNCTION prepare_launch {
 	
 	set target_orbit["radius"] TO cutvec.
 	
-	PRINT " COMPUTING TARGET ARGUMENT OF PERIAPSIS" AT (0,13).
-	
-	
 	IF target_orbit:HASKEY("Longitude of Periapsis") {
 			SET target_orbit["mode"] TO 2.
 			SET target_orbit["periarg"] TO compute_periarg().
@@ -424,15 +407,9 @@ FUNCTION prepare_launch {
 		SET cut_alt TO (cut_alt*1000 + SHIP:BODY:RADIUS).
 		set target_orbit["radius"] TO cutvec:NORMALIZED*cut_alt.
 	}
-	
-	
-	
 
-	
-	PRINT " COMPUTING PERIAPSIS VECTOR" AT (0,15).
 	target_orbit:ADD("perivec", target_perivec()) .
 	
-	PRINT " ESTIMATE CUTOFF CONDITIONS" AT (0,17).
 	local etaa is 0.
 
 	IF target_orbit["mode"] = 2 {
@@ -447,8 +424,6 @@ FUNCTION prepare_launch {
 	target_orbit:ADD("eta", etaa) .
 	SET target_orbit TO cutoff_params(target_orbit,target_orbit["radius"],etaa).
 	
-	PRINT " CALCULATING TIME TO LAUNCH " AT (0,19).	
-	
 	//	Calculate time to launch
 	LOCAL timeToOrbitIntercept IS orbitInterceptTime().
 	LOCAL liftoffTime IS TIME:SECONDS + timeToOrbitIntercept - vehicle["launchTimeAdvance"].
@@ -460,10 +435,10 @@ FUNCTION prepare_launch {
 		LOCAL j2LNG is -1.5*1.08262668e-3*rad2deg((BODY:RADIUS/(TARGET:ORBIT:SEMIMAJORAXIS*(1 - TARGET:ORBIT:ECCENTRICITY^2)))^2*SQRT(BODY:MU/TARGET:ORBIT:SEMIMAJORAXIS^3)*COS(TARGET:ORBIT:INCLINATION)).
 		LOCAL lan_old IS target_orbit["LAN"].
 		UNTIL FALSE {
-			print ltt_old AT (0,54).
+			//print ltt_old AT (0,54).
 			SET target_orbit["LAN"] TO  fixangle(lan_old +  j2LNG*ltt_old ).
 			LOCAL ltt_new IS orbitInterceptTime().
-			print ltt_new AT (0,55).
+			//print ltt_new AT (0,55).
 			IF ABS(ltt_old - ltt_new)<0.05 {
 				SET ltt_old TO ltt_new.
 				BREAK.
@@ -474,13 +449,11 @@ FUNCTION prepare_launch {
 		SET liftoffTime TO TIME:SECONDS + ltt_old - vehicle["launchTimeAdvance"].
 	}
 	IF timeToOrbitIntercept < vehicle["launchTimeAdvance"] { SET liftoffTime TO liftoffTime + SHIP:BODY:ROTATIONPERIOD. }
-	PRINT " CALCULATING LAUNCH AZIMUTH" AT (0,21).		
+	
 	set control["launch_az"] to launchAzimuth().	
 		
+	SET vehicle["ign_t"] TO liftoffTime + 10. 
 	warp_window(liftoffTime).
-	
-		
-	PRINT " COMPLETE. STARTING COUNTDOWN." AT (0,25).	
 	
 }	
 

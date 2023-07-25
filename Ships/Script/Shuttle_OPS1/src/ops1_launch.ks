@@ -1,7 +1,7 @@
+GLOBAL quit_program IS FALSE.
+
 function launch{
 	CLEARSCREEN.
-	SET TERMINAL:WIDTH TO 65.
-	SET TERMINAL:HEIGHT TO 59.
 	SET CONFIG:IPU TO 600.					//	Required to run the script fast enough.
 	
 	
@@ -12,6 +12,7 @@ function launch{
 	RUNPATH("0:/Libraries/maths_library").	
 	RUNPATH("0:/Libraries/navigation_library").	
 	RUNPATH("0:/Libraries/vehicle_library").	
+	RUNPATH("0:/Libraries/aerosim_library").	
 	
 	
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_interface").
@@ -19,16 +20,27 @@ function launch{
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_targeting_library").
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_upfg_library").
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
-	
-	PRINT " PROGRAM LIBRARIES LOADED" AT (0,1).
+	RUNPATH("0:/Shuttle_OPS1/src/ops1_gui_library.ks").
 	
 	wait until ship:unpacked and ship:loaded.
-		
+	
+	make_main_ascent_gui().
+	make_ascent_traj1_disp().
+	
 	initialise_shuttle().
 	prepare_launch().	
 	
 	//need to have initalised the vehicle first for the vessel name
 	prepare_telemetry().
+	
+	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
+	
+	GLOBAL dataviz_executor IS loop_executor_factory(
+												0.3,
+												{
+													dataViz().
+												}
+	).
 	
 	countdown().
 	open_loop_ascent().
@@ -38,40 +50,39 @@ function launch{
 
 
 
+
 declare function countdown{
 
 
 	LOCK THROTTLE to throttleControl().
 	SAS OFF.
 	
+	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
+	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
 	add_action_event(350, roll_heads_up@ ).
 	
-	
-	local line is 30.
-	print " COUNTDOWN:" AT (0,line).
-	
-	
+	addGUIMessage(" T MINUS 10").
 	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
 	WHEN  TIME:SECONDS>=TT  THEN {
-			set line TO line + 2.
-			print " IGNITION SEQUENCE START." at (0,line).
+			addGUIMessage("GO FOR MAIN ENGINES START").
 			stage.	
 		}
-	from { LOCAL i IS 10.} until i = 0 step{ SET i TO i-1.} do{
 		
-		set line TO line + 2.
-		print " T MINUS "+ i at (0,line).
-		wait 1.
-	}	
+	WAIT 10.	
 	
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	LOCK STEERING TO control["steerdir"].
+	addGUIMessage("BOOSTER IGNITION").
 	stage.	
-	wait until ship:unpacked and ship:loaded.
+	wait 0.
+	when (SHIP:VERTICALSPEED > 1) THEN {
+		addGUIMessage("LIFT-OFF CONFIRMED").
+	}
 	
 }
 
@@ -79,12 +90,9 @@ declare function countdown{
 
 declare function open_loop_ascent{
 	
-	drawUI().
-	addMessage("LIFT-OFF!").
-	
-	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
-	
+	//reset throttle to maximum
+	SET vehicle["stages"][1]["Throttle"] TO  vehicle["maxThrottle"].
+
 	
 	getState().
 
@@ -95,15 +103,16 @@ declare function open_loop_ascent{
 	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.																			   
 	
 	SET vehiclestate["ops_mode"] TO 1.
+	
 	getState().
 	
 	WHEN SHIP:VERTICALSPEED >= 36 THEN {
-		addMessage("ROLL PROGRAM").	
+		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		
 		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(get_roll_lvlh() - control["roll_angle"]) < 7 THEN {
 			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.	//by now we are heads-down going uphill
-			addMessage("ROLL PROGRAM COMPLETE").
+			addGUIMessage("ROLL PROGRAM COMPLETE").
 		}
 		
 		WHEN vehiclestate["staging_in_progress"] THEN {
@@ -125,9 +134,6 @@ declare function open_loop_ascent{
 		IF steer_flag {
 			set control["steerdir"] TO aimAndRoll(aimVec, control["refvec"], control["roll_angle"]).
 		}
-		
-		dataViz().
-		WAIT 0.
 	}
 	
 }
@@ -135,9 +141,6 @@ declare function open_loop_ascent{
 
 declare function closed_loop_ascent{
 	
-	
-	SET vehiclestate["ops_mode"] TO 2.
-	drawUI().
 	getState().
 	
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
@@ -150,19 +153,19 @@ declare function closed_loop_ascent{
 	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	LOCAL x IS setupUPFG(target_orbit).
-	GLOBAL upfgInternal IS x[0].
-	GLOBAL usc IS x[1].
+	SET upfgInternal TO x[0].
+	SET usc TO x[1].
 	SET usc["lastvec"] TO vecYZ(thrust_vec()).
 	SET usc["lastthrot"] TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 	
-	addMessage("RUNNING UPFG ALGORITHM").
+	SET vehiclestate["ops_mode"] TO 2.
 	
-	dataViz().
+	addGUIMessage("RUNNING UPFG ALGORITHM").
 
 	UNTIL FALSE{
 		IF usc["itercount"]=0 { //detects first pass or convergence lost
 			WHEN usc["conv"]=1 THEN {
-				addMessage("GUIDANCE CONVERGED IN " + usc["itercount"] + " ITERATIONS").
+				addGUIMessage("GUIDANCE CONVERGED IN " + usc["itercount"] + " ITERATIONS").
 			}
 		}				
 
@@ -178,7 +181,7 @@ declare function closed_loop_ascent{
 		//see if we're at the last stage and close to flameout 
 		//this also takes care of staging during ssme phase
 		IF ssme_staging_flameout() {
-			addMessage("LOW LEVEL").
+			addGUIMessage("LOW LEVEL").
 			BREAK.
 		}
 		
@@ -188,12 +191,12 @@ declare function closed_loop_ascent{
 			LOCAL tgtsurfvel IS RTLS_rvline(downrangedist(launchpad,SHIP:GEOPOSITION )*1000).
 		
 			IF ( RTLSAbort["flyback_flag"] AND upfgInternal["tgo"] < 60 AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime) OR SHIP:VELOCITY:SURFACE:MAG >= 0.9*tgtsurfvel ) ) {
-				addMessage("POWERED PITCH-DOWN").
+				addGUIMessage("POWERED PITCH-DOWN").
 				BREAK.
 			}
 		} ELSE {
 			IF (usc["conv"]=1 AND (upfgInternal["tgo"] < upfgFinalizationTime AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
-				addMessage("TERMINAL GUIDANCE").
+				addGUIMessage("TERMINAL GUIDANCE").
 				BREAK.
 			}
 		}
@@ -214,8 +217,6 @@ declare function closed_loop_ascent{
 		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
 			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		
 		}
-		dataViz().
-		WAIT 0.
 	}
 	
 	SET vehiclestate["ops_mode"] TO 3.
@@ -223,21 +224,21 @@ declare function closed_loop_ascent{
 	SET usc["terminal"] TO TRUE.
 	
 	//min throttle for any case
-	LOCK THROTTLE TO throtteValueConverter(0.67).
+	fix_minimum_throttle(). 
 	
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {
-		LOCAL pitchdowntgtvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
-		LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-		
-		LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.								  
-		
+
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.7.	
 		
 		LOCAL steervec IS SHIP:FACING:FOREVECTOR.
 		
 		UNTIL FALSE{
 			getState().
+			
+			LOCAL pitchdowntgtvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
+			LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+			LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.		
 			
 			IF (VANG(steervec, pitchdowntgtvec) > 10) {
 				SET steervec tO rodrigues(SHIP:FACING:FOREVECTOR, rotvec,10).
@@ -259,13 +260,10 @@ declare function closed_loop_ascent{
 				BREAK.
 			}
 			
-			
-			dataViz().
-			WAIT 0.
 		}
 	} ELSE {
 		
-		addMessage("WAITING FOR MECO").
+		addGUIMessage("WAITING FOR MECO").
 	
 		UNTIL FALSE {
 			getState().
@@ -277,8 +275,6 @@ declare function closed_loop_ascent{
 				FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
 				BREAK.
 			}
-			dataViz().
-			WAIT 0.
 		}
 	
 	}
@@ -307,16 +303,14 @@ declare function closed_loop_ascent{
 			}
 		}
 	}
-	addMessage("STAND-BY FOR ET SEP").
+	addGUIMessage("STAND-BY FOR ET SEP").
 	UNTIL FALSE{
 		getState().
 		
 		IF (vehiclestate["ops_mode"] = 4) {
 			BREAK.
 		}
-	
-		dataViz().
-		WAIT 0.
+		WAIT 0.1.
 	}
 	
 	//to disable RCS separation maneouvre
@@ -329,6 +323,11 @@ declare function closed_loop_ascent{
 	IF (DEFINED RTLSAbort) {
 		LIST ENGINES IN Eng.
 		FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
+		
+		dataviz_executor["stop_execution"]().
+		
+		close_all_GUIs().
+		
 		GRTLS().
 		RETURN.
 	}
@@ -339,14 +338,18 @@ declare function closed_loop_ascent{
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 	
-	drawUI().
-	UNTIL AG9 {
+	print_ascent_report().
+	
+	UNTIL (AG9 or quit_program). {
 		getState().
-		dataViz().
-		WAIT 0.
+		WAIT 0.2.
 	}
 		
 }
 
 
 launch().
+
+
+dataviz_executor["stop_execution"]().
+close_all_GUIs().
