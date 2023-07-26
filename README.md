@@ -97,9 +97,9 @@ This is the display during the majority of first stage, until right before SRB s
 - On the right data box you have:
     - a slider indicating the current acceleration in units of G
     - the remaining propellant quantity (PROP) as a percentage
-    - the current throttle setting as a percentage of Rated Power Level (more on this later)
+    - the current throttle setting (THR) as a percentage of Rated Power Level (more on this later)
     - TGO and VGO are inactive during first stage
-- In the middle is a plot of surface velocity on the X axis versus altitude on the Y axis. The line represents a nominal ascent trajectory. The numbered ticks indicate roughly the surface pitch that the Shuttle should have at that moment
+- In the middle is a plot of altitude on the vertical vs. surface velocity on the horizontal. The line represents a nominal ascent trajectory. The numbered ticks indicate roughly the surface pitch that the Shuttle should have at that moment
     - The yellow triangle indicates the Shuttle's state right now
     - The circle is the predicted state 30 seconds into the future, the prediction is a trajectory integration assuming the thrust direction is invariant, this is why the circle will 
       travel above the line
@@ -117,7 +117,7 @@ This is the display from the final moments of first stage all the way to MECO, d
     - VGO is the guidance calculated velocity-to-go in m/s until the MECO target is reached
 - both fields will be yellow when the guidance algorithm is unconverged, then turn green once the algorithm stabilises
 - At the top, below the title, you have the MECO velocity indicator. It's a slider which ranges from 7000 to 8000 m/s and the CO symbol indicates the desired cutoff speed. The triangle indicates the current orbital velocity and should stop at the CO mark at MECO.
-- In the middle is now a plot of orbital velocity on the X axis versus aLtitude on the Y axis. The long central curve is the nominal trajectory, which droops during the late stages of ascent (this is normal and realistic).
+- In the middle is now a plot of altitude on the vertical vs. orbital velocity on the horizontal. The long central curve is the nominal trajectory, which droops during the late stages of ascent (this is normal and realistic).
     - The track to the left of the nominal trajectory is the trajectory for a retrograde launch out of Vandenberg.
     - The track on the right below nominal is the drooped trajecotry in case of a TAL or ATO abort, ideally the Shuttle should never cross below this track
 
@@ -166,8 +166,36 @@ The script uses the PEG algorithm as a predictor to estimate the fuel needed to 
 Automatic OMS dump is initiated during fuel dissipation.
 - **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 40 seconds before MECO as it is a bit unstable. 
 The OMS fuel dump will cease before or at MECO during flyback.
-- **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controllign vertical G forces.  
+- **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces.  
 At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 30km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
+
+### RTLS TRAJ 2 display
+
+![rtls_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj2_gui.png)
+
+This display is rendered when the RTLS abort is initialised (not when the engine is lost) and lasts until after MECO.
+
+- At the top you have another cutoff velocity indicator, this time in terms of surface velocity. Since the goal is to turn back, higher cutoff speeds are indicated from right to left.
+    - While the CO mark is actively placed in the right place, you should expect the actual speed at cutoff to be off this mark by a little.
+- The right data box only contains the G indicator
+- the left data box contains:
+    - vertical speed (H-dot)
+    - propellant left (PROP)
+    - the current RPL throttle value (THR)
+    - Time- and velocity-to-go (TGO, VGO)
+    - The desired burnout delta-time (T_C), this is the main indicator of a good guidance state, more on this later
+- the central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive (right) and negative (left) regions of the plot in the horizontal direction. The Shuttle bug will be on the right side first, keep moving right during dissipation, start moving left during flyback, cross the "0" line when velocity is reversed, and reach MECO on the left side.
+    - the bottom-right curve is the nominal ascent trajectory, the Shuttle should never be to the right of this
+    - the top slanted curve is the maximum lofted trajectory during flyback, the Shuttle should not loft significantly above this (although it should be fine)
+    - The right segment of the bottom curve is the dissipation trajectory for a very early abort, when the Shuttle is slowest.
+    - The rest of the bottom curve, from the right spike all the way left, is the drooped trajectory during flyback. The Shuttle should not cross below this not to encounter too much drag 
+      or heat
+    - The left-most horizontal line with "CO" indicates 80km altitude, the Shuttle should be on this line at MECO
+
+### The meaning of T_C
+
+T_C is just a name for the difference between the time to burn down to 2% propellant minus the calculated time-to-go. During the dissipation phase this will be positive, because TGO assumes we turn back immediately but we still have too much propellant. Once we trigger Flyback, this should settle around zero as the algorithm adjusts the throttle to match the two. If it goes negative it means that we will have to burn a little of the margin left to reach the target MECO, this is fine as long as it doesn't go to the negative double digits.
+
 
 ### Results from my tests
 
