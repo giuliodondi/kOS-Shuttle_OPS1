@@ -184,7 +184,8 @@ This display is rendered when the RTLS abort is initialised (not when the engine
     - the current RPL throttle value (THR)
     - Time- and velocity-to-go (TGO, VGO)
     - The desired burnout delta-time (T_C), this is the main indicator of a good guidance state, more on this later
-- the central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive (right) and negative (left) regions of the plot in the horizontal direction. The Shuttle bug will be on the right side first, keep moving right during dissipation, start moving left during flyback, cross the "0" line when velocity is reversed, and reach MECO on the left side.
+- the central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive (right) and negative (left) regions of the plot in the horizontal direction.
+    - The Shuttle bug should move within the curved lines, first it will travel up and left during fuel dissipation, during flyback it will start moving right and down as the Shuttle decelerates, it will cross the "0" line when the Shuttle starts moving back to the launch site, it will then keep moving right and gradually start climbing once again
     - the bottom-right curve is the nominal ascent trajectory, the Shuttle should never be to the right of this
     - the top slanted curve is the maximum lofted trajectory during flyback, the Shuttle should not loft significantly above this (although it should be fine)
     - The right segment of the bottom curve is the dissipation trajectory for a very early abort, when the Shuttle is slowest.
