@@ -6,7 +6,7 @@
 GLOBAL target_orbit IS LEXICON (	
 								"periapsis",30,
 								"apoapsis",220,
-								"inclination",52,
+								"inclination",40,
 								"Cutoff Altitude",112,
 								"end",0								//don't remove this
 ).
@@ -21,7 +21,7 @@ GLOBAL target_orbit IS LEXICON (
 //GLOBAL TAL_site is "Zaragoza".
 
 
-GLOBAL logdata Is false.
+GLOBAL logdata Is true.
 
 
 RUNPATH("0:/Shuttle_OPS1/src/ops1_launch").
