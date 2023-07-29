@@ -42,7 +42,7 @@ FUNCTION monitor_abort {
 		SET abort_modes["triggered"] TO TRUE.
 		SET abort_modes["t_abort_true"] TO current_t.
 		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 5 ).
-		SET abort_modes["abort_v"] TO SHIP:VELOCITY:ORBIT:MAG.
+		SET abort_modes["abort_v"] TO SHIP:VELOCITY:SURFACE:MAG.
 		SET vehicle["maxThrottle"] TO 1.
 		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 1.
 	}
@@ -189,7 +189,7 @@ FUNCTION RTLS_dissip_theta_pert {
     
     LOCAL dv_corr IS (349.344 - 0.2934698*v_r + 6.58751e-5*vr2)*dv.
     
-    LOCAL dtheta_dv IS (21740.8 -15.1078*v_r + 2.281949e-3*vr2)*0.3048.
+    LOCAL dtheta_dv IS (21740.8 -15.1078*v_r + 3.281949e-3*vr2)*0.3048.
     
     LOCAL theta_pert IS  theta_nom - ( dalt_corr + dv_corr )/dtheta_dv.
 	
@@ -311,12 +311,12 @@ FUNCTION RTLS_burnout_mass {
 
 
 FUNCTION RTLS_boundary{
-	RETURN SHIP:VELOCITY:SURFACE:MAG > 2180.
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2120.
 }
 
 //compare current velocity with negative return boundary to see if we should flyback immediately
 FUNCTION RTLS_immediate_flyback {
-	RETURN SHIP:VELOCITY:SURFACE:MAG > 2100.
+	RETURN SHIP:VELOCITY:SURFACE:MAG > 2000.
 }
 
 FUNCTION setup_RTLS {

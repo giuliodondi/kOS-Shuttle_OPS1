@@ -800,9 +800,9 @@ FUNCTION srb_staging {
 			STAGE.
 			
 			//measure conditions at staging 
-			LOCAL v_surf IS SHIP:VELOCITY:SURFACE:MAG.
-			SET abort_modes["abort_v"] TO v_surf.	//if an abort hasn't been triggered yet it wil be overwritten
-			SET abort_modes["staging"]["v"] TO v_surf.
+			LOCAL v_stg IS SHIP:VELOCITY:SURFACE:MAG.
+			SET abort_modes["abort_v"] TO v_stg.	//if an abort hasn't been triggered yet it wil be overwritten
+			SET abort_modes["staging"]["v"] TO v_stg.
 			SET abort_modes["staging"]["alt"] TO SHIP:ALTITUDE.
 			
 			increment_stage().
