@@ -200,7 +200,7 @@ T_C is just a name for the difference between the time to burn down to 2% propel
 
 ### Results from my tests
 
-Here I present my test results for RTLS aborts during an STS-1-like mission (original RS-25 engines, Standard-weight ET, 40° inclination, minimal payload). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to a handful of seconds before Negative Return. The plots include both Powered and GLide RTLS phases 
+Here I present my test results for RTLS aborts (original RS-25 engines, Standard-weight ET, 40° inclination, 10t payload). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to a handful of seconds before Negative Return. The plots include both Powered and GLide RTLS phases 
 
 ![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj.png)
 
