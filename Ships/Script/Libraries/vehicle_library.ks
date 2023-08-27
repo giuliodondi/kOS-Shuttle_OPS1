@@ -20,11 +20,13 @@ FUNCTION get_current_thrust_isp {
 			IF e:IGNITION {
 				LOCAL e_thr IS (e:THRUST * 1000).
 				SET thr TO thr + e_thr.
-				SET isp_ TO isp_ + e:vacuumisp*e_thr.
+				SET isp_ TO isp_ + e:ISP*e_thr.
 				set thrvec to thrvec -e:POSITION:NORMALIZED*e_thr.
 			}
 		}
 	}	
+	
+	SET isp_ TO isp_/thr.
 	
 	RETURN LIST(thrvec, isp_).
 }
@@ -41,18 +43,20 @@ FUNCTION get_max_thrust_isp{
 	FOR e IN all_eng {
 		IF e:ISTYPE("engine") {
 			IF e:IGNITION {
-				LOCAL e_thr IS (e:AVAILABLETHRUST * 1000).
+				LOCAL e_thr IS (e:MAXTHRUSTAT(0) * 1000).
 				SET thr TO thr + e_thr.
-				SET isp_ TO isp_ + e:vacuumisp*e_thr.
+				SET isp_ TO isp_ + e:ISPAT(0)*e_thr.
 				set thrvec to thrvec -e:POSITION:NORMALIZED*e_thr.
 			}
 		}
 	}	
 	
+	SET isp_ TO isp_/thr.
+	
 	RETURN LIST(thrvec, isp_).
 }
 
-//time to burn at constant thrust given engines
+//time to burn at constant thrust given active engines
 FUNCTION burnDT {
 	PARAMETER dV.
 	
