@@ -5,22 +5,6 @@ RUNPATH("0:/Libraries/vehicle_library").
 GLOBAL g0 IS 9.80665.
 
 
-FUNCTION burnDT {
-	PARAMETER dV.
-	
-	
-	LOCAL out IS get_max_thrust_isp().
-	LOCAL iisp IS out[1].
-	LOCAL thr IS out[0]:MAG.
-	
-	LOCAL vex IS g0*iisp.
-	
-	LOCAL mdot IS thr/vex.
-	
-	RETURN (SHIP:MASS*1000/(mdot))*( 1 - CONSTANT:E^(-dV/vex) ).
-}
-
-
 FUNCTION rotate_upvec {
 	PARAMETER aimvec.
 	PARAMETEr upvec.
