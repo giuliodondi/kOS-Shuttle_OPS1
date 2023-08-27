@@ -1,6 +1,6 @@
 RUNPATH("0:/Libraries/maths_library").
 RUNPATH("0:/Libraries/misc_library").
-RUNPATH("0:/Libraries/control_library").
+RUNPATH("0:/Libraries/vehicle_library").
 
 GLOBAL g0 IS 9.80665.
 
