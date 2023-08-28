@@ -26,7 +26,11 @@ FUNCTION get_current_thrust_isp {
 		}
 	}	
 	
-	SET isp_ TO isp_/thr.
+	if (thr=0) {
+		SET isp_ TO 0.
+	} ELSE {
+		SET isp_ TO isp_/thr.
+	}
 	
 	RETURN LIST(thrvec, isp_).
 }
@@ -51,7 +55,11 @@ FUNCTION get_max_thrust_isp{
 		}
 	}	
 	
-	SET isp_ TO isp_/thr.
+	if (thr=0) {
+		SET isp_ TO 0.
+	} ELSE {
+		SET isp_ TO isp_/thr.
+	}
 	
 	RETURN LIST(thrvec, isp_).
 }

@@ -118,16 +118,18 @@ FUNCTION arrow {
 
 }
 
-//draw a vector  with label, by default its centered on the body and scaled to 2 times its length
+//draw a vector  with label, by default its centered on the body and scaled to 2.2x radius
 FUNCTION arrow_body {
 	PARAMETER vec.
 	PARAMETER lab.
-	PARAMETER scl IS 2.
+	PARAMETER scl IS 2.2.
 	PARAMETER wdh IS 0.5.
+	
+	LOCAL v_ IS vec:NORMALIZED*BODY:RADIUS.
 	
 	VECDRAW(
       SHIP:ORBIT:BODY:POSITION,
-      vec,
+      v_,
       RGB(1,0,0),
       lab,
       scl,
@@ -513,7 +515,7 @@ FUNCTION warp_controller {
 	
 	LOCAL new_warp IS cur_warp.
 	
-	IF time_span > (3600 + final_wait) or time_span < 0 {
+	IF time_span > (3600 + final_wait) {
 		set new_warp to 4.
 	}
 	ELSE IF time_span > (400 + final_wait) {

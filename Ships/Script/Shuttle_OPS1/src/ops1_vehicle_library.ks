@@ -1,5 +1,5 @@
 GLOBAL g0 IS 9.80665. 
-
+GLOBAL vehicle_countdown IS 10.
 
 GLOBAL vehiclestate IS LEXICON(
 	"ops_mode",0,
@@ -255,6 +255,10 @@ function initialise_shuttle {
 	//initialise first stage thrust at 100% rpl 
 	SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(1).
 	
+	//prepare launch triggers 
+	add_action_event(1, activate_fuel_cells@ ).
+	add_action_event(350, roll_heads_up@ ).
+	
 	WHEN (SHIP:Q > 0.28) THEN {
 		IF NOT (abort_modes["triggered"]) {
 			addGUIMessage("THROTTLING DOWN").
@@ -291,7 +295,7 @@ FUNCTION vehicle_traj_steepness {
 	LOCAL ssme_thr_fac IS (1.045*get_rpl_thrust())/(vehicle["SSME"]["thrust"]*vehicle["SSME"]["maxThrottle"]).
 	
 	//reference alt is 112 km.
-	LOCAL cut_alt_fac IS target_orbit["Cutoff Altitude"]/112.
+	LOCAL cut_alt_fac IS target_orbit["cutoff alt"]/112.
 	
 	//base + alt correction + thrust correction
 	LOCAL steep_ IS 1 + 0.14*cut_alt_fac + 0.05*ssme_thr_fac.

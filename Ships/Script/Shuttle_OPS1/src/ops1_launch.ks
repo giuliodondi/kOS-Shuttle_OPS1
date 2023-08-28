@@ -60,9 +60,8 @@ declare function countdown{
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
 	
-	//prepare launch triggers 
-	add_action_event(1, activate_fuel_cells@ ).
-	add_action_event(350, roll_heads_up@ ).
+	//precaution
+	SET vehicle["ign_t"] TO TIME:SECONDS + vehicle_countdown.
 	
 	addGUIMessage(" T MINUS 10").
 	
@@ -72,7 +71,7 @@ declare function countdown{
 			stage.	
 		}
 		
-	WAIT 10.	
+	WAIT vehicle_countdown.	
 	
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 

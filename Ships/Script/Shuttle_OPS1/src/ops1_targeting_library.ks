@@ -36,83 +36,23 @@ FUNCTION currentNormal{
 
 }
 
-//	Target plane normal vector in MATLAB coordinates, UPFG compatible direction
-FUNCTION targetNormal {
-	DECLARE PARAMETER targetInc.	//	Expects a scalar
-	DECLARE PARAMETER targetLan.	//	Expects a scalar
-	
-	//	First create a vector pointing to the highest point in orbit by rotating the prime vector by a right angle.
-	LOCAL highPoint IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), 90-targetLan).
-	//	Then create a temporary axis of rotation (short form for 90 deg rotation).
-	LOCAL rotAxis IS V(-highPoint:Z, highPoint:Y, highPoint:X).
-	//	Finally rotate about this axis by a right angle to produce normal vector.
-	LOCAL normalVec IS rodrigues(highPoint, rotAxis, 90-targetInc).
-	
-	RETURN -vecYZ(normalVec).
-}
 
-//computes periapsis vector (normalised) given target orbit and longitude of periapsis
-FUNCTION target_perivec {
-	LOCAL peri IS v(0,0,0).
-	
-	IF target_orbit["mode"] = 2 {
-		set peri to rodrigues(vecYZ(SOLARPRIMEVECTOR), V(0,0,1), target_orbit["LAN"]).
-		set peri to rodrigues(peri, -target_orbit["normal"], target_orbit["periarg"]).
-	}
-	ELSE {
-		SET peri TO target_orbit["radius"].
-	}
-	
-	return peri:NORMALIZED.
-
-}
-
-
-
-FUNCTION cutoff_params {
-	PARAMETER target.
+FUNCTION nominal_cutoff_params {
+	PARAMETER tgt_orb.
 	PARAMETER cutoff_r.
-	PARAMETER etaa.
 	
-	LOCAL mode IS target["mode"].
+	SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
 	
-	SET target["normal"] TO targetNormal(target["inclination"], target["LAN"]).
+	set tgt_orb["radius"] to cutoff_r.
 	
-	local x is 1 + target["ecc"]*COS(etaa).
+	local cut_alt is tgt_orb["radius"]:MAG.
+	set tgt_orb["eta"] to orbit_alt_eta(cut_alt, tgt_orb["SMA"], tgt_orb["ecc"]).
 	
-	local r_cut is cutoff_r:MAG.
+	set tgt_orb["velocity"] to orbit_alt_vel(cut_alt, tgt_orb["SMA"]).
 	
-	IF mode=2{ //given sma, ecc and eta, compute r
-		set r_cut to target["SMA"]*(1-target["ecc"]^2)/x.	
-	}
-	ELSE IF mode=1 {	//given sma, ecc and r, compute eta
-		IF target["ecc"]=0 {set etaa to  0.}
-		ELSE {		
-			set etaa to (target["SMA"]*(1-target["ecc"]^2)/r_cut - 1)/target["ecc"].
-			set etaa to ARCCOS(limitarg(etaa)).
-		}
-		set x to 1 + target["ecc"]*COS(etaa).
-	}
-	
-	
-	//ELSE IF mode=1 {	//given r, ecc and eta, compute sma
-	//	SET target["SMA"] TO x*r_cut/(1-target["ecc"]^2).
-	//}
+	set tgt_orb["fpa"] to orbit_eta_fpa(tgt_orb["eta"], tgt_orb["SMA"], tgt_orb["ecc"]).
 
-	local v_cut is SQRT(SHIP:BODY:MU * (2/r_cut - 1/target["SMA"])).
-		
-	local phi is target["ecc"]*sin(etaa)/x.
-	set phi to ARCTAN(phi).
-	
-	set target["radius"] to cutoff_r:NORMALIZED*r_cut.
-	set target["velocity"] to v_cut.
-	set target["angle"] to phi.
-	set target["eta"] to etaa.
-	
-	
-	
-	
-	RETURN target.
+	RETURN tgt_orb.
 }
 
 
@@ -133,329 +73,174 @@ FUNCTION tgt_j2_timefor {
 
 }							   
 
+FUNCTION warp_window{
+	parameter liftofftime.
+	
+	LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
+	addGUIMessage("TIME TO WINDOW : " + sectotime(timetolaunch)).
+
+	UNTIL FALSE {
+	
+		LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
+		
+		warp_controller(timetolaunch, TRUE, 2).
+		
+		IF (timetolaunch <=0.1) {BREAK.}
+		
+		Wait 0.
+	}
+	set warp to 0.
+}
 
 // calculate target orbital parameters 
 //calculate launch azimuth and window and handle warp 
 FUNCTION prepare_launch {
 
-	FUNCTION compute_periarg {
-	
-		local periarg is 0.
-		local vnorm IS -target_orbit["normal"]:NORMALIZED.
-		local lanvec is rodrigues(vecYZ(SOLARPRIMEVECTOR), V(0,0,1), target_orbit["LAN"]).
-		local peri is V(0,0,0).
-		
-		IF target_orbit["mode"] = "orbit" {
-		
-			LOCAL tgtlong IS convert_long(fixangle(target_orbit["Longitude of Periapsis"]),1).		
+	clearvecdraws().
 
-			SET peri TO rodrigues(vecYZ(SOLARPRIMEVECTOR), V(0,0,1), tgtlong):NORMALIZED.
-			LOCAL nvec1 IS VCRS(peri,V(0,0,1)):NORMALIZED.
-			LOCAL nvec2 IS VXCL(nvec1,vnorm):NORMALIZED.
-			SET peri TO VXCL(nvec2,peri):NORMALIZED.
-			
-			//LOCAL nvec2 IS (vnorm - VDOT(vnorm,nvec1)*nvec1):NORMALIZED.
-			//SET peri TO (peri - VDOT(peri,nvec2)*nvec2).
-		
-		}
-		ELSE {
-			SET peri TO target_orbit["radius"].
-		} 
-		//set periarg to signed_angle(peri,lanvec,vnorm,1).
-		set periarg to signed_angle(lanvec,peri,vnorm,1).
-		return periarg.
-	}
+	target_orbit:ADD("direction", "nearest").
+	target_orbit:ADD("sma", 0).
+	target_orbit:ADD("ecc", 0).
+	target_orbit:ADD("eta", 0).
+	target_orbit:ADD("LAN", 0).
+	target_orbit:ADD("radius", 0).
+	target_orbit:ADD("velocity", 0).
+	target_orbit:ADD("normal", V(0,0,0)).
+	target_orbit:ADD("fpa", 0).
+	target_orbit:ADD("mode", 1).
 	
+	//first compute in-plane orbital parameters
 	
-	FUNCTION LAN_orbit_overhead {
-	
-		IF target_orbit["direction"] = "nearest" { SET target_orbit["direction"] TO "north". }
-		LOCAL currentNode IS nodeVector(target_orbit["inclination"], target_orbit["direction"]).
-		LOCAL currentLan IS VANG(currentNode, SOLARPRIMEVECTOR).
-		IF VDOT(V(0,1,0), VCRS(currentNode, SOLARPRIMEVECTOR)) < 0 { SET currentLan TO 360 - currentLan. }
-		
-		LOCAL LAN_out IS currentLan + (vehicle["launchTimeAdvance"]+ 1)*360/SHIP:ORBIT:BODY:ROTATIONPERIOD.
-		
-		RETURN LAN_out.
-	
-	}
-	
-	
-	//	Ascending node vector of the orbit passing right over the launch site
-	FUNCTION nodeVector {
-		DECLARE PARAMETER inc.				//	Inclination of the desired orbit. Expects a scalar.
-		DECLARE PARAMETER dir IS "north".	//	Launch direction. Expects a string, either "north" or "south".
-		
-		//	From right spherical triangle composed of inclination, latitude and "b",
-		//	which is angular difference between the desired node vector and projection
-		//	of the vector pointing at the launch site onto the equatorial plane.
-		LOCAL b IS TAN(90-inc)*TAN(SHIP:GEOPOSITION:LAT).
-		SET b TO ARCSIN( MIN(MAX(-1, b), 1) ).
-		LOCAL longitudeVector IS VXCL(V(0,1,0), -SHIP:ORBIT:BODY:POSITION):NORMALIZED.
-		IF dir = "north" {
-			RETURN rodrigues(longitudeVector, V(0,1,0), b).
-		} ELSE IF dir = "south" {
-			//	This can be easily derived from spherical triangle if one draws a half
-			//	of an orbit, from node to node. It is obvious that distance from node to
-			//	peak equals 90 degrees, and from that the following results.
-			RETURN rodrigues(longitudeVector, V(0,1,0), 180-b).
-		} ELSE {
-			RETURN nodeVector(inc, "north").
-		}
-	}
-	
-
-	
-	
-
-	//	Time to next launch opportunity in given direction
-	FUNCTION orbitInterceptTime {
-		DECLARE PARAMETER launchDir IS target_orbit["direction"].	//	Passing as parameter for recursive calls.
-		
-		//	Expects a global variable "target_orbit" as lexicon
-		LOCAL targetInc IS target_orbit["inclination"].
-		LOCAL targetLan IS target_orbit["LAN"].
-		
-		//	For "nearest" launch opportunity:
-		IF launchDir = "nearest" {
-			LOCAL timeToNortherly IS orbitInterceptTime("north").
-			LOCAL timeToSoutherly IS orbitInterceptTime("south").
-			IF timeToSoutherly < timeToNortherly {
-				SET target_orbit["direction"] TO "south".
-				RETURN timeToSoutherly.
-			} ELSE {
-				SET target_orbit["direction"] TO "north".
-				RETURN timeToNortherly.
-			}
-		} ELSE {
-			//	Tind the ascending node vector of an orbit of the desired inclination,
-			//	that passes above the launch site right now.
-			SET currentNode TO nodeVector(targetInc, launchDir).
-			//	Then find the ascending node vector of the target orbit.
-			LOCAL targetNode IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), -targetLan).
-			//	Find the angle between them, minding rotation direction, and return as time.
-			LOCAL nodeDelta IS VANG(currentNode, targetNode).
-			LOCAL deltaDir IS VDOT(V(0,1,0), VCRS(targetNode, currentNode)).
-			IF deltaDir < 0 { SET nodeDelta TO 360 - nodeDelta. }
-			LOCAL deltaTime IS SHIP:ORBIT:BODY:ROTATIONPERIOD * nodeDelta/360.
-			
-			RETURN deltaTime.
-		}
-	}
-
-	//	Launch azimuth to a given orbit
-	FUNCTION launchAzimuth {
-	
-		//	Expects global variables "target_orbit" as lexicons
-		LOCAL siteLat IS SHIP:GEOPOSITION:LAT.
-		
-		LOCAL Binertial IS get_orbit_azimuth(target_orbit["inclination"], siteLat, (target_orbit["direction"]="south")).
-		
-		LOCAL targetVel IS target_orbit["velocity"]*COS(target_orbit["angle"]).				//	But we already have our desired velocity, however we must correct for the flight path angle (only the tangential component matters here)
-		
-		//get launch azimuth angle wrt due east=0
-		LOCAL Vbody IS (2*CONSTANT:PI*SHIP:BODY:RADIUS/SHIP:BODY:ROTATIONPERIOD)*COS(siteLat).
-		LOCAL VrotX IS targetVel*SIN(Binertial)-Vbody.
-		LOCAL VrotY IS targetVel*COS(Binertial).
-		LOCAL azimuth IS ARCTAN2(VrotY, VrotX).
-		//azimuth is the angle wrt the due east direction
-		//transform it into an azimuth wrt the north direction
-		//this will subtract from 90° if it's a positive angle, due north, and add to 90° if it's due south. wrap around 360°
-		
-		LOCAL out IS fixangle(90-azimuth).
-		
-		//implement range azimuth limitation
-		LOCAL site_azrange IS LEXICON(
-							"KSC",LEXICON(
-									"position",LATLNG(28.61938,-80.70092),
-									"min_az",35,
-									"max_az",120
-							),
-							"Vandenberg",LEXICON(
-									"position",LATLNG(34.67974,-120.53102),
-									"min_az",147,
-									"max_az",220	//250
-							)
-		
-		).
-		LOCAL shippos IS SHIP:GEOPOSITION.
-		FOR s IN site_azrange:VALUES{
-			LOCAL sitepos IS s["position"].
-			
-			//if the launchsite is within 50km of a known site
-			//apply its range restrictions
-			IF downrangedist(sitepos,shippos) < 50 {
-				SET out TO CLAMP(out,s["min_az"],s["max_az"]).
-				BREAK.
-			}
-		
-		}
-		
-		RETURN out.
-	}
-
-	FUNCTION warp_window{
-		parameter liftofftime.
-		
-		LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
-		addGUIMessage("TIME TO WINDOW : " + sectotime(timetolaunch)).
-
-		UNTIL FALSE {
-		
-			LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
-			
-			warp_controller(timetolaunch, TRUE, 1).
-			
-			IF (timetolaunch <=0.1) {BREAK.}
-			
-			Wait 0.
-		}
-		set warp to 0.
-	
-	
-	}
-	
-	target_orbit:ADD("radius", 0) .
-	target_orbit:ADD("velocity", 0) .
-	target_orbit:ADD("normal", V(0,0,0)) .
-	target_orbit:ADD("angle", 0) .
-	target_orbit:ADD("periarg", 0) .
-	target_orbit:ADD("mode", 0) .
+	//check altitudes
 	
 	IF target_orbit["periapsis"]>target_orbit["apoapsis"] {
-		local x is target_orbit["apoapsis"].
+		local ap_ is target_orbit["apoapsis"].
 		set target_orbit["apoapsis"] to target_orbit["periapsis"].
-		set target_orbit["periapsis"] to x.
+		set target_orbit["periapsis"] to ap_.
 	}
 	
-	LOCAL pe IS target_orbit["periapsis"]*1000 + SHIP:BODY:RADIUS.
-	LOCAL ap IS target_orbit["apoapsis"]*1000 + SHIP:BODY:RADIUS.
-	target_orbit:ADD("SMA", (pe+ap) / 2) .
-	
-	target_orbit:ADD("ecc", (ap - pe)/(ap + pe)).
-	
-	
-	IF NOT target_orbit:HASKEY("inclination") {
-		target_orbit:ADD("inclination", ABS(SHIP:GEOPOSITION:LAT)).
-	}
-	
-	
-	//	Set default launch direction
-	IF NOT target_orbit:HASKEY("direction") {
-		target_orbit:ADD("direction", "nearest").
-	}
-
-	//the second check only filters targets in earth orbit e.g. no interplanetary targets
-	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
-		IF NOT target_orbit:HASKEY("LAN") {
-			target_orbit:ADD("LAN",0).
+	IF NOT target_orbit:HASKEY("cutoff alt") {
+		target_orbit:ADD("cutoff alt", target_orbit["periapsis"]).
+	} ELSE {
+		IF (target_orbit["cutoff alt"] < target_orbit["periapsis"]) {
+			SET target_orbit["cutoff alt"] TO target_orbit["periapsis"].
+		} ELSE IF (target_orbit["cutoff alt"] > target_orbit["apoapsis"]) {
+			SET target_orbit["cutoff alt"] TO target_orbit["apoapsis"].
 		}
+	}
+	
+	SET target_orbit["sma"] TO orbit_appe_sma(target_orbit["apoapsis"], target_orbit["periapsis"]).
+	SET target_orbit["ecc"] TO orbit_appe_ecc(target_orbit["apoapsis"], target_orbit["periapsis"]).
+	
+	LOCAL cutoff_r IS target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS.
+	
+	//compute cutoff orbital parameters
+	
+	SET target_orbit["eta"] TO orbit_alt_eta(cutoff_r, target_orbit["sma"], target_orbit["ecc"]).
+	set target_orbit["velocity"] to orbit_alt_vel(cutoff_r, target_orbit["sma"]).
+
+
+	// now compute orbital plane
+
+	// check inclination 
+	//overridden in case of targeted launch
+	//negative for southerly launches
+	IF NOT target_orbit:HASKEY("inclination") {
+		target_orbit:ADD("inclination", SHIP:GEOPOSITION:LAT).
+	} ELSE {
+		IF ABS(target_orbit["inclination"])<SHIP:GEOPOSITION:LAT {
+			SET target_orbit["inclination"] TO SIGN(target_orbit["inclination"])*SHIP:GEOPOSITION:LAT.
+		}
+	}
+	
+	
+	//compute lan given the various options
+	
+	//the second check only filters targets in earth orbit e.g. no interplanetary targets
+	IF (HASTARGET = TRUE AND TARGET:BODY = SHIP:BODY) {
 		SET target_orbit["LAN"] TO TARGET:ORBIT:LAN.
 		SET target_orbit["inclination"] TO TARGET:ORBIT:INCLINATION.	
 		
+	} ELSE {
+		IF target_orbit["inclination"] < 0 {
+			SET target_orbit["direction"] TO "south".
+			SET target_orbit["inclination"] TO ABS(target_orbit["inclination"]).	
+		} ELSE {
+			SET target_orbit["direction"] TO "north".
+		}
+		SET target_orbit["LAN"] TO LAN_orbit_overhead(target_orbit["inclination"], (target_orbit["direction"]="south"), vehicle["launchTimeAdvance"] + vehicle_countdown + 1).
 	}
-	ELSE {
-			IF ABS(target_orbit["inclination"])<SHIP:GEOPOSITION:LAT {
-				SET target_orbit["inclination"] TO SIGN(target_orbit["inclination"])*SHIP:GEOPOSITION:LAT.
-			}
+	
+	//handle nearest launch window
+	//compute nearest launch direction
+	IF (target_orbit["direction"]="nearest") {
 			
-			IF target_orbit["inclination"] >= 0 {
-					SET target_orbit["direction"] TO "north".
-			}
-			ELSE IF target_orbit["inclination"] < 0 {
-				SET target_orbit["direction"] TO "south".
-				SET target_orbit["inclination"] TO 	ABS(target_orbit["inclination"]).	
-			}
-			
-		//SET target_orbit["LAN"] TO .
-		IF NOT target_orbit:HASKEY("LAN") {
-			target_orbit:ADD("LAN",LAN_orbit_overhead()).
-		}
-		ELSE {
-			SET target_orbit["LAN"] TO convert_long(fixangle(target_orbit["LAN"]),1).
-		}
+		LOCAL shiplngvec IS VXCL(V(0,1,0), -SHIP:ORBIT:BODY:POSITION):NORMALIZED.
 		
-	}
-	SET target_orbit["normal"] TO targetNormal(ABS(target_orbit["inclination"]), target_orbit["LAN"]).
-
-	
-
-	
-	local vnorm is -target_orbit["normal"]:NORMALIZED.
-	local cutvec is (vecYZ(SHIP:BODY:POSITION)*-1):NORMALIZED.
-	set cutvec to (cutvec - VDOT(cutvec,vnorm)*vnorm):NORMALIZED.
-	
-	//arbitrarily set cutoff point at 30 degrees ahead of the launch position.
-	set cutvec to rodrigues(cutvec,vnorm, 30):NORMALIZED.
-	
-	set target_orbit["radius"] TO cutvec.
-	
-	IF target_orbit:HASKEY("Longitude of Periapsis") {
-			SET target_orbit["mode"] TO 2.
-			SET target_orbit["periarg"] TO compute_periarg().
-			target_orbit:REMOVE("Longitude of Periapsis").
-	}
-	ELSE {
-		SET target_orbit["mode"] TO 1.
-		LOCAL cut_alt IS target_orbit["periapsis"].
-		IF target_orbit:HASKEY("Cutoff Altitude") {
-			SET cut_alt TO target_orbit["Cutoff Altitude"].
-		}
-		IF cut_alt<target_orbit["periapsis"] {
-			SET cut_alt TO target_orbit["periapsis"].
-		}
-		SET cut_alt TO (cut_alt*1000 + SHIP:BODY:RADIUS).
-		set target_orbit["radius"] TO cutvec:NORMALIZED*cut_alt.
-	}
-
-	target_orbit:ADD("perivec", target_perivec()) .
-	
-	local etaa is 0.
-
-	IF target_orbit["mode"] = 2 {
-		set etaa to signed_angle(target_orbit["perivec"],cutvec,vnorm,1).
-	}
-	IF target_orbit["mode"] = 1 {
-		IF NOT target_orbit["ecc"]=0 {
-			set etaa to (target_orbit["SMA"]*(1-target_orbit["ecc"]^2)/target_orbit["radius"]:MAG - 1)/target_orbit["ecc"].
-			set etaa to ARCCOS(etaa).		
+		LOCAL dlng IS get_a_bBB(SHIP:GEOPOSITION:LAT, target_orbit["inclination"]).
+		
+		LOCAL north_launch_vec IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), -(target_orbit["LAN"] + dlng)).
+		LOCAL south_launch_vec IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), -(target_orbit["LAN"] + 180 - dlng)).
+		
+		//arrow_body(north_launch_vec, "north").
+		//arrow_body(south_launch_vec, "south").
+		//arrow_body(shiplngvec, "ship").
+		
+		LOCAL north_dlan IS signed_angle(north_launch_vec, shiplngvec, V(0,1,0), 1).
+		LOCAL south_dlan IS signed_angle(south_launch_vec, shiplngvec, V(0,1,0), 1).
+		
+		IF (south_dlan < north_dlan) {
+			SET target_orbit["direction"] TO "south". 
+		} ELSE {
+			SET target_orbit["direction"] TO "north". 
 		}
 	}
-	target_orbit:ADD("eta", etaa) .
-	SET target_orbit TO cutoff_params(target_orbit,target_orbit["radius"],etaa).
 	
-	//	Calculate time to launch
-	LOCAL timeToOrbitIntercept IS orbitInterceptTime().
-	LOCAL liftoffTime IS TIME:SECONDS + timeToOrbitIntercept - vehicle["launchTimeAdvance"].
-	
+	//time to window
+	LOCAL time2window IS orbitInterceptTime(target_orbit["inclination"], target_orbit["LAN"], (target_orbit["direction"]="south")).
 	
 	//if launching into plane of target account for J2 nodal precession
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
-		LOCAL ltt_old IS liftoffTime.
+		LOCAL t2w IS time2window.
 		LOCAL j2LNG is -1.5*1.08262668e-3*rad2deg((BODY:RADIUS/(TARGET:ORBIT:SEMIMAJORAXIS*(1 - TARGET:ORBIT:ECCENTRICITY^2)))^2*SQRT(BODY:MU/TARGET:ORBIT:SEMIMAJORAXIS^3)*COS(TARGET:ORBIT:INCLINATION)).
 		LOCAL lan_old IS target_orbit["LAN"].
 		UNTIL FALSE {
 			//print ltt_old AT (0,54).
-			SET target_orbit["LAN"] TO  fixangle(lan_old +  j2LNG*ltt_old ).
-			LOCAL ltt_new IS orbitInterceptTime().
+			SET target_orbit["LAN"] TO  fixangle(lan_old +  j2LNG*t2w ).
+			LOCAL t2w_new IS orbitInterceptTime(target_orbit["inclination"], target_orbit["LAN"], (target_orbit["direction"]="south")).
+			
 			//print ltt_new AT (0,55).
-			IF ABS(ltt_old - ltt_new)<0.05 {
-				SET ltt_old TO ltt_new.
+			
+			IF ABS(t2w - t2w_new)<0.05 {
 				BREAK.
 			}
-			SET ltt_old TO ltt_new.
+			SET t2w TO t2w_new.
 			SET target_orbit["inclination"] TO TARGET:ORBIT:INCLINATION.	
 		}
-		SET liftoffTime TO TIME:SECONDS + ltt_old - vehicle["launchTimeAdvance"].
+		SET time2window TO t2w.
 	}
-	IF timeToOrbitIntercept < vehicle["launchTimeAdvance"] { SET liftoffTime TO liftoffTime + SHIP:BODY:ROTATIONPERIOD. }
 	
-	set control["launch_az"] to launchAzimuth().	
+	SET time2window TO time2window - vehicle["launchTimeAdvance"].
+	
+	IF (time2window < vehicle_countdown) {
+		SET time2window TO time2window + SHIP:BODY:ROTATIONPERIOD.
+	}
+	
+	LOCAL warp_time IS TIME:SECONDS + time2window  - vehicle_countdown.
+	
+	//this is for message logging
+	SET vehicle["ign_t"] TO TIME:SECONDS + time2window. 
+	
+	set control["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).	
+	
+	//print target_orbit:dump.
+	//arrow_body(targetLANvec(target_orbit["LAN"]), "lan").
+	//arrow_body(targetNormal(target_orbit["inclination"], target_orbit["LAN"]), "norm").
+	//until false{}
 		
-	SET vehicle["ign_t"] TO liftoffTime + 10. 
-	warp_window(liftoffTime).
-	
-}	
+	warp_window(warp_time).	
+
+}
 
 
 

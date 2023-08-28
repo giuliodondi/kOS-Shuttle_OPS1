@@ -141,7 +141,6 @@ FUNCTION get_RTLS_site {
 									"Edwards",ldgsiteslex["Edwards"]
 	
 	).
-	//LOCAL closest_out IS get_closest_site(reduced_sites_lex).
 	LOCAL closest_out IS get_closest_site(ldgsiteslex).
 	RETURN closest_out[1].
 }
@@ -254,8 +253,8 @@ FUNCTION RTLS_normal {
 	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
 	
 	//construct the plane of rtls
-	LOCAL dr IS cur_pos - tgtsitevec.
-	LOCAL tgtnorm IS -VCRS(tgtsitevec,dr):NORMALIZED.
+	LOCAL dr IS tgtsitevec - cur_pos.
+	LOCAL tgtnorm IS VCRS(cur_pos,dr):NORMALIZED.
 	
 	RETURN tgtnorm.
 
@@ -285,7 +284,7 @@ FUNCTION RTLS_cutoff_params {
 	
 	LOCAL rv_vel IS RTLS_rvline(newrange).
 	
-	LOCAL vel IS rodrigues(iz,iy, tgt_orb["angle"]):NORMALIZED*rv_vel.
+	LOCAL vel IS rodrigues(iz, iy, tgt_orb["fpa"]):NORMALIZED*rv_vel.
 	LOCAL vEarth IS (constant:pi/43200)*VCRS( v(0,0,1),tgtsitevec).
 	SET vel TO vel + vEarth.
 	
@@ -405,15 +404,16 @@ FUNCTION setup_RTLS {
 	
 	
 	LOCAL curR IS orbitstate["radius"].
-	LOCAL cutoff_alt IS 80*1000 + SHIP:BODY:RADIUS.
+	LOCAL cutoff_alt IS 80.
 	SET target_orbit TO LEXICON(
 							"mode",5,
 							"normal",normvec,
-							"radius",(curR:NORMALIZED)*cutoff_alt,
+							"radius",(curR:NORMALIZED)*(cutoff_alt*1000 + SHIP:BODY:RADIUS),
 							"velocity",2200,
-							"angle",172,
+							"fpa",172,
 							"range",500*1000,
 							"rtls_cutv",2200,
+							"cutoff alt", cutoff_alt,
 							"Periapsis",0,
 							"Apoapsis",0,
 							"inclination",target_orbit["inclination"],
@@ -984,10 +984,10 @@ FUNCTION TAL_cutoff_params {
 	
 	LOCAL AP is tgt_orb["radius"]:MAG.
 	LOCAL tgt_vec_radius IS BODY:RADIUS - radius_bias*1000.
-	SET tgt_orb["angle"] TO 0.
+	SET tgt_orb["fpa"] TO 0.
 	SET tgt_orb["eta"] TO 180.
 	
-	LOCAL tgt_eta IS 180 + signed_angle(tgt_orb["radius"],TALAbort["tgt_vec"],-tgt_orb["normal"],0).
+	LOCAL tgt_eta IS 180 + signed_angle(tgt_orb["radius"], TALAbort["tgt_vec"], tgt_orb["normal"], 0).
 	
 	SET tgt_orb["ecc"] TO (AP - tgt_vec_radius)/(AP + tgt_vec_radius*COS(tgt_eta)).
 	SET tgt_orb["SMA"] TO AP/(1 + tgt_orb["ecc"] ).
@@ -1083,7 +1083,7 @@ FUNCTION ATO_normal {
 	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION).
 	LOCAL cur_vel IS vecYZ(SHIP:VELOCITY:ORBIT).
 
-	LOCAL tgtnorm IS -VCRS(cur_pos,cur_vel):NORMALIZED.
+	LOCAL tgtnorm IS VCRS(cur_pos,cur_vel):NORMALIZED.
 	
 	//clearvecdraws().
 	//arrow_body(vecYZ(cur_pos),"cur_pos").
@@ -1095,31 +1095,22 @@ FUNCTION ATO_normal {
 
 //basically the same as normal cutoff params for mode 1 except we force normal vector in-plane
 FUNCTION ATO_cutoff_params {
-	PARAMETER target.
+	PARAMETER tgt_orb.
 	PARAMETER cutoff_r.
 	
-	SET target["normal"] TO ATO_normal().
-	SET target["Inclination"] TO VANG(- target["normal"],v(0,0,1)).
+	SET tgt_orb["normal"] TO ATO_normal().
+	SET tgt_orb["Inclination"] TO VANG(tgt_orb["normal"],v(0,0,1)).
+	
+	set tgt_orb["radius"] to cutoff_r.
+	
+	local cut_alt is tgt_orb["radius"]:MAG.
+	set tgt_orb["eta"] to orbit_alt_eta(cut_alt, tgt_orb["SMA"], tgt_orb["ecc"]).
+	
+	set tgt_orb["velocity"] to orbit_alt_vel(cut_alt, tgt_orb["SMA"]).
+	
+	set tgt_orb["fpa"] to orbit_eta_fpa(tgt_orb["eta"], tgt_orb["SMA"], tgt_orb["ecc"]).
 
-	LOCAL etaa IS 0.
-	local r_cut is cutoff_r:MAG.
-	IF target["ecc"]=0 {set etaa to  0.}
-	ELSE {		
-		set etaa to (target["SMA"]*(1-target["ecc"]^2)/r_cut - 1)/target["ecc"].
-		set etaa to ARCCOS(limitarg(etaa)).
-	}
-	local x is  1 + target["ecc"]*COS(etaa).
-	
-	local v_cut is SQRT(SHIP:BODY:MU * (2/r_cut - 1/target["SMA"])).
-		
-	local phi is target["ecc"]*sin(etaa)/x.
-	set phi to ARCTAN(phi).
-	
-	set target["velocity"] to v_cut.
-	set target["angle"] to phi.
-	set target["eta"] to etaa.
-	
-	RETURN target.
+	RETURN tgt_orb.
 }
 
 FUNCTION ATO_boundary {

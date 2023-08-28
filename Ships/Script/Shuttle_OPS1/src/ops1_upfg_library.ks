@@ -51,17 +51,25 @@ GLOBAL usc IS LEXICON(
 
 //	Creates and initializes UPFG internal struct
 FUNCTION setupUPFG {
-	parameter target.
+	parameter target_orbit.
 	
 	LOCAL curR IS orbitstate["radius"].
 	LOCAL curV IS orbitstate["velocity"].
-
-	//SET target_orbit["normal"] TO targetNormal(target_orbit["inclination"], target_orbit["LAN"]).
+	
+	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
+	
+	local cutvec is VXCL(target_orbit["normal"], vecYZ(-SHIP:ORBIT:BODY:POSITION)):NORMALIZED.
+	//arbitrarily set cutoff point at 30 degrees ahead of the current position.
+	set cutvec to rodrigues(cutvec, target_orbit["normal"], 30).
+	
+	LOCAL cutoff_r IS target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS.
+	
+	set target_orbit["radius"] TO cutvec:NORMALIZED * cutoff_r.
 
 	LOCAL tgoV IS v(0,0,0).
 
-	SET tgoV TO VCRS(-target_orbit["normal"], target_orbit["radius"]):NORMALIZED.	
-	SET tgoV TO rodrigues(tgoV,target_orbit["normal"], target_orbit["angle"]).	
+	SET tgoV TO VCRS(target_orbit["normal"], target_orbit["radius"]):NORMALIZED.	
+	SET tgoV TO rodrigues(tgoV,target_orbit["normal"], -target_orbit["fpa"]).	
 	SET tgoV TO target_orbit["velocity"]* tgoV - curV.
 
 
@@ -124,16 +132,21 @@ FUNCTION upfg_framerot {
 
 }
 
+FUNCTION upfg_normal {
+	PARAMETER tgtIncl.
+	PARAMETER tgtLAN.
+
+	RETURN vecYZ(targetNormal(tgtIncl, tgtLAN)). 
+}
+
 FUNCTION upfg_wrapper {
-
-	DECLARE PARAMETER upfgInternal.
+	PARAMETER upfgInternal.
 	
-
 	LOCAL currentIterationTime IS surfacestate["MET"].
 	
 	LOCAL iterationDeltaTime IS ABS(currentIterationTime - usc["lastiter"]).
 	
-	//clearvecdraws().
+	clearvecdraws().
 	//arrow(vecyz(upfgOutput["steering"]),"iF1",v(0,0,0),50,0.05)
 	
 	LOCAL wasconv IS usc["conv"]=1.
@@ -187,12 +200,12 @@ FUNCTION upfg_wrapper {
 		}
 	}
 	
+	//arrow_body(vecYZ(target_orbit["normal"]), "norm").
+	//arrow_body(vecYZ(target_orbit["radius"]), "cutoff").
 	
 	IF (DEFINED RTLSAbort) {
-		//clearvecdraws().
-		//arrow(vecYZ(target_orbit["normal"]:NORMALIZED),"norm",v(0,0,0),10,0.5).
-		//arrow(vecYZ(RTLSAbort["pitcharound"]["refvec"]:NORMALIZED),"refvec",v(0,0,0),10,0.5).
-		//arrow(vecYZ(RTLSAbort["C1"]:NORMALIZED),"C1",v(0,0,0),10,0.5).
+		//arrow_ship(vecYZ(RTLSAbort["pitcharound"]["refvec"]:NORMALIZED), "refvec").
+		//arrow_ship(vecYZ(RTLSAbort["C1"]:NORMALIZED), "C1").
 		
 		//dissipation and flyback trigger logic
 		IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
@@ -320,7 +333,7 @@ FUNCTION upfg_regular {
 	LOCAL rd IS previous["rd"].
 	LOCAL rbias IS previous["rbias"].
 	LOCAL rgrav IS previous["rgrav"].
-	LOCAL iy IS tgt_orb["normal"]:NORMALIZED.
+	LOCAL iy IS -tgt_orb["normal"]:NORMALIZED.
 	LOCAL iz IS VCRS(rd,iy):NORMALIZED.
 	LOCAL m IS vehicle[0]["m_initial"].
 	LOCAL Kk IS previous["throtset"].
@@ -502,43 +515,19 @@ FUNCTION upfg_regular {
 	
 	LOCAL vd IS v(0,0,0).
 	
-	//some code duplication but helps readability
+	LOCAL ix IS rp:NORMALIZED.
+	SET iz TO VCRS(ix,iy):NORMALIZED.
+	
 	IF (tgt_orb["mode"]=6) {
-		LOCAL ix IS rp:NORMALIZED.
-		SET iz TO VCRS(ix,iy):NORMALIZED.
-
 		SET tgt_orb TO TAL_cutoff_params(tgt_orb,rd).
-		SET rd TO tgt_orb["radius"]:MAG*ix.	
-		SET vd TO iz*tgt_orb["velocity"].
-	
 	} ELSE IF (tgt_orb["mode"]=7) {
-		LOCAL ix IS rp:NORMALIZED.
-		SET iz TO VCRS(ix,iy):NORMALIZED.
-		
 		SET tgt_orb TO ATO_cutoff_params(tgt_orb,rd).
-		SET rd TO tgt_orb["radius"]:MAG*ix.	
-		
-		SET vd TO rodrigues(iz,iy, tgt_orb["angle"]):NORMALIZED*tgt_orb["velocity"].	
-	
 	} ELSE {
-		LOCAL ix IS rp:NORMALIZED.
-		SET iz TO VCRS(ix,iy):NORMALIZED.
-		
-		LOCAL eta_ IS 0.
-	 
-		IF tgt_orb["mode"]=2 {								
-			//recompute cutoff true anomaly
-			SET tgt_orb["perivec"] TO target_perivec().
-			SET  eta_ TO signed_angle(tgt_orb["perivec"],rp,-iy,1).	
-		}
-		 
-		SET tgt_orb TO cutoff_params(tgt_orb,rd,eta_).
-		SET rd TO tgt_orb["radius"]:MAG*ix.	
-		
-		SET vd TO rodrigues(iz,iy, tgt_orb["angle"]):NORMALIZED*tgt_orb["velocity"].	
-		
+		SET tgt_orb TO nominal_cutoff_params(tgt_orb,rd).
 	}
 	
+	SET rd TO tgt_orb["radius"]:MAG*ix.	
+	SET vd TO rodrigues(iz,iy, tgt_orb["fpa"]):NORMALIZED*tgt_orb["velocity"].	
 
 	SET vgo TO vd - v_cur - vgrav + vbias.
 	
@@ -593,7 +582,7 @@ FUNCTION upfg_rtls {
 	LOCAL rd IS previous["rd"].
 	LOCAL rbias IS previous["rbias"].
 	LOCAL rgrav IS previous["rgrav"].
-	LOCAL iy IS tgt_orb["normal"]:NORMALIZED.
+	LOCAL iy IS -tgt_orb["normal"]:NORMALIZED.
 	LOCAL iz IS VCRS(rd,iy):NORMALIZED.
 	LOCAL m IS vehicle[0]["m_initial"].
 	LOCAL Kk IS previous["throtset"].
