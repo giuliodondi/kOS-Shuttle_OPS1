@@ -38,7 +38,7 @@ There is also a **node.ks** script, this is a little manoeuvre node executor tha
 The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance, without the mass of SRB or launch clamps. The script will measure everything automatically provided that the part tree is set up correctly in the VAB.  
 
 Take care of the following things while building the Shuttle Stack in the VAB:
-- The root part must be one of the orbiter parts (the cabin is fine)
+- ~~The root part must be one of the orbiter parts (the cabin is fine)~~ IF you use my latest SpaceShuttleSystem version, there is a single Orbiter assembled part that I advise you use instead, this is your root part.
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
@@ -119,7 +119,7 @@ This is the display from the final moments of first stage all the way to MECO, d
 - At the top, below the title, you have the MECO velocity indicator. It's a slider which ranges from 7000 to 8000 m/s and the CO symbol indicates the desired cutoff speed. The triangle indicates the current orbital velocity and should stop at the CO mark at MECO.
 - In the middle is now a plot of altitude on the vertical vs. orbital velocity on the horizontal. The long central curve is the nominal trajectory, which droops during the late stages of ascent (this is normal and realistic).
     - The track to the left of the nominal trajectory is the trajectory for a retrograde launch out of Vandenberg.
-    - The track on the right below nominal is the drooped trajecotry in case of a TAL or ATO abort, ideally the Shuttle should never cross below this track
+    - The track on the right below nominal is the drooped trajectory in case of a TAL or ATO abort, ideally the Shuttle should never cross below this track
 
 ### Meaning of Rated Power Level and the THR indicator
 
@@ -127,7 +127,7 @@ The Space Shuttle Main Engine had several performance improvements in its operat
 The caveat is that "full power" is an ambiguous term in this situation. For this reason we define the Rated Power Level (100% RPL) as 2090 kN, the max thrust of the original variant. 
 This is significant because for the later part of the Shuttle program, when they used the RS-25D variant, the nominal throttle setting was 104% RPL and boosted to the full 109% RPL in case of an abort. This was done to reduce wear and risk of failure on the engines, it's all realistic and simulated by the script.
 
-After MECO the script wil automatically:
+After MECO the script will automatically:
 - trigger ET sep
 - command an RCS vertical translation manoeuvre
 - close the umbilical doors
@@ -167,7 +167,7 @@ Automatic OMS dump is initiated during fuel dissipation.
 - **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 40 seconds before MECO as it is a bit unstable. 
 The OMS fuel dump will cease before or at MECO during flyback.
 - **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces.  
-At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 30km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
+At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
 
 ### RTLS TRAJ 2 display
 
@@ -191,11 +191,11 @@ This display is rendered when the RTLS abort is initialised (not when the engine
     - The right segment of the bottom curve is the dissipation trajectory for a very early abort, when the Shuttle is slowest.
     - The rest of the bottom curve, from the right spike all the way left, is the drooped trajectory during flyback. The Shuttle should not cross below this not to encounter too much drag 
       or heat
-    - The left-most horizontal line with "CO" indicates 80km altitude, the Shuttle should be on this line at MECO
+    - The left-most horizontal line with "CO" indicates the cutoff line at 80km altitude, the Shuttle should be on this line at MECO
 
 ### The meaning of T_C
 
-T_C is just a name for the difference between the time to burn down to 2% propellant minus the calculated time-to-go. During the dissipation phase this will be positive, because TGO assumes we turn back immediately but we still have too much propellant. Once we trigger Flyback, this should settle around zero as the algorithm adjusts the throttle to match the two. If it goes negative it means that we will have to burn a little of the margin left to reach the target MECO, this is fine as long as it doesn't go to the negative double digits.
+T_C is just a name for the difference between the time to burn down to 2% propellant minus the calculated time-to-go. During the dissipation phase this will be positive, because TGO assumes we turn back immediately but we still have too much propellant. Once we trigger Flyback, this should settle around zero as the algorithm adjusts the throttle to match the two. If it goes negative it means that we will have to burn a little of the margin left, this is fine as long as it doesn't reach -10 s or something. If that happens, you run the risk of running out of propellant before the MECO tatger is reached and it generally is an indicator of a bad guidance state.
 
 
 ### Results from my tests
@@ -218,7 +218,7 @@ The second plot is horizontal velocity vs. altitude. Here you can se clearly:
 
 ![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_rvline.png)
 
-The final plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate on the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. The range to the landing site uopn arrival on the RV line is not important as long as the velocity is right.
+The final plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate on the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. Where exactly you land on the RV line is not important as long as the script cuts off the engines right on it, which you can see as the velocity becomes almost constant (before increasing again during the Glide-RTLS descent)
 
 The Glide-RTLS phase, which starts after arrival on the RV line, is completely open-loop, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
 
@@ -238,8 +238,8 @@ Both aborts use the same guidance and differ only in what you decide to do after
 This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired. Also no OMs dump is performed as you will need the fuel to do orbital corrections later on.  
 
 After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that. 
-The SpaceShuttleSystem has less crossrange capability than in real life, for AOA aborts out of KSC I've only been able to reenter back at the Cape for launches to an inclination of 40° or less. For ISS launches (52° inclination) Northrup strip (White Sands) is the preferred AoA landing site. For launches out of Vandenberg, SpaceShuttleSystem sadly does not have the crossrange to make it back to any site in the continental US
+~~The SpaceShuttleSystem has less crossrange capability than in real life, for AOA aborts out of KSC I've only been able to reenter back at the Cape for launches to an inclination of 40° or less. For ISS launches (52° inclination) Northrup strip (White Sands) is the preferred AoA landing site. For launches out of Vandenberg, SpaceShuttleSystem sadly does not have the crossrange to make it back to any site in the continental US~~ If you use my latest version of SpaceShuttleSystem and the fork of FAR that I created, you should have my custom Shuttle aerodynamics module thta implement realistic crossrange, making it possible to cover all AOA trajectories.
 
 ## Post-ATO engine failure 
 
-After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to throttle the remaining engines up to 100%.
+After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to get rid of the G-throttling logic as we will never reach 3G acceleration on two engines only.
