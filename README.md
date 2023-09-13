@@ -6,8 +6,8 @@ Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted an
 
 # Remarks
 
-This script was last tested in 1.10 with a full RO install. It shoudl also work with KSP 1.9. If you use a different version of KSP or the mods there may be different configuration parameters that throw the whole thing off-balance.
-In addition, some of my adaptations are somewhat iffy, i.e. constructed from some idea that I had which happened to work by some miracle.
+This script was last tested in 1.12 with a full RO install. It should also work with KSP 1.10. Just take care to over-write the Realism Overhaul configs.
+In addition, some of my adaptations are somewhat iffy, i.e. constructed by readig the technical manuals and figuring out some way to implement those actions.
 I provide these scripts as they are, with no guarantee that they'll work perfectly every time. **YMMV**
 
 # Installation
