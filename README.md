@@ -15,7 +15,9 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 **Required mods:**
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
 - Kerbal Operating System
-- Space Shuttle System mod, [Use my own fork of SpaceODY's Shuttle System so that the RO configs will be identical to what I use](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
+- [My own fork of SpaceODY's Space Shuttle System](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
+  - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module
+  - the script in principle should also work with SpaceODY's version, but the script will make assumptions about the Shuttle's aerodynamics that will not be accurate with that version, and there also might be a name clash with the External Tank parts
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
 As is it does not work with SpaceODY's original fork (https://github.com/SpaceODY/Space-Shuttle-System-Expanded) for several reasons:
