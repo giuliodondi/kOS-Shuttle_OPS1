@@ -897,7 +897,7 @@ FUNCTION TAL_site_xrange_shift {
 	
 	//get the angle between the two
 	//clamp this angle so that the crossrange is within a certain value
-	LOCAL max_xrange IS 920.	//in km
+	LOCAL max_xrange IS 850.	//in km
 	LOCAL abeam_angle IS signed_angle(tal_site_vec,tal_site_proj,abeam_norm,0).
 	SET abeam_angle TO SIGN(abeam_angle)*CLAMP(ABS(abeam_angle),0,max_xrange*1000*180/(CONSTANT:PI*BODY:RADIUS)).
 	
