@@ -4,6 +4,86 @@ GLOBAL g0 IS 9.80665.
 
 //		vehicle performance functions
 
+// stg parameters needs to be compatible with the upfg vehicle struct 
+
+//calculates burn time for a constant thrust stage 
+FUNCTION const_f_t {
+	PARAMETER stg.
+
+	LOCAL red_flow IS stg["engines"]["flow"] * stg["throttle"].
+	RETURN stg["m_burn"]/red_flow.	
+}
+
+
+//calculates when the g limit will be violated and the vehicle mass at that moment
+//returns (0,0) if the g-lim is never reached
+FUNCTION glim_t_m {
+	PARAMETER stg.
+	local out is LIST(0,0).
+	
+	local mbreak is stg["engines"]["thrust"] * stg["Throttle"]/(stg["glim"]*g0).
+	IF mbreak > stg["m_final"]  {
+		SET out[1] TO mbreak.
+		SET out[0] TO (stg["m_initial"] - mbreak)/(stg["engines"]["flow"] * stg["Throttle"]).
+	}
+	
+	RETURN out.
+}
+
+//given a constant g stage calculates the burn time until the lower throttle limit will be reached and the vehicle mass at that moment
+FUNCTION const_G_t_m {
+	PARAMETER stg.
+	local out is LIST(0,0).
+	
+	//calculate mass of the vehicle at throttle violation 
+	LOCAL mviol IS stg["engines"]["thrust"] * stg["minThrottle"]/( stg["glim"] * g0 ).
+	
+	//initialise final mass to stage final mass
+	LOCAL m_final IS stg["m_final"].
+	
+	IF mviol > m_final  {
+		SET out[1] TO mviol.
+		SET m_final TO mviol.
+	}
+	
+	local red_isp is stg["engines"]["isp"]/stg["glim"].
+		
+	//calculate burn time until we reach the final mass 
+	SET out[0] TO red_isp * LN( stg["m_initial"]/m_final ).
+		
+	RETURN out.
+}
+
+
+//calculates new stage burn time  as a sum of constant g burn time
+//and constant t burn time at minimum throttle
+FUNCTION glim_stg_time {
+	PARAMETER stg_lex.
+	
+	local glim is stg_lex["glim"].
+	LOCAL tt Is 0.
+	
+	//compute burn time until  we deplete the stage.	
+	
+	LOCAL maxtime IS (stg_lex["engines"]["isp"]/glim) * LN(1 + stg_lex["m_burn"]/stg_lex["m_final"] ).
+
+	//compute burn time until  we reach minimum throttle.	
+	LOCAL limtime IS - stg_lex["engines"]["isp"]/glim * LN(stg_lex["minThrottle"]).
+	LOCAL constThrustTime IS 0.
+	IF limtime < maxtime {
+		//	First we calculate mass of the fuel burned until violation
+		LOCAL burnedFuel IS stg_lex["m_initial"]*(1 - CONSTANT:E^(-glim*limtime/stg_lex["engines"]["isp"])).
+		//	Then, time it will take to burn the rest on constant minimum throttle
+		SET constThrustTime TO (stg_lex["m_burn"] - burnedFuel  )/(stg_lex["minThrottle"]*stg_lex["engines"]["flow"]).
+		SET tt TO limtime + constThrustTime.
+	}
+	ELSE {
+		SET tt TO maxtime.
+	}
+	SET stg_lex["throt_mult"] TO glim*g0/stg_lex["engines"]["thrust"].
+	
+	RETURN tt.								
+}
 
 
 //measures current total engine thrust vector and isp of running engines

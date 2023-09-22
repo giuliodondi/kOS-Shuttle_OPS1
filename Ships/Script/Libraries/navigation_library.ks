@@ -38,6 +38,11 @@ FUNCTION surfacevel {
 }
 
 
+//get gravitational acceleration
+FUNCTION bodygravacc {
+	RETURN BODY:MU/(BODY:RADIUS^2).
+}
+
 
 
 //convert earth-fixed longitude TO celestial longitude
@@ -571,6 +576,18 @@ FUNCTION targetLANvec {
 	PARAMETER tgtLAN.
 	
 	return rodrigues(SOLARPRIMEVECTOR, V(0,1,0), - tgtLAN).
+}
+
+FUNCTION targetPerivec {
+	PARAMETER tgtIncl.
+	PARAMETER tgtLAN.
+	PARAMETER tgtPeriarg.
+	
+	LOCAL lanvec IS targetLANvec(tgtLAN).
+	LOCAL normvec IS targetNormal(tgtIncl, tgtLAN).
+	
+	RETURN rodrigues(lanvec, normvec, -tgtPeriarg).
+
 }
 
 //orbital plane vector given inclination and lan 

@@ -157,28 +157,26 @@ FUNCTION arrow_ship {
 }
 
 
-//draw a vector centered on geolocation for target redesignation
-//scales with distance from ship for visibility
+//draw a vector centered on geolocation
 FUNCTION pos_arrow {
 	PARAMETER pos.
-	PARAMETEr stringlabel.
+	PARAMETER lab.
+	PARAMETER len IS 5000.
+	PARAMETER wdh IS 3.
 	
 	LOCAL start IS pos:POSITION.
 	LOCAL end IS (pos:POSITION - SHIP:ORBIT:BODY:POSITION).
 	
 	VECDRAW(
       start,//{return start.},
-      end:NORMALIZED*5000,//{return end.},
+      end:NORMALIZED*len,//{return end.},
       RGB(1,0,0),
-      stringlabel,
+      lab,
       1,
       TRUE,
-      3
+      wdh
     ).
-
 }
-
-
 
 //converts the universal clock in seconds
 FUNCTION utc_time_seconds {
