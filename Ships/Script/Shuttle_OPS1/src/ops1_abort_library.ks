@@ -872,7 +872,7 @@ FUNCTION TAL_normal {
 	//find the position vector of the target site
 	
 	//construct the plane of rtls
-	LOCAL dr IS cur_pos - TALAbort["tgt_vec"].
+	LOCAL dr IS TALAbort["tgt_vec"] - cur_pos.
 	LOCAL tgtnorm IS VCRS(TALAbort["tgt_vec"],dr):NORMALIZED.
 	
 	//clearvecdraws().
@@ -897,7 +897,7 @@ FUNCTION TAL_site_xrange_shift {
 	
 	//get the angle between the two
 	//clamp this angle so that the crossrange is within a certain value
-	LOCAL max_xrange IS 600.	//in km
+	LOCAL max_xrange IS 920.	//in km
 	LOCAL abeam_angle IS signed_angle(tal_site_vec,tal_site_proj,abeam_norm,0).
 	SET abeam_angle TO SIGN(abeam_angle)*CLAMP(ABS(abeam_angle),0,max_xrange*1000*180/(CONSTANT:PI*BODY:RADIUS)).
 	
