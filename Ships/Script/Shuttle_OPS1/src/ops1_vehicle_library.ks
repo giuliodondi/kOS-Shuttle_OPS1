@@ -29,7 +29,7 @@ GLOBAL events IS LIST().
 
 function initialise_shuttle {
 
-	RUNPATH("0:/Libraries/resources_library").	
+	//RUNPATH("0:/Libraries/resources_library").	
 
 	
 	FUNCTION add_resource {
@@ -73,15 +73,6 @@ function initialise_shuttle {
 	
 	//limit upper throttle in nominal case
 	SET vehicle["maxThrottle"] TO vehicle["SSME"]["maxThrottle"].
-
-	
-	local veh_res IS res_dens_init(
-		add_resource(
-			LEXICON(),
-			LIST("LqdHydrogen","LqdOxygen")
-		)
-	).
-	
 	
 	//measure total mass less the SRBs and clamps
 	
@@ -92,8 +83,8 @@ function initialise_shuttle {
 	
 	LOCAL total_prop_mass IS get_prop_mass(
 		LEXICON(
-			"resources",veh_res,
-			"ext_tank",et_part
+			"resources",vehicle["SSME"]["resources"],
+			"tankparts",LIST(et_part)
 		)
 	).
 	
@@ -128,8 +119,8 @@ function initialise_shuttle {
 		"Throttle",vehicle["maxThrottle"],
 		"minThrottle",vehicle["SSME"]["minThrottle"],	//needed for the max q throttle down
 		"engines",	engines_lex,
-		"ext_tank",et_part,
-		"resources",veh_res,
+		"tankparts",LIST(et_part),
+		"resources",vehicle["SSME"]["resources"],
 		"mode", 1
 	).
 
@@ -152,8 +143,8 @@ function initialise_shuttle {
 		"Throttle",vehicle["maxThrottle"],
 		"minThrottle",vehicle["SSME"]["minThrottle"],
 		"engines",	engines_lex,
-		"ext_tank",et_part,
-		"resources",veh_res,
+		"tankparts",LIST(et_part),
+		"resources",vehicle["SSME"]["resources"],
 		"mode", 1
 	).
 	
@@ -189,8 +180,8 @@ function initialise_shuttle {
 		"minThrottle",vehicle["SSME"]["minThrottle"],
 		"throt_mult",0,
 		"engines",	engines_lex,
-		"ext_tank",et_part,
-		"resources",veh_res,
+		"tankparts",LIST(et_part),
+		"resources",vehicle["SSME"]["resources"],
 		"mode", 2
 	).
 	
@@ -235,8 +226,8 @@ function initialise_shuttle {
 			"Throttle",vehicle["SSME"]["minThrottle"],
 			"minThrottle",vehicle["SSME"]["minThrottle"],
 			"engines",	engines_lex,
-			"ext_tank",et_part,
-			"resources",veh_res,
+			"tankparts",LIST(et_part),
+			"resources",vehicle["SSME"]["resources"],
 			"mode", 1
 		).
 		
@@ -541,80 +532,8 @@ function getShuttleStackMass {
 	RETURN stackmass.
 }
 
-
-//calculates burn time for a constant thrust stage 
-FUNCTION const_f_t {
-	PARAMETER stg.
-
-	LOCAL red_flow IS stg["engines"]["flow"] * stg["throttle"].
-	RETURN stg["m_burn"]/red_flow.	
-}
-
-
-//calculates when the g limit will be violated and the vehicle mass at that moment
-//returns (0,0) if the g-lim is never reached
-FUNCTION glim_t_m {
-	PARAMETER stg.
-	local out is LIST(0,0).
-	
-	local mbreak is stg["engines"]["thrust"] * stg["Throttle"]/(stg["glim"]*g0).
-	IF mbreak > stg["m_final"]  {
-		SET out[1] TO mbreak.
-		SET out[0] TO (stg["m_initial"] - mbreak)/(stg["engines"]["flow"] * stg["Throttle"]).
-	}
-	
-	RETURN out.
-}
-
-
-//given a constant g stage calculates the burn time until the lower throttle limit will be reached and the vehicle mass at that moment
-FUNCTION const_G_t_m {
-	PARAMETER stg.
-	local out is LIST(0,0).
-	
-	//calculate mass of the vehicle at throttle violation 
-	LOCAL mviol IS stg["engines"]["thrust"] * stg["minThrottle"]/( stg["glim"] * g0 ).
-	
-	//initialise final mass to stage final mass
-	LOCAL m_final IS stg["m_final"].
-	
-	IF mviol > m_final  {
-		SET out[1] TO mviol.
-		SET m_final TO mviol.
-	}
-	
-	local red_isp is stg["engines"]["isp"]/stg["glim"].
-		
-	//calculate burn time until we reach the final mass 
-	SET out[0] TO red_isp * LN( stg["m_initial"]/m_final ).
-		
-	RETURN out.
-}
-
-
-
 FUNCTION get_TWR {
 	RETURN vehiclestate["avg_thr"]:average()/(1000*SHIP:MASS*g0).
-}
-
-
-
-FUNCTION get_prop_mass {
-	PARAMETER stg.
-	
-	local reslist is stg["resources"].
-	local prop_mass IS 0.
-	
-	FOR tkres In stg["ext_tank"]:RESOURCES {
-		FOR res IN reslist:KEYS {
-			IF tkres:NAME = res {
-				set prop_mass TO prop_mass + tkres:amount*reslist[res].
-			}
-	
-		}
-	}
-	set prop_mass to prop_mass*1000.
-    RETURN prop_mass.
 }
 
 
@@ -999,12 +918,15 @@ FUNCTION parse_ssme {
 		"thrust",0,
 		"flow",0,
 		"minThrottle",0,
-		"maxThrottle",0
+		"maxThrottle",0,
+		"resources",0
 	).
 	
 	//count SSMEs, not necessary per se but a useful check to see if we're flying a DECQ shuttle
 	LOCAL ssme_count IS 0. 
 	SET ssmelex["type"] TO SHIP:PARTSDUBBED("ShuttleSSME")[0]:CONFIG.
+	
+	LOCAL ssme_reslex IS LEXICON().
 	
 	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
 		IF ssme:ISTYPE("engine") {
@@ -1019,12 +941,18 @@ FUNCTION parse_ssme {
 			LOCAL ssme_isp IS ssme:VACUUMISP.
 			LOCAL ssme_flow IS ssme:MAXMASSFLOW*1000.
 			LOCAL ssme_minthr IS ssme:MINTHROTTLE.
+			LOCAL ssme_res IS ssme:consumedresources:VALUES.
 	
 			SET ssmelex["thrust"] TO ssmelex["thrust"] + ssme_thr.
 			SET ssmelex["isp"] TO ssmelex["isp"] + ssme_isp*ssme_thr.
 			SET ssmelex["flow"] TO ssmelex["flow"] + ssme_flow.
 			SET ssmelex["minThrottle"] TO ssmelex["minThrottle"] + ssme_minthr*ssme_thr.
 			
+			FOR res IN ssme_res {
+				IF NOT ssme_reslex:HASKEY(res:name) {
+					ssme_reslex:ADD(res:name, res).
+				}
+			}
 		}
 	}
 	
@@ -1044,6 +972,8 @@ FUNCTION parse_ssme {
 	//calculate max throttle given nominal power level of 104.5%
 	SET ssmelex["maxThrottle"] TO min(1.045*get_rpl_thrust()/ssmelex["thrust"], 1).
 	
+	SET ssmelex["resources"] TO ssme_reslex.
+	
 	RETURN ssmelex.
 	
 }
@@ -1054,8 +984,7 @@ FUNCTION build_ssme_lex {
 	RETURN LEXICON(
 				"thrust", vehicle["SSME"]["active"]*vehicle["SSME"]["thrust"]*1000, 
 				"isp", vehicle["SSME"]["isp"], 
-				"flow",vehicle["SSME"]["active"]*vehicle["SSME"]["flow"], 
-				"resources",LIST("LqdHydrogen","LqdOxygen")
+				"flow",vehicle["SSME"]["active"]*vehicle["SSME"]["flow"]
 	).
 
 

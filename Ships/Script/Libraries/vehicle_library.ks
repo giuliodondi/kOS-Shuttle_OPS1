@@ -86,6 +86,103 @@ FUNCTION glim_stg_time {
 }
 
 
+FUNCTION get_stg_tanks_res {
+
+	//climb the part tree upwards until we find the part with all the resources
+	FUNCTION parts_tree {
+		parameter part0.
+		parameter partlist.
+		parameter reslist.
+	
+		LOCAL parentpart IS part0.
+		local breakflag IS FALSE.
+		UNTIL FALSE {
+		
+			LOCAL breakflag IS TRUE.
+			FOR partres IN parentpart:RESOURCES {
+				IF NOT reslist:CONTAINS(partres) {
+					SET breakflag TO FALSE.
+					BREAK.
+				}
+			}
+			
+			IF parentpart=CORE:PART OR parentpart=SHIP:ROOTPART { SET breakflag TO TRUE.}
+			
+			IF breakflag { 
+				IF NOT partlist:CONTAINS(parentpart) {
+					partlist:ADD( parentpart ).
+				}
+				BREAK.
+			}
+			SET parentpart TO parentpart:PARENT.
+		}
+		
+		return partlist.
+	}
+
+
+	PARAMETER stg.
+
+	LOCAL running_eng_list IS get_running_engines().
+	
+	local reslex is LEXICON().
+	
+	local tanklist IS LIST().
+	
+	list ENGINES in all_eng.
+	LOCAL parentpart IS 0.
+	FOR e IN all_eng {
+		IF e:ISTYPE("engine") {
+			IF e:IGNITION {
+				
+				LOCAL eng_res IS e:consumedresources:VALUES.
+			
+				FOR res IN eng_res {
+					IF NOT reslex:HASKEY(res:name) {
+						reslex:ADD(res:name, res).
+					}
+				}
+				
+				SET tanklist TO parts_tree(e:PARENT,tanklist,eng_res).
+			}
+		}
+	}
+	
+	stg:ADD("resources", reslex).
+	
+	//ignore fuel ducts if already found parts
+	IF tanklist:LENGTH=0 {
+		LOCAL duct_list IS SHIP:PARTSDUBBED("fuelLine").
+		FOR d IN duct_list {
+			SET tanklist TO parts_tree(d:PARENT,tanklist,reslex).
+		}
+	}
+	stg:ADD("tankparts", tanklist).	
+	
+	
+}
+
+FUNCTION get_prop_mass {
+	PARAMETER stg.
+	
+	local tanklist is stg["tankparts"].
+	local reslex is stg["resources"].
+	local prop_mass IS 0.
+	
+	FOR tk IN tanklist {
+		FOR tkres In tk:RESOURCES {
+			FOR res IN reslex:VALUES {
+				IF tkres:NAME = res:NAME {
+					set prop_mass TO prop_mass + tkres:amount * res:DENSITY.
+				}
+		
+			}
+		}
+	}
+	set prop_mass to prop_mass*1000.
+    RETURN prop_mass.
+}
+
 //measures current total engine thrust vector and isp of running engines
 
 FUNCTION get_current_thrust_isp {
