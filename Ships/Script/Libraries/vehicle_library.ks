@@ -92,29 +92,31 @@ FUNCTION get_stg_tanks_res {
 	FUNCTION parts_tree {
 		parameter part0.
 		parameter partlist.
-		parameter reslist.
+		parameter resnameslist.
 	
 		LOCAL parentpart IS part0.
 		local breakflag IS FALSE.
 		UNTIL FALSE {
 		
-			LOCAL breakflag IS TRUE.
+			LOCAL partresnames IS LIST().
 			FOR partres IN parentpart:RESOURCES {
-				IF NOT reslist:CONTAINS(partres) {
-					SET breakflag TO FALSE.
-					BREAK.
-				}
+				partresnames:ADD(partres:NAME).
 			}
 			
-			IF parentpart=CORE:PART OR parentpart=SHIP:ROOTPART { SET breakflag TO TRUE.}
+			LOCAL foundres IS TRUE.
+			FOR resname IN resnameslist {
+				SET foundres TO (foundres AND partresnames:CONTAINS(resname)).
+			}
 			
-			IF breakflag { 
-				IF NOT partlist:CONTAINS(parentpart) {
-					partlist:ADD( parentpart ).
-				}
+			IF foundres OR parentpart=CORE:PART OR parentpart=SHIP:ROOTPART { 
 				BREAK.
 			}
+			
 			SET parentpart TO parentpart:PARENT.
+		}
+		
+		IF NOT partlist:CONTAINS(parentpart) {
+			partlist:ADD( parentpart ).
 		}
 		
 		return partlist.
@@ -122,28 +124,26 @@ FUNCTION get_stg_tanks_res {
 
 
 	PARAMETER stg.
-
-	LOCAL running_eng_list IS get_running_engines().
 	
 	local reslex is LEXICON().
-	
 	local tanklist IS LIST().
 	
 	list ENGINES in all_eng.
-	LOCAL parentpart IS 0.
 	FOR e IN all_eng {
 		IF e:ISTYPE("engine") {
 			IF e:IGNITION {
 				
 				LOCAL eng_res IS e:consumedresources:VALUES.
+				LOCAL eng_res_names IS LIST().
 			
 				FOR res IN eng_res {
+					eng_res_names:ADD(res:name).
 					IF NOT reslex:HASKEY(res:name) {
 						reslex:ADD(res:name, res).
 					}
 				}
 				
-				SET tanklist TO parts_tree(e:PARENT,tanklist,eng_res).
+				SET tanklist TO parts_tree(e:PARENT,tanklist,eng_res_names).
 			}
 		}
 	}
@@ -154,11 +154,10 @@ FUNCTION get_stg_tanks_res {
 	IF tanklist:LENGTH=0 {
 		LOCAL duct_list IS SHIP:PARTSDUBBED("fuelLine").
 		FOR d IN duct_list {
-			SET tanklist TO parts_tree(d:PARENT,tanklist,reslex).
+			SET tanklist TO parts_tree(d:PARENT,tanklist,reslex:KEYS).
 		}
 	}
 	stg:ADD("tankparts", tanklist).	
-	
 	
 }
 
@@ -179,6 +178,7 @@ FUNCTION get_prop_mass {
 			}
 		}
 	}
+	
 	set prop_mass to prop_mass*1000.
     RETURN prop_mass.
 }

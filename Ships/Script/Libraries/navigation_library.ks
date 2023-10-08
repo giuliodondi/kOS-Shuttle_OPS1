@@ -408,7 +408,7 @@ function orbit_alt_eta {
 	
 	LOCAL eta_ IS (sma * (1 - ecc^2) / h - 1) / ecc.
 	
-	RETURN ARCCOS(eta_).
+	RETURN ARCCOS(limitarg(eta_)).
 }
 	
 //calculates fpa at given eta
