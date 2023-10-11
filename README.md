@@ -156,20 +156,21 @@ The Shuttle has its engines pointed away from the main vehicle axis and as such 
 
 RTLS is triggered if an engine fails before 2180 m/s surface-relative velocity is reached. The boundary is called **negative return** and a TAL abort is commanded after that. This abort scenario is quite involved and has a powered phase (until MECO) and a Glide phase after that.
 
-Powered RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
+Powered-RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
 - Altitude about 80 km
 - Moving towards the launch site with velocity that depends on distance at MECO
 - Less than 2% propellant remaining, no more than 20 s of burn time on two engines
 
-There are several phases to RTLS abort:
+There are several phases to Powered-RTLS abort:
 - **Lofting** if the engine is lost before SRB sep, to try to achieve close to nominal altitude and vertical speed. Actual active RTLS guidance kicks in after SRB sep
 - **Dissipation**, flying outbound for a certain time to waste fuel. Guidance is open-loop, limited to pitching up by an angle that depends the surface velocity at engine failure (or SRB sep).  
 The script uses the PEG algorithm as a predictor to estimate the fuel needed to reverse course, when this matches the fuel remaining minus 2%, the dissipation phase ends. If RTLS is triggered very close to the negative return boundary, this step is skipped.
 Automatic OMS dump is initiated during fuel dissipation.
 - **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 40 seconds before MECO as it is a bit unstable. 
 The OMS fuel dump will cease before or at MECO during flyback.
-- **Glide-RTLS** activated after MECO and separation, where the Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces.  
-At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
+
+After MECO and separation, the **Glide-RTLS (GRTLS)** guidance is activated.  
+The Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces.  At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
 
 ### RTLS TRAJ 2 display
 
@@ -186,8 +187,8 @@ This display is rendered when the RTLS abort is initialised (not when the engine
     - the current RPL throttle value (THR)
     - Time- and velocity-to-go (TGO, VGO)
     - The desired burnout delta-time (T_C), this is the main indicator of a good guidance state, more on this later
-- the central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive (right) and negative (left) regions of the plot in the horizontal direction.
-    - The Shuttle bug should move within the curved lines, first it will travel up and left during fuel dissipation, during flyback it will start moving right and down as the Shuttle decelerates, it will cross the "0" line when the Shuttle starts moving back to the launch site, it will then keep moving right and gradually start climbing once again
+- the central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive velocity (i.e. travelling away) and negative velocity (travelling back) regions of the plot in the horizontal direction.
+    - The Shuttle bug should move within the curved lines, first it will be in the lower right region, moving up and right during fuel dissipation, during flyback it will start moving to the left as the Shuttle decelerates, and also down as it loses altitude. It will cross the "0" line when the Shuttle starts moving back to the launch site, then it will keep moving left and gradually start climbing once again.
     - the bottom-right curve is the nominal ascent trajectory, the Shuttle should never be to the right of this
     - the top slanted curve is the maximum lofted trajectory during flyback, the Shuttle should not loft significantly above this (although it should be fine)
     - The right segment of the bottom curve is the dissipation trajectory for a very early abort, when the Shuttle is slowest.
