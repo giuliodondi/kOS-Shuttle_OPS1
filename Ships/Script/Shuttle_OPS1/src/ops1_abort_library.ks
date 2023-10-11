@@ -886,6 +886,7 @@ FUNCTION TAL_normal {
 
 //give the position of a TAL site, returns a corrected position within a set crossrange distance
 //from the abeam position on the current orbital plane
+
 FUNCTION TAL_site_xrange_shift {
 	PARAMETER tal_site_vec.
 	PARAMETER current_normal.
@@ -976,13 +977,14 @@ FUNCTION TAL_cutoff_params {
 	SET tgt_orb["normal"] TO TAL_normal().
 	SET tgt_orb["Inclination"] TO VANG(-tgt_orb["normal"],v(0,0,1)).
 	
-	SET tgt_orb["radius"] TO VXCL(tgt_orb["normal"],cutoff_r):NORMALIZED*cutoff_r:MAG.
+	LOCAL cutoff_radius IS tgt_orb["cutoff alt"]*1000 + BODY:RADIUS.
+	SET tgt_orb["radius"] TO VXCL(tgt_orb["normal"],cutoff_r):NORMALIZED*cutoff_radius.
 	
 	//shifts underground the radius of the ballistic impact point
-	LOCAL radius_bias IS 15.	//in km
+	LOCAL radius_bias IS 100.	//in km
 	
 	
-	LOCAL AP is tgt_orb["radius"]:MAG.
+	LOCAL AP is cutoff_radius.
 	LOCAL tgt_vec_radius IS BODY:RADIUS - radius_bias*1000.
 	SET tgt_orb["fpa"] TO 0.
 	SET tgt_orb["eta"] TO 180.
@@ -1051,10 +1053,10 @@ FUNCTION setup_TAL {
 		"tgt_vec", tgtvec_guess
 	).
 	
-	//here we make the assumption that UPFG is already running and so we have a reasonable prediction for the cutoff radius 
 	SET target_orbit["mode"] TO 6.
-	SET target_orbit["apoapsis"] TO (target_orbit["radius"]:MAG - BODY:RADIUS)/1000.
-	
+	SET target_orbit["cutoff alt"] TO 115.		//force cutoff alt 
+	SET target_orbit["apoapsis"] TO target_orbit["cutoff alt"].
+
 	SET target_orbit TO TAL_cutoff_params(target_orbit, target_orbit["radius"]).
 	SET TALAbort["tgt_vec"] TO TAL_tgt_vec(orbitstate["radius"]).
 	
@@ -1065,7 +1067,7 @@ FUNCTION setup_TAL {
 	start_oms_dump().
 	
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
-	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 20) ) THEN {
+	WHEN ( TIME:SECONDS > (TALAbort["t_abort"] + 40) ) THEN {
 		roll_heads_up().
 	}
 }
