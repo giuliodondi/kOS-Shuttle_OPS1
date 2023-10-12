@@ -122,6 +122,10 @@ This is the display from the final moments of first stage all the way to MECO, d
 - In the middle is now a plot of altitude on the vertical vs. orbital velocity on the horizontal. The long central curve is the nominal trajectory, which droops during the late stages of ascent (this is normal and realistic).
     - The track to the left of the nominal trajectory is the trajectory for a retrograde launch out of Vandenberg.
     - The track on the right below nominal is the drooped trajectory in case of a TAL or ATO abort, ideally the Shuttle should never cross below this track
+- The ticks along the trajectory plot represent abort boundaries:
+    - TAL indicates the last TAL opportunity
+    - ATO indicates the earliest ATO opportunity, although ATO is currently only available after TAL
+    - RTLS indicates the last RTLS opportunity. The RTLS boundary is surface velocity, not orbital. For retrograde launches it's reached at a much lower orbital velocity, hence why it's a double tick.
 
 ### Meaning of Rated Power Level and the THR indicator
 
@@ -229,7 +233,7 @@ The Glide-RTLS phase, which starts after arrival on the RV line, is completely o
 ## TAL abort
 
 The TAL abort is triggered if an engine is shut down between negative return and 4350 inertial velocity. The boundary is called **press to ATO** and an ATO/AOA abort is commanded after that.  
-The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within 600km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
+The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within ~800km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
 
 Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. The later the TAL abort, the faster the Shuttle is already and the more deltaV it takes to curve the trajectory.  
 Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
