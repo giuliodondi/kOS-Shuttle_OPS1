@@ -1103,7 +1103,8 @@ FUNCTION ATO_cutoff_params {
 	SET tgt_orb["normal"] TO ATO_normal().
 	SET tgt_orb["Inclination"] TO VANG(tgt_orb["normal"],v(0,0,1)).
 	
-	set tgt_orb["radius"] to cutoff_r.
+	LOCAL cutoff_radius IS tgt_orb["cutoff alt"]*1000 + BODY:RADIUS.
+	set tgt_orb["radius"] to cutoff_r:NORMALIZED * cutoff_radius.
 	
 	local cut_alt is tgt_orb["radius"]:MAG.
 	set tgt_orb["eta"] to orbit_alt_eta(cut_alt, tgt_orb["SMA"], tgt_orb["ecc"]).
@@ -1135,7 +1136,8 @@ FUNCTION setup_ATO {
 	//lower apoapsis (not too low)
 	SET target_orbit["apoapsis"] TO MIN(160, 0.8*target_orbit["apoapsis"]).
 	//lower cutoff altitude
-	SET target_orbit["radius"] TO target_orbit["radius"]:NORMALIZED*((target_orbit["radius"]:MAG - SHIP:BODY:RADIUS)*0.985 + SHIP:BODY:RADIUS).
+	SET target_orbit["cutoff alt"] TO 0.97*target_orbit["cutoff alt"].
+	SET target_orbit["radius"] TO target_orbit["radius"]:NORMALIZED*(target_orbit["cutoff alt"] * 1000 + SHIP:BODY:RADIUS).
 	//force cutoff altitude, free true anomaly
 	SET target_orbit["mode"] TO 7.
 	
