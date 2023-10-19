@@ -37,6 +37,14 @@ FUNCTION surfacevel {
 	RETURN orbvel -  vcrs(BODY:angularvel, pos).
 }
 
+//converts position and velocity into vertical speed
+FUNCTION hdot {
+	PARAMETER vel.
+	PARAMETER pos.
+
+	RETURN VDOT(pos:NORMALIZED,vel).
+}
+
 
 //get gravitational acceleration
 FUNCTION bodygravacc {

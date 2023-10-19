@@ -9,6 +9,7 @@ FUNCTION blank_simstate {
 		"position",ICS["position"],
 		"velocity",ICS["velocity"],
 		"surfvel",surfacevel(ICS["velocity"],ICS["position"]),
+		"hdot",hdot(ICS["velocity"],ICS["position"]),
 		"altitude",bodyalt(ICS["position"]),
 		"latlong",vec2pos(ICS["position"]),//LATLNG(0,0),
 		"aero",LEXICON()
@@ -23,6 +24,7 @@ FUNCTION current_simstate {
 		"simtime",0,
 		"position",-SHIP:ORBIT:BODY:POSITION,
 		"velocity",SHIP:VELOCITY:ORBIT,
+		"hdot",hdot(SHIP:VELOCITY:ORBIT,-SHIP:ORBIT:BODY:POSITION),
 		"surfvel",SHIP:VELOCITY:SURFACE,
 		"altitude",SHIP:ORBIT:BODY:POSITION:MAG - BODY:RADIUS,
 		"latlong",SHIP:GEOPOSITION,
@@ -41,6 +43,7 @@ FUNCTION clone_simstate {
 		"simtime",simstate["simtime"],
 		"position",simstate["position"],
 		"velocity",simstate["velocity"],
+		"hdot",simstate["hdot"],
 		"surfvel",simstate["surfvel"],
 		"altitude",simstate["altitude"],
 		"latlong",simstate["latlong"],
