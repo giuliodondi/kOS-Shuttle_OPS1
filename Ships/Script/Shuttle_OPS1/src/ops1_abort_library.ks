@@ -924,7 +924,7 @@ FUNCTION setup_TAL {
 	SET target_orbit TO TAL_cutoff_params(target_orbit, target_orbit["radius"]).
 	SET TALAbort["tgt_vec"] TO TAL_tgt_vec(orbitstate["radius"]).
 	
-	SET upfgInternal TO resetUPFG(upfgInternal).
+	//SET upfgInternal TO resetUPFG(upfgInternal).
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
