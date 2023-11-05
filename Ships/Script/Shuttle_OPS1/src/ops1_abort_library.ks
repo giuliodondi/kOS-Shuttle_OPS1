@@ -469,7 +469,7 @@ FUNCTION GRTLS {
 	RUNPATH("0:/Shuttle_entrysim/src/entry_utility").
 	RUNPATH("0:/Shuttle_entrysim/src/approach_utility").
 	RUNPATH("0:/Shuttle_entrysim/src/veh_control_utility").
-	RUNPATH("0:/Shuttle_entrysim/VESSELS/DECQ_Shuttle_mono/flapcontrol").
+	RUNPATH("0:/Shuttle_entrysim/VESSELS/DECQ_Shuttle_mono/aerosurfaces_control").
 	
 	STEERINGMANAGER:RESETPIDS().
 	STEERINGMANAGER:RESETTODEFAULT().
@@ -501,11 +501,11 @@ FUNCTION GRTLS {
 	LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	LOCAL rightvec IS VCRS(upvec, aimvec ).
 	
-	LOCAL flap_control IS flap_control_factory().
+	LOCAL aerosurfaces_control IS aerosurfaces_control_factory().
 	
 	reset_pids().
 	
-	flap_control["set_aoa_feedback"](0).
+	aerosurfaces_control["set_aoa_feedback"](0).
 
 	SET aimvec TO rodrigues(aimvec,rightvec,-pitch0).
 	
@@ -566,7 +566,7 @@ FUNCTION GRTLS {
 		SET NZHOLD TO update_g_force(NZHOLD).
 		
 		IF (vehiclestate["ops_mode"] >= 6 ) {
-			flaptrim_control(TRUE, flap_control).
+			flaptrim_control(TRUE, aerosurfaces_control).
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
 				set_target_nz().
@@ -847,7 +847,7 @@ FUNCTION TAL_cutoff_params {
 	SET tgt_orb["radius"] TO VXCL(tgt_orb["normal"],cutoff_r):NORMALIZED*cutoff_radius.
 	
 	//shifts underground the radius of the ballistic impact point
-	LOCAL radius_bias IS 100.	//in km
+	LOCAL radius_bias IS 200.	//in km
 	
 	
 	LOCAL AP is cutoff_radius.
