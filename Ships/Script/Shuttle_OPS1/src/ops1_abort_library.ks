@@ -567,6 +567,7 @@ FUNCTION GRTLS {
 		
 		IF (vehiclestate["ops_mode"] >= 6 ) {
 			flaptrim_control(TRUE, aerosurfaces_control).
+			aerosurfaces_control["deflect"]().
 		
 			IF (NZHOLD["tgt_nz"] = 0) {
 				set_target_nz().
