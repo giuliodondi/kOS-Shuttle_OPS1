@@ -834,6 +834,15 @@ FUNCTION activate_fuel_cells {
 }
 
 
+FUNCTION shutdown_all_engines {
+	LIST ENGINES IN Eng.
+	FOR E IN Eng {
+		IF e:ISTYPE("engine") {
+			E:SHUTDOWN.
+		}
+	}
+}
+
 FUNCTION disable_TVC {
 	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
 		IF ssme:ISTYPE("engine") {

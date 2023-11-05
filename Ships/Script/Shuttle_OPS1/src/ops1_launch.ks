@@ -42,16 +42,22 @@ function launch{
 												}
 	).
 	
-	countdown().
-	open_loop_ascent().
-	closed_loop_ascent().
-	
+	IF (NOT countdown()) {
+		WAIT 5.
+		RETURN.
+	}
+	if (NOT open_loop_ascent()) {
+		RETURN.
+	}
+	if (NOT closed_loop_ascent()) {
+		RETURN.
+	}
 }
 
 
 
 
-declare function countdown{
+function countdown{
 
 
 	LOCK THROTTLE to throttleControl().
@@ -66,22 +72,40 @@ declare function countdown{
 	addGUIMessage(" T MINUS 10").
 	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
+	LOCAL monitor_rsls IS FALSE.
 	WHEN  TIME:SECONDS>=TT  THEN {
 			addGUIMessage("GO FOR MAIN ENGINES START").
-			stage.	
+			SET monitor_rsls TO TRUE.
+			stage.
+			WAIT 0.
 		}
 		
-	WAIT vehicle_countdown.	
+	UNTIL (	TIME:SECONDS >= vehicle["ign_t"] ) {
+		IF (monitor_rsls) {
+			LOCAL abort_detect IS SSME_out().
+	
+			IF abort_detect {
+				addGUIMessage("RSLS ABORT.").
+				shutdown_all_engines().
+				LOCK THROTTLE to 0.
+				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+				UNLOCK STEERING.
+				RETURN FALSE.
+			}
+		}
+	}
 	
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	LOCK STEERING TO control["steerdir"].
 	addGUIMessage("BOOSTER IGNITION").
-	stage.	
+	stage.
 	wait 0.
 	when (SHIP:VERTICALSPEED > 1) THEN {
 		addGUIMessage("LIFT-OFF CONFIRMED").
 	}
+	
+	RETURN TRUE.
 	
 }
 
@@ -120,6 +144,10 @@ declare function open_loop_ascent{
 	}
 	
 	UNTIL FALSE {	
+		if (quit_program) {
+			RETURN FALSE.
+		}
+	
 		getState().
 		monitor_abort().
 		srb_staging().
@@ -134,6 +162,7 @@ declare function open_loop_ascent{
 			set control["steerdir"] TO aimAndRoll(aimVec, control["refvec"], control["roll_angle"]).
 		}
 	}
+	RETURN TRUE.
 	
 }
 
@@ -162,6 +191,10 @@ declare function closed_loop_ascent{
 	addGUIMessage("RUNNING UPFG ALGORITHM").
 
 	UNTIL FALSE{
+		if (quit_program) {
+			RETURN FALSE.
+		}
+	
 		IF usc["itercount"]=0 { //detects first pass or convergence lost
 			WHEN usc["conv"]=1 THEN {
 				addGUIMessage("GUIDANCE CONVERGED IN " + usc["itercount"] + " ITERATIONS").
@@ -270,8 +303,7 @@ declare function closed_loop_ascent{
 				LOCK STEERING TO "kill".
 				LOCK THROTTLE to 0.
 				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-				LIST ENGINES IN Eng.
-				FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
+				shutdown_all_engines().
 				BREAK.
 			}
 		}
@@ -283,8 +315,7 @@ declare function closed_loop_ascent{
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 	SET control["steerdir"] TO SHIP:FACING.
 	LOCK STEERING TO control["steerdir"].
-	LIST ENGINES IN Eng.
-	FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
+	shutdown_all_engines().
 	stop_oms_dump(TRUE).
 	
 	RCS ON.
@@ -320,8 +351,8 @@ declare function closed_loop_ascent{
 	
 	// IF RTLS enter GRTLS loop and exit
 	IF (DEFINED RTLSAbort) {
-		LIST ENGINES IN Eng.
-		FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
+		
+		shutdown_all_engines().
 		
 		dataviz_executor["stop_execution"]().
 		
@@ -344,6 +375,7 @@ declare function closed_loop_ascent{
 		WAIT 0.2.
 	}
 		
+	RETURN TRUE.
 }
 
 
