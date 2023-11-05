@@ -323,7 +323,7 @@ FUNCTION upfg_regular {
 
 	LOCAL dt IS t - previous["time"].
 	LOCAL v_cur IS orbitstate["velocity"].
-	LOCAL vgo IS previous["vgo"] - (v_cur - previous["v"]).
+	LOCAL vgo IS previous["vgo"].
 	LOCAL tgo IS previous["tgo"].
 	LOCAL lambda IS previous["lambda"].
 	LOCAL lambdadot IS previous["lambdadot"].
@@ -337,12 +337,13 @@ FUNCTION upfg_regular {
 	LOCAL iz IS VCRS(rd,iy):NORMALIZED.
 	LOCAL m IS vehicle[0]["m_initial"].
 	LOCAL Kk IS previous["throtset"].
+	LOCAL rho IS 1.
 	
 	LOCAL t40flag IS tgo<40.
 	
 	LOCAL g0 IS 9.80665. 
 	
-	//	1
+	//	measure vehicle parameters
 	LOCAL n IS vehicle:LENGTH.
 	LOCAL SM IS LIST().
 	LOCAL aL IS LIST().
@@ -375,8 +376,11 @@ FUNCTION upfg_regular {
 		tb:ADD(vehicle[i]["Tstage"]).
 	}
 	
+	//vgo update subtask
+	SET vgo TO vgo - (v_cur - previous["v"]).
 	
-	//	3
+	
+	//	tgo subtask
 	IF SM[0]=1 {
 		SET aT[0] TO fT[0] / m.
 	} ELSE IF SM[0]=2 {
@@ -422,7 +426,7 @@ FUNCTION upfg_regular {
 	
 	SET tgo TO tgoi[n-1].
 	
-	//	4
+	//	thrust integrals subtask
 	LOCAL L_ IS 0.
 	LOCAL J_ IS 0.
 	LOCAL S_ IS 0.
@@ -466,36 +470,37 @@ FUNCTION upfg_regular {
 	LOCAL K_ IS J_/L_.
 	
 	
-	//	5
+	//	reference thrust vector subtask
 	IF vgo:MAG <>0 { SET lambda TO vgo:NORMALIZED.}
+	
+	// range-to-go subtask
 	IF previous["tgo"]>0 {
 		SET rgrav TO (tgo/previous["tgo"])^2 * rgrav.
 	}
-	
-	LOCAL rgo IS rd - (r_cur + v_cur*tgo + rgrav).
+	LOCAL rgo IS rd - (r_cur + v_cur*tgo + rgrav) + rbias.
 	LOCAL iz IS VCRS(rd,iy):NORMALIZED.
 	LOCAL rgoxy IS rgo - VDOT(iz,rgo)*iz.
 	LOCAL rgoz IS (S_ - VDOT(lambda,rgoxy)) / VDOT(lambda,iz).
-	SET rgo TO rgoxy + rgoz*iz + rbias.
+	SET rgo TO rgoxy + rgoz*iz.
+	
+	//turning rate vector subtask
 	LOCAL lambdade IS Q_ - S_*K_.
 	
-	IF (NOT t40flag) {
+	//IF (NOT t40flag) {
 		SET lambdadot TO (rgo - S_*lambda) / lambdade.
-	}
+	//}
 	
-	
+	//steering inputs update subtask
 	LOCAL iF_ IS compute_iF(-K_).
+	
+	//burnout state vector prediction
 	LOCAL phi IS VANG(iF_,lambda)*CONSTANT:DEGTORAD.
 	LOCAL phidot IS -phi/K_.
 	LOCAL vthrust IS (L_ - 0.5*L_*phi^2 - J_*phi*phidot - 0.5*H_*phidot^2).
 	SET vthrust TO vthrust*lambda - (L_*phi + J_*phidot)*lambdadot:NORMALIZED.
 	LOCAL rthrust IS S_ - 0.5*S_*phi^2 - Q_*phi*phidot - 0.5*P_*phidot^2.
 	SET rthrust TO rthrust*lambda - (S_*phi + Q_*phidot)*lambdadot:NORMALIZED.
-	SET vbias TO vgo - vthrust.
 	SET rbias TO rgo - rthrust.
-	
-	
-	//	7
 	
 	
 	LOCAL rc1 IS r_cur - 0.1*rthrust - (tgo/30)*vthrust.
@@ -505,15 +510,17 @@ FUNCTION upfg_regular {
 	SET rgrav TO pack[0] - rc1 - vc1*tgo.
 	LOCAL vgrav IS pack[1] - vc1.
 	
-	
-	//	8
+
 	LOCAL rp IS r_cur + v_cur*tgo + rgrav + rthrust.
+	LOCAL vp IS v_cur + vgrav + vthrust.
 	
 	IF (NOT t40flag) {
 		SET rp TO VXCL(iy,rp).
 	}
 	
+	//desired position subtask
 	LOCAL vd IS v(0,0,0).
+	LOCAL dvgo IS 0.
 	
 	LOCAL ix IS rp:NORMALIZED.
 	SET iz TO VCRS(ix,iy):NORMALIZED.
@@ -529,7 +536,11 @@ FUNCTION upfg_regular {
 	SET rd TO tgt_orb["radius"]:MAG*ix.	
 	SET vd TO rodrigues(iz,iy, tgt_orb["fpa"]):NORMALIZED*tgt_orb["velocity"].	
 
-	SET vgo TO vd - v_cur - vgrav + vbias.
+	LOCAL vmiss IS vp - vd.
+	
+	SET dvgo TO - rho * vmiss.
+
+	SET vgo TO vgo + dvgo.
 	
 	//	RETURN - build new internal state instead of overwriting the old one
 	LOCAL current IS LEXICON(
