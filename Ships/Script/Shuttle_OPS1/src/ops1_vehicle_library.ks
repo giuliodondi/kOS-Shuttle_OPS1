@@ -314,9 +314,9 @@ FUNCTION open_loop_pitch {
 		RETURN 90.
 	} ELSE {
 		
-		LOCAL p1 IS -0.0068.
-		LOCAL p2 IS 28.8.
-		LOCAL p3 IS 26300.
+		LOCAL p1 IS -0.0088.
+		LOCAL p2 IS 30.5.
+		LOCAL p3 IS 28000.
 		LOCAL q1 IS 3.923.
 		
 		LOCAL x IS curv + refv - v0.

@@ -920,7 +920,7 @@ FUNCTION setup_TAL {
 	).
 	
 	SET target_orbit["mode"] TO 6.
-	SET target_orbit["cutoff alt"] TO 115.		//force cutoff alt 
+	SET target_orbit["cutoff alt"] TO 112.		//force cutoff alt 
 	SET target_orbit["apoapsis"] TO target_orbit["cutoff alt"].
 
 	SET target_orbit TO TAL_cutoff_params(target_orbit, target_orbit["radius"]).
