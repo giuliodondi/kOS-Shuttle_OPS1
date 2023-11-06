@@ -116,6 +116,8 @@ declare function open_loop_ascent{
 	//reset throttle to maximum
 	SET vehicle["stages"][1]["Throttle"] TO  vehicle["maxThrottle"].
 
+	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
+	set_steering_high().
 	
 	getState().
 
@@ -134,8 +136,8 @@ declare function open_loop_ascent{
 		SET steer_flag TO true.
 		
 		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(get_roll_lvlh() - control["roll_angle"]) < 7 THEN {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.	//by now we are heads-down going uphill
 			addGUIMessage("ROLL PROGRAM COMPLETE").
+			set_steering_med().
 		}
 		
 		WHEN vehiclestate["staging_in_progress"] THEN {
@@ -171,8 +173,7 @@ declare function closed_loop_ascent{
 	
 	getState().
 	
-	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.2.
+	set_steering_low().
 	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
@@ -261,7 +262,7 @@ declare function closed_loop_ascent{
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {
 
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.7.	
+		set_steering_high().
 		
 		LOCAL steervec IS SHIP:FACING:FOREVECTOR.
 		

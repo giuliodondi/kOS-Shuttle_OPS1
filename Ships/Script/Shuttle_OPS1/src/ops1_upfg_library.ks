@@ -225,7 +225,6 @@ FUNCTION upfg_wrapper {
 				
 				IF (upfgOutput["Tc"] <= (1 + pitchover_bias) AND RTLSAbort["flyback_conv"] = 1) {
 					addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
-					SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.2.
 					SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
 					SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
 					SET RTLSAbort["flyback_flag"] TO TRUE.
@@ -238,6 +237,8 @@ FUNCTION upfg_wrapper {
 					//get the current thrust vector, project in the plane containing the usc vector (flyback guidance command) and C1,
 					//rotate ahead by a few degrees
 					
+					set_steering_high().
+					
 					SET vehicle["roll"] TO 0.
 					SET control["roll_angle"] TO 0.
 					
@@ -247,8 +248,8 @@ FUNCTION upfg_wrapper {
 								
 					SET usc["lastvec"] TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], iterationDeltaTime * 20). 
 					
-					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
-						SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
+					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 5) {
+						set_steering_low().
 						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
 						//do it again for good measure
 						SET RTLSAbort["flyback_flag"] TO TRUE.

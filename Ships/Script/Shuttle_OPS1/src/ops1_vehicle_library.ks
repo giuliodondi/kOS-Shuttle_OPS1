@@ -253,7 +253,7 @@ function initialise_shuttle {
 	WHEN (SHIP:Q > 0.28) THEN {
 		IF NOT (abort_modes["triggered"]) {
 			addGUIMessage("THROTTLING DOWN").
-			SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(0.7).
+			SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(0.75).
 		}
 	}
 	
@@ -344,23 +344,30 @@ FUNCTION roll_heads_up {
 	
 	//setup the new roll and steering
 	if (vehicle["roll"] <> 0) {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.8.
 		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 		SET vehicle["roll"] TO 0.
+		set_steering_med().
 	}
 	
-	//set a new control roll angle until we reach zero
-	IF (control["roll_angle"] > 3) {
-		SET control["roll_angle"] TO MAX(control["roll_angle"] - 7,0).
+	LOCAL angle_err IS vehicle["roll"] - control["roll_angle"].
+	
+	IF (ABS(angle_err) > 0.5) {
+		LOCAL dt IS 0.2.
+		LOCAL roll_rate IS 9.
 		
-		local tnext is TIME:SECONDS +1.
+		LOCAL delta IS SIGN(angle_err) * roll_rate * dt.
+		SET control["roll_angle"] TO control["roll_angle"] + delta.
+		
+		local tnext is TIME:SECONDS + dt.
 		WHEN(TIME:SECONDS > tnext) THEN {
 			roll_heads_up().
 		}
-	
+		
 	} ELSE {
-		SET control["roll_angle"] TO 0.
+		SET control["roll_angle"] TO vehicle["roll"].
+		set_steering_low().
 	}
+	
 }
 
 
@@ -395,6 +402,18 @@ FUNCTION fix_minimum_throttle {
 
 	set vehicle["maxThrottle"] to stg["minThrottle"].
 
+}
+
+FUNCTION set_steering_high {
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
+}
+
+FUNCTION set_steering_med {
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.7.
+}
+
+FUNCTION set_steering_low {
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
 }
 
 

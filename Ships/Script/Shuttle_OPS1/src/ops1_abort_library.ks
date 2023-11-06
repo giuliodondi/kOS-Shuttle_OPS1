@@ -319,7 +319,7 @@ FUNCTION RTLS_immediate_flyback {
 }
 
 FUNCTION setup_RTLS {
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
+	set_steering_low().
 
 	IF (DEFINED RTLSAbort) {
 		RETURN.
@@ -357,7 +357,6 @@ FUNCTION setup_RTLS {
 		
 	IF (flyback_immediate) {
 		addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.
 	}
 	
 	LOCAL abort_lex IS LEXICON (
