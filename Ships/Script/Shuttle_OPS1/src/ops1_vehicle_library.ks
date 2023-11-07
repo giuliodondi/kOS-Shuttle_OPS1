@@ -56,6 +56,7 @@ function initialise_shuttle {
 						"name",SHIP:NAME,
 						"ign_t", 0,
 						"launchTimeAdvance", 300,
+						"pitch_v0",30,
 						"trajectory_scale",0,
 						"preburn",5.1,
 						"roll",180,
@@ -294,14 +295,30 @@ FUNCTION vehicle_traj_steepness {
 	RETURN steep_.
 }
 
+fUNCTION nominal_pitch_profile {
+	PARAMETER rel_v.
+	PARAMETER steep_fac.
+	
+	LOCAL p1 IS -0.0088.
+	LOCAL p2 IS 30.5.
+	LOCAL p3 IS 28000.
+	LOCAL q1 IS 3.923.
+	
+	LOCAL x IS rel_v + 400.
+
+	LOCAL out IS CLAMP((p1*x^2 + p2*x + p3)/(x + q1), 0, 90).
+	
+	return out + (steep_fac - 1)*(90 - out)^0.7.
+
+}
 
 //open-loop pitch profile for first stage ascent
 FUNCTION open_loop_pitch {
 	PARAMETER curv.	 
 
-	LOCAL v0 IS 25.
+	LOCAL v0 IS vehicle["pitch_v0"].
 	
-	LOCAL refv IS 400.
+	LOCAL v_match IS 150.
 	
 	LOCAL steep_fac IS vehicle["traj_steepness"].
 	
@@ -310,25 +327,41 @@ FUNCTION open_loop_pitch {
 		SET steep_fac TO steep_fac + RTLS_first_stage_lofting_bias(abort_modes["t_abort_true"]).
 	}
 	
-	IF curv<=v0 {
+	IF (curv<=v0) {
 		RETURN 90.
 	} ELSE {
-		
-		LOCAL p1 IS -0.0088.
-		LOCAL p2 IS 30.5.
-		LOCAL p3 IS 28000.
-		LOCAL q1 IS 3.923.
-		
-		LOCAL x IS curv + refv - v0.
 	
-		LOCAL out IS CLAMP((p1*x^2 + p2*x + p3)/(x + q1), 0, 90).
+		LOCAL vrel IS curv - v0.
+	
+		LOCAL pitch_prof IS 0.
 		
-		SET out TO out + (steep_fac - 1)*(90 - out)^0.7.
+		//quadratic matching to the pitch profile
+		IF (curv<=v_match) {
+			
+			LOCAL vrel_match IS v_match - v0.
+			
+			LOCAL prof_match IS nominal_pitch_profile(vrel_match, steep_fac).
+			
+			LOCAL dv IS 2.
+			LOCAL dp_dv IS ABS(nominal_pitch_profile(vrel_match + dv, steep_fac) - prof_match) / dv.
+			
+			LOCAL b_ IS (prof_match + dp_dv * vrel_match - 90) / vrel_match^2.
+			LOCAL a_ IS dp_dv - 2 * b_ * vrel_match.
+			
+			SET pitch_prof tO 90 - a_ * vrel - b_ * vrel^2.
+			
+		} ELSE {
+			SET pitch_prof TO nominal_pitch_profile(vrel, steep_fac).
+		}
 		
-		LOCAL bias IS out - surfacestate["vdir"].
+		LOCAL bias IS pitch_prof - surfacestate["vdir"].
 		
-		RETURN CLAMP(out + 0.8*bias,0,90).
+		LOCAL bias_gain IS MIN(1, curv / 200).
+		
+		RETURN CLAMP(pitch_prof + bias_gain * bias,0,90).
 	}
+	
+	
 }
 
 
