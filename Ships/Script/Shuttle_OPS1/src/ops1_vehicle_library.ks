@@ -356,7 +356,7 @@ FUNCTION open_loop_pitch {
 		
 		LOCAL bias IS pitch_prof - surfacestate["vdir"].
 		
-		LOCAL bias_gain IS MIN(1, curv / 200).
+		LOCAL bias_gain IS MIN(0.75, curv / 200).
 		
 		RETURN CLAMP(pitch_prof + bias_gain * bias,0,90).
 	}
@@ -382,16 +382,18 @@ FUNCTION roll_heads_up {
 		set_steering_med().
 	}
 	
-	LOCAL angle_err IS vehicle["roll"] - control["roll_angle"].
+	LOCAL forev IS VXCL(control["refvec"], SHIP:FACING:FOREVECTOR):NORMALIZED.
+	LOCAL topv IS VXCL(forev, SHIP:FACING:TOPVECTOR):NORMALIZED.
+	LOCAL cur_roll IS VANG(control["refvec"]:NORMALIZED, topv).
+	LOCAL angle_err IS vehicle["roll"] -  cur_roll.
 	
 	IF (ABS(angle_err) > 0.5) {
-		LOCAL dt IS 0.2.
-		LOCAL roll_rate IS 9.
 		
-		LOCAL delta IS SIGN(angle_err) * roll_rate * dt.
-		SET control["roll_angle"] TO control["roll_angle"] + delta.
+		LOCAL delta IS SIGN(angle_err) * MIN(ABS(angle_err), 15).
 		
-		local tnext is TIME:SECONDS + dt.
+		SET control["roll_angle"] TO cur_roll + delta.
+		
+		local tnext is TIME:SECONDS + 0.2.
 		WHEN(TIME:SECONDS > tnext) THEN {
 			roll_heads_up().
 		}
