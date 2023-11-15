@@ -16,13 +16,10 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
 - Kerbal Operating System
 - [My own fork of SpaceODY's Space Shuttle System](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
-  - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module
-  - the script in principle should also work with SpaceODY's version, but the script will make assumptions about the Shuttle's aerodynamics that will not be accurate with that version, and there also might be a name clash with the External Tank parts
+  - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module. Refer to the README
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
-As is it does not work with SpaceODY's original fork (https://github.com/SpaceODY/Space-Shuttle-System-Expanded) for several reasons:
-- That version offers the External Tank variants as separate VAB parts with different names, the script is only able to measure the ET propellants with the White ET, the other parts have a different internal name. My fork is immune from this problem as it uses B9 to catalog the variants.
-- This script will soon have a revised OMS dump scheme for aborts which **may or may not** use a resource drain module I placed on the OMS engines parts in my fork. OMS dumping is necessary to bring the CG within limits or the Shuttle will lose pitch control during reentry.
+**Not compatible with SpaceODY's original fork or any other Shuttle mod.**
 
 You will find one folder: 
 - **Script**
@@ -45,11 +42,11 @@ Take care of the following things while building the Shuttle Stack in the VAB:
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
 
-Make sure the vessel staging is as follows (from the first stage onwards) :
-- SSMEs
-- SRBs and any launch clamps
+Make sure the vessel staging is as follows (from the bottom stage upwards) :
+- SSMEs and RCS staging toggles (required for abort fuel dump to work correctly)
+- SRBs and any launch clamps / platform
 - SRB decouplers and separation motors (both nosecone and skirt)
-- External tank separation plus OMS engines and RCS actuators
+- External tank separation and OMS engines
 - Anything in the payload bay
 - Tail parachute
 
