@@ -359,7 +359,10 @@ FUNCTION open_loop_pitch {
 		
 		LOCAL bias_gain IS MIN(0.75, curv / 200).
 		
-		RETURN CLAMP(pitch_prof + bias_gain * bias,0,90).
+		//don't deviate too much from prograde
+		LOCAL bias_delta IS SIGN(bias) * MIN(ABS(bias_gain * bias), 8).
+		
+		RETURN CLAMP(pitch_prof + bias_delta,0,90).
 	}
 	
 	
@@ -403,7 +406,6 @@ FUNCTION roll_heads_up {
 		
 	} ELSE {
 		SET control["roll_angle"] TO vehicle["roll"].
-		addGUIMessage("ROLL TO HEADS-UP COMPLETE").
 		set_steering_low().
 	}
 	
