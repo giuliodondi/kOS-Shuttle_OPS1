@@ -45,11 +45,11 @@ Take care of the following things while building the Shuttle Stack in the VAB:
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
 
-Make sure the vessel staging is as follows (from the first stage onwards) :
+Make sure the vessel staging is as follows (from the bottom stage upwards) :
 - SSMEs and RCS staging toggles (required for abort fuel dump to work correctly)
-- SRBs and any launch clamps
+- SRBs and any launch clamps / platform
 - SRB decouplers and separation motors (both nosecone and skirt)
-- External tank separation plus OMS engines and RCS actuators
+- External tank separation and OMS engines
 - Anything in the payload bay
 - Tail parachute
 
