@@ -46,7 +46,7 @@ Take care of the following things while building the Shuttle Stack in the VAB:
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
 
 Make sure the vessel staging is as follows (from the first stage onwards) :
-- SSMEs
+- SSMEs and RCS staging toggles (required for abort fuel dump to work correctly)
 - SRBs and any launch clamps
 - SRB decouplers and separation motors (both nosecone and skirt)
 - External tank separation plus OMS engines and RCS actuators
