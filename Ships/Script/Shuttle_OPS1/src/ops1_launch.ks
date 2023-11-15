@@ -119,8 +119,6 @@ declare function open_loop_ascent{
 	set_steering_high().
 	
 	getState().
-
-	SET control["steerdir"] TO LOOKDIRUP(-SHIP:ORBIT:BODY:POSITION, SHIP:FACING:TOPVECTOR).
 		
 	local steer_flag IS false.
 	
@@ -163,7 +161,8 @@ declare function open_loop_ascent{
 		local aimVec is HEADING(control["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
 		
 		IF steer_flag {
-			set control["steerdir"] TO aimAndRoll(aimVec, control["refvec"], control["roll_angle"]).
+			SET control["aimvec"] TO aimVec.
+			SET control["steerdir"] TO steeringControl().
 		}
 	}
 	RETURN TRUE.
@@ -247,7 +246,8 @@ declare function closed_loop_ascent{
 		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
 		IF NOT vehiclestate["staging_in_progress"] { //AND usc["conv"]=1
-			SET control["steerdir"] TO aimAndRoll(vecYZ(usc["lastvec"]):NORMALIZED, control["refvec"], control["roll_angle"]).									
+			SET control["aimvec"] TO vecYZ(usc["lastvec"]):NORMALIZED.
+			SET control["steerdir"] TO steeringControl().							
 		} 
 		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
 			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		
@@ -257,6 +257,8 @@ declare function closed_loop_ascent{
 	SET vehiclestate["ops_mode"] TO 3.
  
 	SET usc["terminal"] TO TRUE.
+	
+	SET control["steerdir"] TO "KILL".
 	
 	//min throttle for any case
 	fix_minimum_throttle(). 
@@ -306,7 +308,6 @@ declare function closed_loop_ascent{
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 	
-	LOCK STEERING TO "kill".
 	LOCK THROTTLE to 0.
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 	shutdown_all_engines().

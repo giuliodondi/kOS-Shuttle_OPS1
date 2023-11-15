@@ -14,7 +14,8 @@ GLOBAL vehiclestate IS LEXICON(
 
 GLOBAL control Is LEXICON(
 	"launch_az",0,
-	"steerdir", LOOKDIRUP(SHIP:FACING:FOREVECTOR, SHIP:FACING:TOPVECTOR),
+	"aimvec",SHIP:FACING:FOREVECTOR,
+	"steerdir", LOOKDIRUP(-SHIP:ORBIT:BODY:POSITION, SHIP:FACING:TOPVECTOR),
 	"roll_angle",0,
 	"refvec", v(0,0,0)
 ).
@@ -382,9 +383,11 @@ FUNCTION roll_heads_up {
 		set_steering_med().
 	}
 	
-	LOCAL forev IS VXCL(control["refvec"], SHIP:FACING:FOREVECTOR):NORMALIZED.
-	LOCAL topv IS VXCL(forev, SHIP:FACING:TOPVECTOR):NORMALIZED.
-	LOCAL cur_roll IS VANG(control["refvec"]:NORMALIZED, topv).
+	LOCAL aimv IS control["aimvec"].
+	LOCAL refv IS VXCL(aimv, control["refvec"]):NORMALIZED.
+	
+	LOCAL topv IS VXCL(aimv, SHIP:FACING:TOPVECTOR):NORMALIZED.
+	LOCAL cur_roll IS VANG(refv, topv).
 	LOCAL angle_err IS vehicle["roll"] -  cur_roll.
 	
 	IF (ABS(angle_err) > 0.5) {
@@ -400,12 +403,17 @@ FUNCTION roll_heads_up {
 		
 	} ELSE {
 		SET control["roll_angle"] TO vehicle["roll"].
+		addGUIMessage("ROLL TO HEADS-UP COMPLETE").
 		set_steering_low().
 	}
 	
 }
 
 
+//Steering controller
+FUNCTION steeringControl {
+	RETURN aimAndRoll(control["aimvec"], control["refvec"], control["roll_angle"]).	
+}
 
 
 //	Throttle controller
