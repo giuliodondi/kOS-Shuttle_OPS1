@@ -20,7 +20,7 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
   - the script in principle should also work with SpaceODY's version, but the script will make assumptions about the Shuttle's aerodynamics that will not be accurate with that version, and there also might be a name clash with the External Tank parts
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
-Not compatible with [SpaceODY's original fork](https://github.com/SpaceODY/Space-Shuttle-System-Expanded) or any other Shuttle mod.
+**Not compatible with SpaceODY's original fork or any other Shuttle mod.**
 
 You will find one folder: 
 - **Script**
