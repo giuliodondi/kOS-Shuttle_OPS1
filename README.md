@@ -16,13 +16,11 @@ I provide these scripts as they are, with no guarantee that they'll work perfect
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
 - Kerbal Operating System
 - [My own fork of SpaceODY's Space Shuttle System](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
-  - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module
+  - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module. Refer to the README
   - the script in principle should also work with SpaceODY's version, but the script will make assumptions about the Shuttle's aerodynamics that will not be accurate with that version, and there also might be a name clash with the External Tank parts
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
-As is it does not work with SpaceODY's original fork (https://github.com/SpaceODY/Space-Shuttle-System-Expanded) for several reasons:
-- That version offers the External Tank variants as separate VAB parts with different names, the script is only able to measure the ET propellants with the White ET, the other parts have a different internal name. My fork is immune from this problem as it uses B9 to catalog the variants.
-- This script will soon have a revised OMS dump scheme for aborts which **may or may not** use a resource drain module I placed on the OMS engines parts in my fork. OMS dumping is necessary to bring the CG within limits or the Shuttle will lose pitch control during reentry.
+Not compatible with [SpaceODY's original fork](https://github.com/SpaceODY/Space-Shuttle-System-Expanded) or any other Shuttle mod.
 
 You will find one folder: 
 - **Script**
