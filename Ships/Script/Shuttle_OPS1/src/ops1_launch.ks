@@ -287,11 +287,6 @@ declare function closed_loop_ascent{
 			LOCAL tgtsurfvel IS RTLS_rvline(target_orbit["range"]).
 			
 			IF (SHIP:VELOCITY:SURFACE:MAG >= tgtsurfvel OR SSME_flameout()) {
-				LOCK STEERING TO "kill".
-				LOCK THROTTLE to 0.
-				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-				LIST ENGINES IN Eng.
-				FOR E IN Eng {IF e:ISTYPE("engine") {E:SHUTDOWN.}}
 				BREAK.
 			}
 			
@@ -303,24 +298,19 @@ declare function closed_loop_ascent{
 		UNTIL FALSE {
 			getState().
 			IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
-				LOCK STEERING TO "kill".
-				LOCK THROTTLE to 0.
-				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-				shutdown_all_engines().
 				BREAK.
 			}
 		}
 	
 	}
 	
-	//just in case it hasn't been done previously
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
+	
+	LOCK STEERING TO "kill".
 	LOCK THROTTLE to 0.
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-	SET control["steerdir"] TO SHIP:FACING.
-	LOCK STEERING TO control["steerdir"].
 	shutdown_all_engines().
 	stop_oms_dump(TRUE).
-	
 	RCS ON.
 	
 	//ET sep loop
