@@ -5,7 +5,7 @@ FUNCTION addGUIMessage {
 	PARAMETER msg.
 	
 	LOCAL clear_ is false.
-	//if (vehiclestate["ops_mode"] < 1) {
+	//if (vehiclestate["phase"] < 1) {
 	//	set clear_ to TRUE.
 	//}
 	
@@ -49,7 +49,7 @@ FUNCTION addMessage {
 }
 
 FUNCTION dataViz {
-	if (vehiclestate["ops_mode"] =0) {return.}
+	if (vehiclestate["phase"] =0) {return.}
 	
 	log_telemetry().
 	
@@ -67,7 +67,7 @@ FUNCTION dataViz {
 	LOCAL pred_simstate IS current_simstate().
 	LOCAL sim_dt IS 15.
 	
-	IF (vehiclestate["ops_mode"] =1) {
+	IF (vehiclestate["phase"] =1) {
 		SET sim_dt TO 7.5.
 	}
 	
@@ -85,14 +85,16 @@ FUNCTION dataViz {
 	local tgo is 0.
 	local vgo is 0.
 	
-	if (vehiclestate["ops_mode"] > 1) {
+	LOCAL converged IS FALSE.
+	if (vehiclestate["phase"] > 1) {
 		set tgo to upfgInternal["Tgo"].
 		set vgo to upfgInternal["vgo"]:MAG.
+		SET converged TO (upfgInternal["s_conv"]) AND (NOT upfgInternal["terminal"]).
 	}	
 	
 	LOCAL gui_data IS lexicon(
 				"met", TIME:SECONDS - vehicle["ign_t"],
-				"ops_mode", vehiclestate["ops_mode"],
+				"phase", vehiclestate["phase"],
 				"hdot", SHIP:VERTICALSPEED,
 				"roll", unfixangle(control["roll_angle"] - get_roll_lvlh()),
 				"pitch", pitch_prog,
@@ -108,7 +110,7 @@ FUNCTION dataViz {
 				"et_prop", 100*get_et_prop_fraction(),
 				"tgo", tgo,
 				"vgo", vgo,
-				"converged", (usc["conv"]=1 AND NOT usc["terminal"])
+				"converged", converged
 	).
 	
 	//do the rtls gui update 
@@ -118,6 +120,8 @@ FUNCTION dataViz {
 		gui_data:ADD("dwnrg_pred_ve", current_horiz_dwnrg_speed(pred_simstate["latlong"], pred_simstate["surfvel"])).
 		gui_data:ADD("rtls_cutv", target_orbit["rtls_cutv"]).
 		gui_data:ADD("rtls_tc", RTLSAbort["Tc"]).
+		
+		SET gui_data["converged"] TO (gui_data["converged"] OR ((NOT RTLSAbort["pitcharound"]["triggered"]) AND (RTLSAbort["flyback_conv"] = 1))).
 		
 		update_rtls_traj_disp(gui_data).
 		
@@ -160,11 +164,11 @@ FUNCTION GRTLS_dataViz {
 	PRINT "         GLIDE-RTLS GUIDANCE    "  AT (0,1).
 	PRINT "                          "  AT (0,2).
 	
-	IF (vehiclestate["ops_mode"] = 5) {
+	IF (vehiclestate["phase"] = 5) {
 	PRINT "            ALPHA RECOVERY    " AT (0,3).
-	} ELSE IF (vehiclestate["ops_mode"] = 6) {
+	} ELSE IF (vehiclestate["phase"] = 6) {
 	PRINT "            HOLDING PITCH    " AT (0,3).
-	} ELSE IF (vehiclestate["ops_mode"] = 7) {
+	} ELSE IF (vehiclestate["phase"] = 7) {
 	PRINT "               NZ HOLD      " AT (0,3).
 	}
 				   

@@ -82,8 +82,11 @@ function countdown{
 		}
 		
 	UNTIL (	TIME:SECONDS >= vehicle["ign_t"] ) {
+		if (quit_program) {
+			RETURN FALSE.
+		}
 		IF (monitor_rsls) {
-			LOCAL abort_detect IS SSME_out().
+			LOCAL abort_detect IS measure_update_engines().
 	
 			IF abort_detect {
 				addGUIMessage("RSLS ABORT.").
@@ -124,7 +127,7 @@ declare function open_loop_ascent{
 	
 	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.																			   
 	
-	SET vehiclestate["ops_mode"] TO 1.
+	SET vehiclestate["phase"] TO 1.
 	
 	getState().
 	
@@ -150,8 +153,8 @@ declare function open_loop_ascent{
 			RETURN FALSE.
 		}
 	
-		getState().
 		monitor_abort().
+		getState().
 		srb_staging().
 		
 		LOCAL tt IS TIME:SECONDS.
@@ -179,16 +182,14 @@ declare function closed_loop_ascent{
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
-	}													 
+	} ELSE {
+		SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
+	}
 	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
-	LOCAL x IS setupUPFG(target_orbit).
-	SET upfgInternal TO x[0].
-	SET usc TO x[1].
-	SET usc["lastvec"] TO vecYZ(thrust_vec()).
-	SET usc["lastthrot"] TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
+	SET upfgInternal TO setupUPFG().
 	
-	SET vehiclestate["ops_mode"] TO 2.
+	SET vehiclestate["phase"] TO 2.
 	
 	addGUIMessage("RUNNING UPFG ALGORITHM").
 
@@ -197,9 +198,9 @@ declare function closed_loop_ascent{
 			RETURN FALSE.
 		}
 	
-		IF usc["itercount"]=0 { //detects first pass or convergence lost
-			WHEN usc["conv"]=1 THEN {
-				addGUIMessage("GUIDANCE CONVERGED IN " + usc["itercount"] + " ITERATIONS").
+		IF (upfgInternal["itercount"] = 0) { //detects first pass or convergence lost
+			WHEN (upfgInternal["s_conv"]) THEN {
+				addGUIMessage("GUIDANCE CONVERGED IN " + upfgInternal["itercount"] + " ITERATIONS").
 			}
 		}				
 
@@ -224,12 +225,12 @@ declare function closed_loop_ascent{
 			
 			LOCAL tgtsurfvel IS RTLS_rvline(downrangedist(launchpad,SHIP:GEOPOSITION )*1000).
 		
-			IF ( RTLSAbort["flyback_flag"] AND upfgInternal["tgo"] < 60 AND ( (usc["conv"]=1 AND upfgInternal["tgo"] < upfgFinalizationTime) OR SHIP:VELOCITY:SURFACE:MAG >= 0.9*tgtsurfvel ) ) {
+			IF ( RTLSAbort["flyback_flag"] AND (upfgInternal["tgo"] < 60) AND ( (upfgInternal["s_conv"] AND upfgInternal["tgo"] < upfgInternal["terminal_time"]) OR SHIP:VELOCITY:SURFACE:MAG >= 0.9*tgtsurfvel ) ) {
 				addGUIMessage("POWERED PITCH-DOWN").
 				BREAK.
 			}
 		} ELSE {
-			IF (usc["conv"]=1 AND (upfgInternal["tgo"] < upfgFinalizationTime AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
+			IF (upfgInternal["s_conv"] AND (upfgInternal["tgo"] < upfgInternal["terminal_time"] AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
 				addGUIMessage("TERMINAL GUIDANCE").
 				BREAK.
 			}
@@ -241,24 +242,142 @@ declare function closed_loop_ascent{
 				SET target_orbit TO tgt_j2_timefor(target_orbit,upfgInternal["tgo"]).
 			}	
 		}
-			
-			
-		SET upfgInternal TO upfg_wrapper(upfgInternal).
 		
-		IF NOT vehiclestate["staging_in_progress"] { //AND usc["conv"]=1
-			SET control["aimvec"] TO vecYZ(usc["lastvec"]):NORMALIZED.
-			SET control["steerdir"] TO steeringControl().							
-		} 
-		IF vehicle["stages"][vehiclestate["cur_stg"]]["mode"] <> 2 {
-			SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO usc["lastthrot"].		
+		upfg_sense_current_state(upfgInternal).
+		
+		IF (DEFINED RTLSAbort) {
+			RTLS_burnout_mass().
+			SET upfgInternal["mbod"] TO vehicle["mbod"].
+			
+			IF (NOT RTLSAbort["flyback_flag"]) {
+			
+				LOCAL stg IS get_stage().
+			
+				//extrapolate state to the end of ppa
+				SET upfgInternal["t_cur"] TO upfgInternal["t_cur"] - RTLSAbort["pitcharound"]["dt"].
+				SET upfgInternal["r_cur"] TO upfgInternal["r_cur"] + upfgInternal["v_cur"] * RTLSAbort["pitcharound"]["dt"].
+				SET upfgInternal["m_cur"] TO upfgInternal["m_cur"] - stg["engines"]["flow"] * RTLSAbort["pitcharound"]["dt"].
+				SET upfgInternal["tb_cur"] TO upfgInternal["tb_cur"] - RTLSAbort["pitcharound"]["dt"].
+			
+			}
 		}
+			
+			
+		upfg(
+			vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]),
+			target_orbit,
+			upfgInternal
+		).
+
+		//for debugging
+		//clearvecdraws().
+		//arrow_ship(vecyz(upfgInternal["steering"]),"steer").
+		//arrow_ship(vecyz(upfgInternal["ix"]),"ix").
+		//arrow_ship(vecyz(upfgInternal["iy"]),"iy").
+		//arrow_ship(vecyz(upfgInternal["iz"]),"iz").
+		//arrow_body(vecyz(upfgInternal["rd"]),"rd").
+		
+		//fuel dissipation and flyback trigger logic
+		IF (DEFINED RTLSAbort) {
+
+			LOCAL PEG_Tc IS (upfgInternal["mbo_T"] - upfgInternal["tgo"]).
+		
+			IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
+			
+				//force unconverged until flyback
+				SET upfgInternal["s_conv"] TO FALSE.
+				SET upfgInternal["iter_conv"] TO 0.
+				//itercount must be reset so we don't end up with a huge iterations count at PPA
+				//BUT DON'T RESET IT TO ZERO BC AT EVERY LOOP A WHEN CHECK WILL BE ADDED!
+				SET upfgInternal["itercount"] TO 1.
+			
+				LOCAL RTLS_steering IS V(0,0,0).
+				
+				IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
+					//dissipation 
+					SET RTLS_steering TO RTLSAbort["C1"]:NORMALIZED.
+					
+					//range lockout bc lose to the site guidance is unreliable 
+					LOCAL range_now IS greatcircledist(RTLS_tgt_site_vector(), orbitstate["radius"]).
+					
+					IF (PEG_Tc > RTLSAbort["Tc"]) OR (range_now < RTLSAbort["flyback_range_lockout"]) {
+						SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
+					} ELSE {
+						SET RTLSAbort["flyback_conv"] TO MIN( 1, RTLSAbort["flyback_conv"] + 1).
+					}
+					
+					IF (RTLSAbort["flyback_conv"] = 1) {
+						SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"],upfgInternal["steering"]).
+					}
+					
+					SET RTLSAbort["pitcharound"]["dt"] TO RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
+					
+					IF (RTLSAbort["flyback_conv"] = 1) {
+						LOCAL pitchover_bias IS 0.5 * RTLSAbort["pitcharound"]["dt"].
+						
+						IF (PEG_Tc <= (1 + pitchover_bias)) {
+							addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
+							SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
+							SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
+							//precaution for convergence display
+							SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
+						} 
+					}
+					
+				} ELSE {
+					//powered pitcharound					
+					//get the current thrust vector, project in the plane containing the peg vector (flyback guidance command) and C1,
+					//rotate ahead by a few degrees
+					
+					set_steering_high().
+					
+					SET vehicle["roll"] TO 0.
+					SET control["roll_angle"] TO 0.
+					
+					SET control["refvec"] TO VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
+					
+					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
+					
+					SET RTLS_steering TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], 20). 
+					
+					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
+						SET RTLS_steering TO RTLSAbort["pitcharound"]["target"].
+						set_steering_low().
+						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
+						SET RTLSAbort["flyback_flag"] TO TRUE.
+						SET upfgInternal["s_flyback"] TO TRUE.
+						SET upfgInternal["s_throt"] TO TRUE.
+						SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+						
+					}	
+				
+				}
+				
+				SET control["aimvec"] TO vecYZ(RTLS_steering).
+				SET control["steerdir"] TO steeringControl().
+			}
+		
+			SET RTLSAbort["Tc"] TO PEG_Tc.
+		}
+		
+		
+		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
+			SET control["aimvec"] TO vecYZ(upfgInternal["steering"]):NORMALIZED.
+			SET control["steerdir"] TO steeringControl().
+			local stg is get_stage().
+			IF stg["mode"] <> 2 {
+				//round to nearest percentage
+				SET stg["Throttle"] TO upfgInternal["throtset"].//FLOOR(upfgInternal["throtset"], 2).		
+			}			
+		} 
+		
 	}
 	
-	SET vehiclestate["ops_mode"] TO 3.
+	SET vehiclestate["phase"] TO 3.
  
-	SET usc["terminal"] TO TRUE.
+	SET upfgInternal["terminal"] TO TRUE.
 	
-	SET control["steerdir"] TO "KILL".
+	
 	
 	//min throttle for any case
 	fix_minimum_throttle(). 
@@ -278,15 +397,16 @@ declare function closed_loop_ascent{
 			LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.		
 			
 			IF (VANG(steervec, pitchdowntgtvec) > 10) {
-				SET steervec tO rodrigues(SHIP:FACING:FOREVECTOR, rotvec,10).
+				SET steervec tO rodrigues(SHIP:FACING:FOREVECTOR, rotvec, 10).
 				SET steervec TO VXCL(rotvec,steervec).
 			} ELSE {
 				SET steervec TO pitchdowntgtvec.
 			}
-			LOCK STEERING TO LOOKDIRUP(steervec, upvec).
 			
-			SET target_orbit["range"] TO downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
-			LOCAL tgtsurfvel IS RTLS_rvline(target_orbit["range"]).
+			SET control["steerdir"] TO LOOKDIRUP(steervec, upvec).
+			
+			LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
+			LOCAL tgtsurfvel IS RTLS_rvline(rng).
 			
 			IF (SHIP:VELOCITY:SURFACE:MAG >= tgtsurfvel OR SSME_flameout()) {
 				BREAK.
@@ -323,15 +443,16 @@ declare function closed_loop_ascent{
 			STAGE.
 			
 			WHEN ( TIME:SECONDS > etsep_t + 15) THEN {
-				SET vehiclestate["ops_mode"] TO 4.
+				SET vehiclestate["phase"] TO 4.
 			}
 		}
 	}
 	addGUIMessage("STAND-BY FOR ET SEP").
+	
 	UNTIL FALSE{
 		getState().
 		
-		IF (vehiclestate["ops_mode"] = 4) {
+		IF (vehiclestate["phase"] = 4) {
 			BREAK.
 		}
 		WAIT 0.1.
@@ -359,8 +480,6 @@ declare function closed_loop_ascent{
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
 	SAS ON.
-	
-	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 	
 	print_ascent_report().
 	

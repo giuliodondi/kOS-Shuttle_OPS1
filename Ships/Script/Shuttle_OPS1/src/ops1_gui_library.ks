@@ -174,7 +174,7 @@ function make_ascent_traj1_disp {
 	clear_ascent_traj_data().
 	
 	local text_ht is ascent_traj_disp_titlebox:style:height*0.75.
-	set ascent_traj_disp_title:text to "<b><size=" + text_ht + ">ASCENT TRAJ 1</size></b>".
+	set ascent_traj_disp_title:text to "<b><size=" + text_ht + ">XXXXXX TRAJ X</size></b>".
 	
 	set ascent_traj_disp_mainbox:style:BG to "Shuttle_OPS1/src/gui_images/ascent_traj1_bg.png".
 	
@@ -357,12 +357,28 @@ function update_g_slider {
 
 }
 
+FUNCTION update_traj_disp_title {
+	PARAMETER disp_counter.
+	
+	//based on abort modes
+	LOCAL str is "ASCENT".
+	IF (abort_modes["triggered"]) {
+		IF (abort_modes["ATO"]["triggered"] = TRUE) {
+			SET str TO "   ATO".
+		} ELSE IF (abort_modes["TAL"]["triggered"] = TRUE) {
+			SET str TO "   TAL".
+		} ELSE IF (abort_modes["RTLS"]["triggered"] = TRUE) {
+			SET str TO "  RTLS".
+		}
+	}
+	
+	local text_ht is ascent_traj_disp_titlebox:style:height*0.75.
+	set ascent_traj_disp_title:text to "<b><size=" + text_ht + ">" + str + " TRAJ " + disp_counter + "</size></b>".
+
+}
 
 function make_ascent_traj2_disp {
 	set ascent_traj_disp_counter to 2.
-	
-	local text_ht is ascent_traj_disp_titlebox:style:height*0.75.
-	set ascent_traj_disp_title:text to "<b><size=" + text_ht + ">ASCENT TRAJ 2</size></b>".
 	
 	set ascent_traj_disp_mainbox:style:BG to "Shuttle_OPS1/src/gui_images/ascent_traj2_bg.png".
 	
@@ -374,10 +390,8 @@ function make_ascent_traj2_disp {
 //
 function make_rtls_traj2_disp {
 	
-	set ascent_traj_disp_counter to 5.
-	
 	local text_ht is ascent_traj_disp_titlebox:style:height*0.75.
-	set ascent_traj_disp_title:text to "<b><size=" + text_ht + "> RTLS  TRAJ 2</size></b>".
+	set ascent_traj_disp_title:text to "<b><size=" + text_ht + ">XXXXXX TRAJ X</size></b>".
 	
 	set ascent_traj_disp_mainbox:style:BG to "Shuttle_OPS1/src/gui_images/rtls_traj2_bg.png".
 	
@@ -431,9 +445,11 @@ function make_rtls_traj2_disp {
 function update_ascent_traj_disp {
 	parameter gui_data.
 	
-	if (ascent_traj_disp_counter = 1 AND gui_data["ve"] >= 1100) {
+	if (ascent_traj_disp_counter = 1 AND gui_data["ve"] >= 1000) {
 		make_ascent_traj2_disp().
 	}
+	
+	update_traj_disp_title(ascent_traj_disp_counter).
 
 	SET ascent_traj_disp_clock:text TO "MET " + sectotime_simple(gui_data["met"], true).
 	
@@ -504,6 +520,8 @@ function update_ascent_traj_disp {
 
 function update_rtls_traj_disp {
 	parameter gui_data.
+	
+	update_traj_disp_title(ascent_traj_disp_counter).
 
 	SET ascent_traj_disp_clock:text TO "MET " + sectotime_simple(gui_data["met"], true).
 	
@@ -516,10 +534,15 @@ function update_rtls_traj_disp {
 	if (NOT gui_data["converged"]) {
 		set upfg_text_color to guitextyellowhex.
 	}
+	
+	LOCAL tc_sign IS " ".
+	IF (gui_data["rtls_tc"] <= -1) {
+		SET tc_sign TO "-".
+	}
 
 	set rtls_trajleftdata5:text to "<color=#" + upfg_text_color + ">TGO " + sectotime_simple(gui_data["tgo"]) + "</color>". 
 	set rtls_trajleftdata6:text to "<color=#" + upfg_text_color + ">VGO  " + round(gui_data["vgo"], 0) + "</color>". 
-	set rtls_trajleftdata7:text to "<color=#" + guitextgreenhex + ">T_C  " + sectotime_simple(gui_data["rtls_tc"]) + "</color>". 
+	set rtls_trajleftdata7:text to "<color=#" + guitextgreenhex + ">T_C " + tc_sign + sectotime_simple(ABS(gui_data["rtls_tc"])) + "</color>". 
 	
 
 	update_g_slider(gui_data["twr"]).
@@ -528,12 +551,12 @@ function update_rtls_traj_disp {
 
 	rtls_gui_set_cutv_indicator(gui_data["rtls_cutv"]).
 
-	local shut_bug_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(gui_data["dwnrg_ve"]),ascent_traj_disp_y_convert(gui_data["alt"]), 0), 5).
+	local shut_bug_pos is set_ascent_traj_disp_pos(v(rtls_traj_disp_x_convert(gui_data["dwnrg_ve"]),rtls_traj_disp_y_convert(gui_data["alt"]), 0), 5).
 	
 	SET ascent_traj_disp_orbiter:STYLE:margin:v to shut_bug_pos[1].
 	SET ascent_traj_disp_orbiter:STYLE:margin:h to shut_bug_pos[0].
 	
-	local shut_pred_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(gui_data["dwnrg_pred_ve"]),ascent_traj_disp_y_convert(gui_data["pred_alt"]), 0), 5).
+	local shut_pred_pos is set_ascent_traj_disp_pos(v(rtls_traj_disp_x_convert(gui_data["dwnrg_pred_ve"]),rtls_traj_disp_y_convert(gui_data["pred_alt"]), 0), 5).
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:v to shut_pred_pos[1] - 3.
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:h to shut_pred_pos[0].
 
@@ -568,13 +591,12 @@ function ascent_traj_disp_x_convert {
 	parameter val.
 	
 	local par is val*3.28084.
+	local out is 0.
 	
 	if (ascent_traj_disp_counter = 1) {
 		set out to (par/5000 * 0.8 + 0.1)*512.
 	} else if (ascent_traj_disp_counter = 2) {
 		set out to ((par - 5000)/21000 * 0.8 + 0.1)*512.
-	} else if (ascent_traj_disp_counter = 5) {
-		set out to ((par + 8000.0)/18000*0.8 + 0.1)*512.
 	}
 	
 	return out.
@@ -584,14 +606,34 @@ function ascent_traj_disp_y_convert {
 	parameter val.
 	
 	local par is val*3280.84.
+	local out is 0.
 	
 	if (ascent_traj_disp_counter = 1) {
 		set out to 512.0 - (par / 170000.0 * 0.6 + 0.2) * 512.
 	} else if (ascent_traj_disp_counter = 2) {
 		set out to 512.0 - ((par - 140000.0) / 385000.0 * 0.6 + 0.2) * 512.
-	} else if (ascent_traj_disp_counter = 5) {
-		set out to 512.0 - ((par - 150000)/450000 * 0.7 + 0.2) * 512.
 	}
+
+	return (425 - out)*300/275 + 50.
+}	
+
+
+function rtls_traj_disp_x_convert {
+	parameter val.
+	
+	local par is val*3.28084.
+	
+	local out is  ((par + 8000.0)/18000*0.8 + 0.1)*512.
+	
+	return out.
+}
+
+function rtls_traj_disp_y_convert {
+	parameter val.
+	
+	local par is val*3280.84.
+	
+	local out is 512.0 - ((par - 150000)/450000 * 0.7 + 0.2) * 512.
 
 	return (425 - out)*300/275 + 50.
 }	

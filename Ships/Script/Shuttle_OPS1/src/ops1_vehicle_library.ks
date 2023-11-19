@@ -2,7 +2,7 @@ GLOBAL g0 IS 9.80665.
 GLOBAL vehicle_countdown IS 10.
 
 GLOBAL vehiclestate IS LEXICON(
-	"ops_mode",0,
+	"phase",0,
 	"cur_stg", 1,
 	"staging_time", 0,
 	"staging_in_progress", FALSE,
@@ -63,11 +63,28 @@ function initialise_shuttle {
 						"roll",180,
 						"handover", LEXICON("time", srb_time + 5),
 						"maxThrottle",0,	
+						"SSME_prop_0", 0,
+						"SSME_prop", 0,
+						"OMS_prop_0", 0,
+						"OMS_prop", 0,
 						"stages",LIST(),
-						"SSME",0
+						"SSME",0,
+						"OMS",0
 	).
 	
 	SET vehicle["SSME"] TO parse_ssme().
+	SET vehicle["OMS"] TO parse_oms().
+	
+	//measure initial propellants 
+	SET vehicle["SSME_prop"] TO get_ssme_prop().
+	SET vehicle["SSME_prop_0"] TO vehicle["SSME_prop"].
+	
+	SET vehicle["OMS_prop"] TO get_oms_prop().
+	SET vehicle["OMS_prop_0"] TO vehicle["OMS_prop"].
+	
+	//now reset number of engines to default : 3 active SSME, 0 active OMS
+	SET vehicle["SSME"]["active"] TO 3.
+	SET vehicle["OMS"]["active"] TO 0.
 	
 	//add the ssme type to the vessel name 
 	
@@ -77,25 +94,17 @@ function initialise_shuttle {
 	SET vehicle["maxThrottle"] TO vehicle["SSME"]["maxThrottle"].
 	
 	//measure total mass less the SRBs and clamps
-	
-	LOCAL et_part IS get_ext_tank_part().
-	
-	
 	LOCAL stack_mass IS getShuttleStackMass().
 	
-	LOCAL total_prop_mass IS get_prop_mass(
-		LEXICON(
-			"resources",vehicle["SSME"]["resources"],
-			"tankparts",LIST(et_part)
-		)
-	).
+	//nominally we just burn SSME propellant
+	LOCAL total_prop_mass IS vehicle["SSME_prop"].
 	
 	LOCAL stack_empty_mass IS stack_mass - total_prop_mass.	
 	
 	
 	//prepare stages list
 	
-	LOCAL engines_lex IS build_ssme_lex().
+	LOCAL engines_lex IS build_engines_lex().
 	
 	
 	//zeroth stage 
@@ -103,15 +112,10 @@ function initialise_shuttle {
 	
 	//stage1 - SRB
 	
-	LOCAL stage1_burned_mass IS srb_time * engines_lex["flow"].
-	
-	LOCAL stage2InitialMass IS stack_mass - stage1_burned_mass.
-	
-	
 	LOCAL new_stg_1 IS LEXICON(
 		"m_initial",	stack_mass,
-		"m_final",	stage2InitialMass,
-		"m_burn",	stage1_burned_mass,
+		"m_final",	0,
+		"m_burn",	0,
 		"staging", LEXICON (
 			"type","time",
 			"ignition",	TRUE
@@ -119,17 +123,21 @@ function initialise_shuttle {
 		"ign_t", 0,
 		"Tstage",srb_time,
 		"Throttle",vehicle["maxThrottle"],
-		"minThrottle",vehicle["SSME"]["minThrottle"],	//needed for the max q throttle down
 		"engines",	engines_lex,
-		"tankparts",LIST(et_part),
-		"resources",vehicle["SSME"]["resources"],
 		"mode", 1
 	).
+	
+	LOCAL stage1_final_mass IS const_f_dt_mfinal(new_stg_1).
+	
+	SET new_stg_1["m_final"] TO stack_mass - stage1_final_mass.
+	SET new_stg_1["m_burn"] TO stage1_final_mass. 
 
 	vehicle["stages"]:ADD(new_stg_1).
 	
 	
 	//stage 2 - SSME CONSTANT T
+	
+	LOCAL stage2InitialMass IS stage1_final_mass.
 	
 	LOCAL new_stg_2 IS LEXICON(
 		"m_initial",	stage2InitialMass,
@@ -143,10 +151,7 @@ function initialise_shuttle {
 		"ign_t", 0,
 		"Tstage",0,
 		"Throttle",vehicle["maxThrottle"],
-		"minThrottle",vehicle["SSME"]["minThrottle"],
 		"engines",	engines_lex,
-		"tankparts",LIST(et_part),
-		"resources",vehicle["SSME"]["resources"],
 		"mode", 1
 	).
 	
@@ -179,11 +184,8 @@ function initialise_shuttle {
 		"ign_t", 0,
 		"Tstage",0,
 		"Throttle",vehicle["maxThrottle"],
-		"minThrottle",vehicle["SSME"]["minThrottle"],
 		"throt_mult",0,
 		"engines",	engines_lex,
-		"tankparts",LIST(et_part),
-		"resources",vehicle["SSME"]["resources"],
 		"mode", 2
 	).
 	
@@ -197,7 +199,7 @@ function initialise_shuttle {
 	//to avoid problems with mass uncertainties
 	//if it's zero already because there is no need for a fourth stage at all we fall in the same condition 
 	
-	LOCAL min_stage4InitialMass IS stack_empty_mass + 3 * engines_lex["flow"] * vehicle["SSME"]["minThrottle"] .
+	LOCAL min_stage4InitialMass IS stack_empty_mass + 3 * engines_lex["flow"] * engines_lex["minThrottle"] .
 	
 	If stage4InitialMass <= min_stage4InitialMass {
 		//no fourth stage to be added
@@ -225,11 +227,8 @@ function initialise_shuttle {
 			),
 			"ign_t", 0,
 			"Tstage",0,
-			"Throttle",vehicle["SSME"]["minThrottle"],
-			"minThrottle",vehicle["SSME"]["minThrottle"],
+			"Throttle",engines_lex["minThrottle"],
 			"engines",	engines_lex,
-			"tankparts",LIST(et_part),
-			"resources",vehicle["SSME"]["resources"],
 			"mode", 1
 		).
 		
@@ -242,15 +241,16 @@ function initialise_shuttle {
 	
 	SET control["roll_angle"] TO vehicle["roll"].
 
-
-	setup_engine_failure().
-	
 	//initialise first stage thrust at 100% rpl 
 	SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(1).
+	
+	//debug_vehicle().
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
 	add_action_event(350, roll_heads_up@ ).
+	
+	setup_engine_failure().
 	
 	WHEN (SHIP:Q > 0.28) THEN {
 		IF NOT (abort_modes["triggered"]) {
@@ -357,12 +357,14 @@ FUNCTION open_loop_pitch {
 		
 		LOCAL bias IS pitch_prof - surfacestate["vdir"].
 		
-		LOCAL bias_gain IS MIN(0.75, curv / 200).
+		LOCAL bias_gain IS MIN(1.5, curv / 100).
 		
 		//don't deviate too much from prograde
-		LOCAL bias_delta IS SIGN(bias) * MIN(ABS(bias_gain * bias), 8).
+		LOCAL max_prograde_dev IS 12.
 		
-		RETURN CLAMP(pitch_prof + bias_delta,0,90).
+		LOCAL bias_delta IS SIGN(bias) * MIN(ABS(bias_gain * bias), max_prograde_dev).
+		
+		RETURN CLAMP(surfacestate["vdir"] + bias_delta, 0, 90).
 	}
 	
 	
@@ -426,16 +428,13 @@ FUNCTION throttleControl {
 	
 	IF stg["mode"] = 2   {
 		SET throtval TO stg["throt_mult"]*SHIP:MASS*1000.
-		SET usc["lastthrot"] TO throtval.
+		SET upfgInternal["throtset"] TO throtval.
 	}
 	
 	set throtval to min(vehicle["maxThrottle"],throtval).
 	set stg["Throttle"] to throtval.
 
-	LOCAL minthrot IS 0.
-	IF stg:HASKEY("minThrottle") {
-		SET minthrot TO stg["minThrottle"].
-	}
+	LOCAL minthrot IS stg["engines"]["minThrottle"].
 	
 	RETURN throtteValueConverter(throtval, minthrot).
 }
@@ -445,7 +444,7 @@ FUNCTION throttleControl {
 FUNCTION fix_minimum_throttle {
 	local stg IS get_stage().
 
-	set vehicle["maxThrottle"] to stg["minThrottle"].
+	set vehicle["maxThrottle"] to stg["engines"]["minThrottle"].
 
 }
 
@@ -630,10 +629,10 @@ FUNCTION getState {
 	IF NOT (vehiclestate["staging_in_progress"]) {
 		
 		LOCAL current_m IS SHIP:MASS*1000.
-		local res_left IS get_prop_mass(cur_stg).
+		
+		local res_left IS get_shuttle_res_left().
 		
 		SET vehiclestate["m_burn_left"] to res_left.
-		
 		
 		IF (vehiclestate["cur_stg"]=1) {
 		
@@ -658,6 +657,9 @@ FUNCTION getState {
 		}
 	
 	}
+	
+	//moved this here bc we must update oms propellant once before checking if it's time to stop
+	stop_oms_dump().
 }
 
 FUNCTION update_stage2 {
@@ -686,6 +688,18 @@ FUNCTION update_stage2 {
 		LOCAL stg3_m_burn IS res_left - stg2["m_burn"].
 		
 		update_stage3(stg3_m_initial, stg3_m_burn).
+	} ELSE IF (stg2["staging"]["type"]="time") {
+		//only ever entered during aborts 
+		
+		SET stg2["m_final"] TO const_f_dt_mfinal(stg2).
+		SET stg2["m_burn"] TO stg2["m_initial"] - stg2["m_final"].
+		
+		IF (vehicle["stages"]:LENGTH > 3) {
+			LOCAL stg3_m_initial IS stg2["m_final"].
+			LOCAL stg3_m_burn IS MAX(0, res_left - stg2["m_burn"]).
+			
+			update_stage3(stg3_m_initial, stg3_m_burn).
+		}
 	}
 
 }
@@ -702,7 +716,7 @@ FUNCTION update_stage3 {
 	SET stg3["m_final"] TO m_initial - res_left.
 	
 	IF stg3["mode"]=1 {
-		//constant thrust depletion stage, only used for late ATO aborts
+		//constant thrust depletion stage, only used for aborts
 		
 		SET stg3["Tstage"] TO const_f_t(stg3).	
 	
@@ -757,8 +771,8 @@ FUNCTION increment_stage {
 	
 	SET vehicle["stages"][j+1]["ign_t"] TO vehiclestate["staging_time"].
 	
-	IF vehiclestate["ops_mode"]=2 {
-		SET usc["lastthrot"] TO vehicle["stages"][j+1]["Throttle"].
+	IF (vehiclestate["phase"]=2) {
+		SET upfgInternal["throtset"] TO vehicle["stages"][j+1]["Throttle"].
 	}
 	
 	vehiclestate["avg_thr"]:reset().
@@ -810,7 +824,7 @@ FUNCTION ssme_staging_flameout {
 	LOCAL j IS vehiclestate["cur_stg"].
 	
 	IF j = (vehicle["stages"]:LENGTH - 1) {
-		RETURN (vehicle["stages"][j]["Tstage"] <= upfgFinalizationTime).
+		RETURN (vehicle["stages"][j]["Tstage"] <= upfgInternal["terminal_time"]).
 	} ELSE {
 		
 		IF (vehicle["stages"][j]["Tstage"] <=0.1) {
@@ -852,7 +866,19 @@ FUNCTION setup_engine_failure {
 					"time",engine_failure_time,
 					"type", "action",
 					"action",{
-								LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME"):SUBLIST(0,2).
+								LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME").
+								LOCAL zpos IS 0.
+								LOCAL ze_ IS 0.
+								FROM {local e_ is 0.} UNTIL e_ >= englist:LENGTH STEP {set e_ to e_+1.} DO { 
+									
+									LOCAL eng IS englist[e_].
+									LOCAL z_ IS VDOT(VXCL(SHIP:FACING:STARVECTOR, eng:POSITION), SHIP:FACING:TOPVECTOR).
+									IF (z_ > zpos) {
+										set zpos to z_.
+										set ze_ to e_.
+									}
+								}
+								englist:REMOVe(ze_).
 								select_rand(englist):SHUTDOWN.
 					}
 			)
@@ -864,15 +890,66 @@ FUNCTION setup_engine_failure {
 
 
 
+//measure both ssme and oms fuel 
+FUNCTION get_shuttle_res_left {
+
+	SET vehicle["SSME_prop"] TO get_ssme_prop().
+	SET vehicle["OMS_prop"] TO get_oms_prop().
+
+
+	LOCAL total_prop IS 0.
+	IF (vehicle["SSME"]["active"] > 0) {
+		SET total_prop TO total_prop + vehicle["SSME_prop"].
+	}
+	
+	IF (vehicle["OMS"]["active"] > 0) {
+		SET total_prop TO total_prop + vehicle["OMS_prop"].
+	}
+		
+	return total_prop.
+}
+
 //return the ET part to read fuel quantities
 //designed to crash if there is no part with this name
 FUNCTION get_ext_tank_part {
 	RETURN SHIP:PARTSDUBBED("ShuttleExtTank")[0].
 }
 
+//get propellants for SSMEs
+FUNCTION get_ssme_prop {
+	return get_prop_mass(
+		LEXICON(
+			"resources",vehicle["SSME"]["resources"],
+			"tankparts",LIST(get_ext_tank_part())
+		)
+	).
+}
+
 //return the ET propellant fraction left
 function get_et_prop_fraction {
-	return vehiclestate["m_burn_left"]/730874.
+	return vehicle["SSME_prop"] / vehicle["SSME_prop_0"].
+}
+
+//return a list ocntaining parts with OMS fuel (i.e. oms pods)
+//designed to crash if there are less than two matching parts
+FUNCTION get_oms_tanks_parts {
+	LOCAL partslist IS ship:PARTSNAMEDPATTERN("ShuttleOMSPod*").
+	RETURN LIST(partslist[0], partslist[1]).
+}
+
+//get propellants for OMSs
+FUNCTION get_oms_prop {
+	return get_prop_mass(
+		LEXICON(
+			"resources",vehicle["OMS"]["resources"],
+			"tankparts",get_oms_tanks_parts()
+		)
+	).
+}
+
+//return the ET propellant fraction left
+function get_oms_prop_fraction {
+	return vehicle["OMS_prop"] / vehicle["OMS_prop_0"].
 }
 
 
@@ -941,9 +1018,14 @@ FUNCTION close_umbilical {
 
 
 FUNCTION start_oms_dump {
+
+	IF ((NOT abort_modes["triggered"]) OR (abort_modes["oms_dump"])) {
+		RETURN.
+	}
+
 	RCS ON.
-	SET SHIP:CONTROL:FORE TO 1.
-	SET SHIP:CONTROL:TOP TO 1.
+	//SET SHIP:CONTROL:FORE TO 1.
+	//SET SHIP:CONTROL:TOP TO 1.
 	FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
 		oms:ACTIVATE.
 	}
@@ -952,33 +1034,21 @@ FUNCTION start_oms_dump {
 
 FUNCTION stop_oms_dump {
 	PARAMETER force IS FALSE.
-	IF abort_modes["oms_dump"] {
-		IF (OMS_quantity()< 0.2 OR force) {
+	
+	IF (NOT (abort_modes["triggered"] AND abort_modes["oms_dump"])) {
+		RETURN.
+	}
 
-			SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-			FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
-				oms:SHUTDOWN.
-			}
-			addGUIMessage("OMS DUMP STOPPED").
-			SET abort_modes["oms_dump"] TO FALSE.
+	IF (get_oms_prop_fraction() <= 0.2 OR force) {
+
+		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+		FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+			oms:SHUTDOWN.
 		}
+		addGUIMessage("OMS DUMP STOPPED").
+		SET abort_modes["oms_dump"] TO FALSE.
 	}
-}
-
-
-FUNCTION OMS_quantity {
 	
-	LOCAL quant IS 0.
-	
-	LOCAL i IS 0.
-	FOR tank IN ship:PARTSNAMEDPATTERN("ShuttleOMSPod*") {
-		SET quant TO quant + (tank:mass - tank:drymass)/(tank:wetmass - tank:drymass).
-		SET i TO i + 1.
-	}
-	SET quant TO quant/i.
-	
-	return quant.
-
 }
 
 //check that the three ssme are present and the same type, calculate all the parameters needed
@@ -1052,6 +1122,76 @@ FUNCTION parse_ssme {
 }
 
 
+//check that the two oms are present and the same type, calculate all the parameters needed
+FUNCTION parse_oms {
+	
+	LOCAL omslex IS LEXICON(
+		"type","",
+		"active",0,
+		"isp",0,
+		"thrust",0,
+		"flow",0,
+		"minThrottle",0,
+		"maxThrottle",0,
+		"resources",0
+	).
+	
+	//count OMS, not necessary per se but a useful check to see if we're flying a DECQ shuttle
+	LOCAL oms_count IS 0. 
+	SET omslex["type"] TO SHIP:PARTSDUBBED("ShuttleEngineOMS")[0]:CONFIG.
+	
+	LOCAL oms_reslex IS LEXICON().
+	
+	FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+		IF oms:ISTYPE("engine") {
+			SET oms_count TO oms_count + 1.
+			
+			IF (oms:CONFIG <> omslex["type"]) {
+				PRINT ("ERROR! THE VEHICLE SEEMS TO HAVE MISMATCHED OMS TYPES") AT (1,5).
+				LOCAL X IS 1/0.
+			}
+			
+			LOCAL oms_thr IS oms:POSSIBLETHRUSTAT(0.0).
+			LOCAL oms_isp IS oms:VACUUMISP.
+			LOCAL oms_flow IS oms:MAXMASSFLOW*1000.
+			LOCAL oms_minthr IS oms:MINTHROTTLE.
+			LOCAL oms_res IS oms:consumedresources:VALUES.
+	
+			SET omslex["thrust"] TO omslex["thrust"] + oms_thr.
+			SET omslex["isp"] TO omslex["isp"] + oms_isp*oms_thr.
+			SET omslex["flow"] TO omslex["flow"] + oms_flow.
+			SET omslex["minThrottle"] TO omslex["minThrottle"] + oms_minthr*oms_thr.
+			
+			FOR res IN oms_res {
+				IF NOT oms_reslex:HASKEY(res:name) {
+					oms_reslex:ADD(res:name, res).
+				}
+			}
+		}
+	}
+	
+	IF (oms_count <> 2 ) {
+		PRINT ("ERROR! THE VEHICLE SEEMS TO HAVE THE WRONG NUMBER OF OMSs") AT (1,5).
+		LOCAL X IS 1/0.
+	}
+	
+	SET omslex["active"] TO oms_count.
+	
+	SET omslex["isp"] TO omslex["isp"]/omslex["thrust"].
+	SET omslex["minThrottle"] TO omslex["minThrottle"]/omslex["thrust"].
+	
+	SET omslex["thrust"] TO omslex["thrust"]/oms_count.
+	SET omslex["flow"] TO omslex["flow"]/oms_count.
+
+	//calculate max throttle given nominal power level of 104.5%
+	SET omslex["maxThrottle"] TO 1.
+	
+	SET omslex["resources"] TO oms_reslex.
+	
+	RETURN omslex.
+	
+}
+
 FUNCTION build_ssme_lex {
 
 	RETURN LEXICON(
@@ -1059,8 +1199,32 @@ FUNCTION build_ssme_lex {
 				"isp", vehicle["SSME"]["isp"], 
 				"flow",vehicle["SSME"]["active"]*vehicle["SSME"]["flow"]
 	).
+}
 
+FUNCTION build_engines_lex {
 
+	LOCAL tot_ssme_thrust IS vehicle["SSME"]["active"]*vehicle["SSME"]["thrust"].
+	LOCAL tot_oms_thrust IS vehicle["OMS"]["active"]*vehicle["OMS"]["thrust"].
+	LOCAL tot_thrust IS tot_ssme_thrust + tot_oms_thrust.
+
+	LOCAL ssme_flow IS vehicle["SSME"]["active"]*vehicle["SSME"]["flow"].
+	LOCAL oms_flow IS vehicle["OMS"]["active"]*vehicle["OMS"]["flow"].
+	LOCAL tot_flow IS ssme_flow + oms_flow.
+	
+	LOCAL tot_isp IS 0.
+	
+	IF (tot_flow > 0) {
+		SET tot_isp TO (vehicle["SSME"]["isp"] * ssme_flow + vehicle["OMS"]["isp"] * oms_flow) / tot_flow.
+	}
+	
+	LOCAL tot_minThrot IS (tot_ssme_thrust * vehicle["SSME"]["minThrottle"] + tot_oms_thrust * vehicle["OMS"]["minThrottle"]) / tot_thrust.
+
+	RETURN LEXICON(
+				"thrust", tot_thrust*1000, 
+				"isp", tot_isp, 
+				"flow",tot_flow,
+				"minThrottle", tot_minThrot
+	).
 }
 
 //100 percent rated power level in kn in vacuum (1ssme)
@@ -1072,19 +1236,15 @@ function get_rpl_thrust {
 FUNCTION convert_ssme_throt_rpl {
 	parameter rpl_throt.
 	
-	local stg IS get_stage().
-	local ssme_thr IS stg["engines"]["thrust"]/3000.
-	
 	//first work out the rpl level of the engines' max thrust 
 	
-	local max_rpl_thr is ssme_thr/get_rpl_thrust().
+	local max_rpl_thr is vehicle["SSME"]["thrust"]/get_rpl_thrust().
 	
 	//then do the proportion with 100% commanded throttle 
 	
 	return rpl_throt/max_rpl_thr.
 
 }
-
 
 //count active SSMEs and compare with expected number.
 FUNCTION SSME_out {
@@ -1102,14 +1262,39 @@ FUNCTION SSME_out {
 		
 		SET vehicle["SSME"]["active"] TO SSMEcount.
 		
-		LOCAL cur_stg IS get_stage().
-
-		SET cur_stg["engines"] TO build_ssme_lex().
+		measure_update_engines().
 		
 		RETURN TRUE.
 	}
 
 	RETURN FALSE.
+}
+
+//measure running engines of both kinds and rebuild the engines LEXICON
+FUNCTION measure_update_engines {
+	
+	//measure engines 
+	LOCAL SSMEcount IS 0.
+	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
+		IF e:IGNITION {
+			SET SSMEcount TO SSMEcount + 1.
+		}
+	}
+	
+	
+	SET vehicle["SSME"]["active"] TO SSMEcount.
+	
+	LOCAL OMScount IS 0.
+	FOR e IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+		IF e:IGNITION {
+			SET OMScount TO OMScount + 1.
+		}
+	}
+	
+	SET vehicle["OMS"]["active"] TO OMScount.
+	
+	LOCAL cur_stg IS get_stage().
+	SET cur_stg["engines"] TO build_engines_lex().
 }
 
 FUNCTION SSME_flameout {
@@ -1127,7 +1312,7 @@ function get_ssme_throttle {
 	local stg IS get_stage().
 	local throtval is stg["Throttle"].
 	
-	local ssme_thr IS throtval* stg["engines"]["thrust"]/(vehicle["SSME"]["active"] * 1000).
+	local ssme_thr IS throtval* vehicle["SSME"]["thrust"].
 	
 	return ssme_thr/get_rpl_thrust().
 }
