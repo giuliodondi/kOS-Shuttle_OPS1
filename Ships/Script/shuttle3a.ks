@@ -22,7 +22,7 @@ GLOBAL target_orbit IS LEXICON (
 //GLOBAL TAL_site is "Mataveri".
 
 
-GLOBAL logdata Is false.
+GLOBAL logdata Is true.
 
 
 RUNPATH("0:/Shuttle_OPS1/src/ops1_launch").
