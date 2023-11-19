@@ -202,14 +202,17 @@ During the dissipation phase this will be positive, because TGO assumes we turn 
 Once we trigger Flyback, T_C will settle around zero as the PEG algorithm adjusts the throttle so that we burn propellant all the way to 2% during the rest of the manoeuvre. 
 
 
-### Results from my tests
+### Results from my RTLS tests
 
-Here I present my test results for RTLS aborts (original RS-25 engines, Standard-weight ET, 40° inclination, 10t payload). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to a handful of seconds before Negative Return. The plots include both Powered and GLide RTLS phases 
+Here I present my test results for RTLS aborts. The scenario was STS-9 (RS-25A, Lightweight tank, Spacelab payload at 57° inclination). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to just before Negative Return. The plots include both Powered and GLide RTLS phases 
 
 ![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj.png)
 
-The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory.  
-You can see the lofting action for aborts prior to SRB-sep. The trajecotries are generally more depressed for early aborts (the propellant mass is high and acceleration is low) and the maximum altitude reached during the manoeuvre is quite inconsistent. MECO happens at the "hump" at 80km, form there on you can see the effect of aerobraking during Glide-RTLS. Guidance does not try to force the MECO downrange distance, which is evident in the final downrange distance at the end of Glide-RTLS
+The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory. You can se:
+- engine failures before SRB sep result in lofted trajectories, as commanded
+- The maximum altitude during the manoeuvre is geenrally higher the later the engine failure
+- all trajectories target the same altitude at MECO, it's the "hump" at 72km
+- The downrange distance at MECO is different for all trajectories
 
 ![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_vel.png)
 
@@ -218,11 +221,21 @@ The second plot is horizontal velocity vs. altitude. Here you can se clearly:
 - when flyback was triggered (the point where the lines "bounce to the left"
 - that the Shuttle is already on its way down when flyback is triggered, in the case of early aborts
 - that the Shuttle does not come to a dead stop at the inversion point, as there is some sideways motion
-- that all the MECO velocities are different but tend to converge during Glide-RTLS
+- That, just like downrange distance, all velocities at MECO are different
 
 ![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_rvline.png)
 
-The final plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate on the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. Where exactly you land on the RV line is not important as long as the script cuts off the engines right on it, which you can see as the velocity becomes almost constant (before increasing again during the Glide-RTLS descent)
+The third plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate on the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. Where exactly you land on the RV line is not important as long as the script cuts off the engines right on it, which you can see as the velocity becomes almost constant (before increasing again during the Glide-RTLS descent)
+
+![](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_throt.png)
+
+The final plot shows the throttle setting in terms of RPL percentage. The thottle is kept at maximum during fuel dissipation, and is actively adjusted during the flyback phase. You can see:
+- Max-Q throttle-down is done for all cases except a liftoff engine failure
+- The earlier the engine failure, the more fuel we need to dissipate, which results in a later pitcharound and flyback and a later MECO
+- All plots show a flatlining right before MECO. This indicates when active throttling is deactivated because it's too sensitive
+- During flyback, throttle initially settles around 98-99% RPL. This is the value given to the PEG algorithm to determine the flyback moment
+- An exception to this is the very latest abort since the dissipation phase is skipped for this one, as such there is more propellant that there ought to be which requires less thrust to meet the propellant constraint
+- Right before throttling deactivation, the throttle shows signs of instability, not really sure why
 
 The Glide-RTLS phase, which starts after arrival on the RV line, is completely open-loop, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
 
