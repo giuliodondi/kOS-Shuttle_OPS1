@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
-## Updated October 2023
+## Updated November 2023
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
 Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
