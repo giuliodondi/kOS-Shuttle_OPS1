@@ -6,9 +6,7 @@ Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted an
 
 # Remarks
 
-This script was last tested in 1.12 with a full RO install. It should also work with KSP 1.10. Just take care to over-write the Realism Overhaul configs.
-In addition, some of my adaptations are somewhat iffy, i.e. constructed by readig the technical manuals and figuring out some way to implement those actions.
-I provide these scripts as they are, with no guarantee that they'll work perfectly every time. **YMMV**
+This script was last tested in 1.12 with a full RO install. The algorithms are adapted from the real-life Space Shuttle GN&C document [OI-34 SPACE SHUTTLE ORBITER OPERATIONAL LEVEL C FUNCTIONAL SUBSYSTEM SOFTWARE REQUIREMENTS GUIDANCE, NAVIGATION AND CONTROL PART A](https://www.ibiblio.org/apollo/Shuttle/STS83-0002-34%20-%20Guidance%20Ascent-RTLS.pdf). In real life the alghorithms would probably be tailored to the specific mission by means of I-loaded constants, while I tried to make everything work for generic cases. As such, sometimes behaviour can be a bit iffy, YMMV.
 
 # Installation
 
