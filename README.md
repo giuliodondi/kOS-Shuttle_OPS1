@@ -12,7 +12,8 @@ This script was last tested in 1.12 with a full RO install. The algorithms are a
 
 **Required mods:**
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
-- Kerbal Operating System
+- kOS version 1.3 at least
+- kOs Ferram, now available on CKAN
 - [My own fork of SpaceODY's Space Shuttle System](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
   - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module. Refer to the README
 - **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
