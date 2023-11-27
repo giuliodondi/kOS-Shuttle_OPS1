@@ -197,28 +197,19 @@ FUNCTION RTLS_dissip_theta_pert {
 }
 
 //c1 vector in upfg coordinates
-//meant to be called once
+//meant to be repeatedly so the vector is always in the plane of current surface velocity
 FUNCTION RTLS_C1 {
-	parameter normvec.
+	PARAMETER theta.
+
+	LOCAL pos IS vecYZ(-SHIP:ORBIT:BODy:POSITION).
+	LOCAL ve IS vecYZ(SHIP:VELOCITY:SURFACE).
+
+	LOCAL normvec IS -VCRS(pos, ve):NORMALIZED.
 	
-	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["alt"], get_stage()["engines"]["thrust"] ).
-	
-	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED).
-	LOCAL horiz IS VCRS(cur_pos,normvec):NORMALIZED.
+	LOCAL horiz IS VCRS(pos,normvec):NORMALIZED.
 	LOCAL C1 IS rodrigues(horiz, normvec, theta).
 	
 	RETURN C1.
-	
-	//limit c1 not to be below the current steering
-	//this assumes the shuttle is upside down (add the engines angle rather than subrtract)
-	//doesn't work
-	//LOCAL ship_proj IS VXCL(normvec, vecYZ(SHIP:FACINg:FOREVECTOR)):NORMALIZED.
-	//
-	//IF (VANG(horiz, ship_proj) + 13 ) > VANG(horiz, C1) {
-	//	RETURN ship_proj.
-	//} ELSE {
-	//	RETURN C1.
-	//}
 }
 
 FUNCTION RTLS_pitchover_t {
@@ -243,64 +234,6 @@ FUNCTION RTLS_rvline {
 	LOCAL coefs IS RTLS_rvline_coefs().
 	RETURN coefs[0] * rng + coefs[1].
 }
-
-
-//normal vector to the plane containing cutoff vector and target vector
-FUNCTION RTLS_normal {
-	PARAMETER cutoff_r.
-	
-	//find the current position vector of the target site
-	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
-	
-	LOCAL tgtnorm IS VCRS(cutoff_r, tgtsitevec):NORMALIZED.
-	
-	RETURN tgtnorm.
-
-}
-
-//legacy
-FUNCTION RTLS_cutoff_params_old {
-	PARAMETER tgt_orb.
-	PARAMETER cutoff_r.
-	PARAMETER flyback_flag.
-	
-	//first calculate the cutoff reference frame pointing to the target site right now
-	LOCAL iy IS RTLS_normal(cutoff_r).
-	LOCAL ix IS cutoff_r:NORMALIZED.
-	LOCAL iz IS VCRs(ix,iy).
-	
-	SET tgt_orb["radius"] TO ix* tgt_orb["radius"]:MAG.
-	
-	//calculate range to go and cutoff velocity using the RV line 
-	//need to use a fixed position to make the calculation stable
-	
-	//this is the launch site position when the abort was triggered
-	LOCAL tgtsitevec IS RTLS_shifted_tgt_site_vector(RTLSAbort["t_abort"] - TIME:SECONDS).
-	
-	LOCAL newrange IS VANG(tgtsitevec,ix).
-	SET newrange TO newrange*(constant:pi*SHIP:BODY:RADIUS)/180 + RTLSAbort["MECO_range_shift"].
-	SET tgt_orb["range"] TO newrange.
-	
-	LOCAL rv_vel IS RTLS_rvline(newrange).
-	
-	LOCAL vel IS rodrigues(iz, iy, tgt_orb["fpa"]):NORMALIZED*rv_vel.
-	LOCAL vEarth IS (constant:pi/43200)*VCRS( v(0,0,1),tgtsitevec).
-	SET vel TO vel + vEarth.
-	
-	if (flyback_flag) {
-		//for display, this value is unreliable before flyback
-		SET tgt_orb["rtls_cutv"] TO rv_vel.
-	
-		//set new normal to normal of the plane containing current pos and target vel
-		SET tgt_orb["normal"] TO VCRS( -vecYZ(SHIP:ORBIT:BODY:POSITION:NORMALIZED) , vel:NORMALIZED  ).
-	}
-
-	SET tgt_orb["velocity"] TO vel:MAG.	
-	
-	RETURN LIST(tgt_orb,vel).
-
-}
-
 
 FUNCTION RTLS_burnout_mass {
 
@@ -388,7 +321,12 @@ FUNCTION setup_RTLS {
 	LOCAL cut_r IS (curR:NORMALIZED)*(cutoff_alt*1000 + SHIP:BODY:RADIUS).
 	
 	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
-	LOCAL normvec IS VCRS(cut_r, tgtsitevec):NORMALIZED.
+	
+	//plane defined as containing current and target position
+	//LOCAL normvec IS VCRS(cut_r, tgtsitevec):NORMALIZED.
+	
+	//plane defined from current position and velocity, must point to the launch site though
+	LOCAL normvec IS -VCRS(vecYZ(-SHIP:ORBIT:BODy:POSITION), vecYZ(SHIP:VELOCITY:SURFACE)):NORMALIZED.
 	
 	LOCAL rng IS greatcircledist(tgtsitevec, cut_r) * 1000.
 	
@@ -408,7 +346,10 @@ FUNCTION setup_RTLS {
 	).
 	
 	//abort control lexicon
-	LOCAL rtlsC1v IS  RTLS_C1(normvec).
+	
+	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["alt"], get_stage()["engines"]["thrust"] ).
+	
+	LOCAL rtlsC1v IS  RTLS_C1(theta).	
 	LOCAL rtls_pitcharound_tgtv IS rodrigues(
 											rtlsC1v,
 											normvec,
@@ -416,6 +357,7 @@ FUNCTION setup_RTLS {
 											).
 	LOCAL lexx IS  LEXICON (
 								"t_abort",t_abort,
+								"theta_C1", theta,
 								"C1",rtlsC1v,
 								"Tc",0,
 								"pitcharound",LEXICON(

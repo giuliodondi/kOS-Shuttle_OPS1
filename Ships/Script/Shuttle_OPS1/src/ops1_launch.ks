@@ -295,6 +295,7 @@ declare function closed_loop_ascent{
 				
 				IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
 					//dissipation 
+					SET RTLSAbort["C1"] TO RTLS_C1(RTLSAbort["theta_C1"]).
 					SET RTLS_steering TO RTLSAbort["C1"]:NORMALIZED.
 					
 					//range lockout bc lose to the site guidance is unreliable 
@@ -307,7 +308,7 @@ declare function closed_loop_ascent{
 					}
 					
 					IF (RTLSAbort["flyback_conv"] = 1) {
-						SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"],upfgInternal["steering"]).
+						SET RTLSAbort["pitcharound"]["target"] TO upfgInternal["steering"]. 
 					}
 					
 					SET RTLSAbort["pitcharound"]["dt"] TO RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
@@ -317,6 +318,8 @@ declare function closed_loop_ascent{
 						
 						IF (PEG_Tc <= (1 + pitchover_bias)) {
 							addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
+							SET RTLSAbort["pitcharound"]["refvec"] TO - VCRS(orbitstate["radius"], RTLSAbort["C1"]).
+							SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"], RTLSAbort["pitcharound"]["target"]).
 							SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
 							SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
 							//precaution for convergence display
