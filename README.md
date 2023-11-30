@@ -165,7 +165,7 @@ There are several phases to Powered-RTLS abort:
 - **Dissipation**, flying outbound for a certain time to waste fuel. Guidance is open-loop, limited to pitching up by an angle that depends the surface velocity at engine failure (or SRB sep).  
 The script uses the PEG algorithm as a predictor to estimate the fuel needed to reverse course, when this matches the fuel remaining minus 2%, the dissipation phase ends. If RTLS is triggered very close to the negative return boundary, this step is skipped.
 Automatic OMS dump is initiated during fuel dissipation.
-- **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses PEG for guidance all throughout this phase. If the initial trajectory entails a large off-plane component to bring the Shuttle back to the target site, PEG will steer sideways, this is normal and reliable as long as the algorithm is converged. Throttling is used to match Time-To-Go with the time necessary to burn all propellant down to less than 2%. Throttling is disabled 40 seconds before MECO as it is a bit unstable. 
+- **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses a modified version of PEG for guidance. Since velocity-to-go and time-to-go need to match the 2% propellant constraint at MECO, as well as the constraint between position and velocity, active throttling is used as an extra degree-of-freedom. Throttling is disabled some time seconds before MECO as it can become unstable. 
 The OMS fuel dump will cease before or at MECO during flyback.
 
 After MECO and separation, the **Glide-RTLS (GRTLS)** guidance is activated.  
@@ -207,7 +207,7 @@ Here I present my test results for RTLS aborts. The scenario was STS-9 (RS-25A, 
 
 ![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj.png)
 
-The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory. You can se:
+The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory. You can see:
 - engine failures before SRB sep result in lofted trajectories, as commanded
 - The maximum altitude during the manoeuvre is geenrally higher the later the engine failure
 - all trajectories target the same altitude at MECO, it's the "hump" at 72km
@@ -215,7 +215,7 @@ The first plot is altitude vs. downrange distance, and shows the general shape o
 
 ![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_vel.png)
 
-The second plot is horizontal velocity vs. altitude. Here you can se clearly:
+The second plot is horizontal velocity vs. altitude. Here you can see clearly:
 - when the engine was lost (the point of deviaton from the dashed nominal line)
 - when flyback was triggered (the point where the lines "bounce to the left"
 - that the Shuttle is already on its way down when flyback is triggered, in the case of early aborts
@@ -232,11 +232,12 @@ Curiously, very early and very late aborts produce trajectories that arrive clos
 
 The final plot shows the throttle setting in terms of RPL percentage. The thottle is kept at maximum during fuel dissipation, and is actively adjusted during the flyback phase. You can see:
 - Max-Q throttle-down is done for all cases except a liftoff engine failure
+- MECO is where the lines end, right before it there is a period of minimum throttle (67% RPL), this is Terminal Guidance
 - The earlier the engine failure, the more fuel we need to dissipate, which results in a later pitcharound and flyback and a later MECO
-- All plots show a flatlining right before MECO. This indicates when active throttling is deactivated because it's too sensitive
-- During flyback, throttle initially settles around 98-99% RPL. This is the value given to the PEG algorithm to determine the flyback moment
-- An exception to this is the very latest abort since the dissipation phase is skipped for this one, as such there is more propellant that there ought to be which requires less thrust to meet the propellant constraint
-- Right before throttling deactivation, the throttle shows signs of instability, not really sure why
+- All plots show a flatlining right before Terminal Guidance. This indicates when active throttling is deactivated during active PEG guidance because it's too sensitive
+- During flyback, throttle initially settles around 98-99% RPL. This is a canned value given to the PEG algorithm during dissipation to determine the flyback moment with margin for error
+- An exception to this is the very latest abort since the dissipation phase is skipped for this one, as such there is more propellant that there ought to be which requires less thrust to meet the MECO constraints
+- Right before throttling deactivation, the throttle starts to show signs of instability
 
 The Glide-RTLS phase, which starts after arrival on the RV line, is completely open-loop, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
 
