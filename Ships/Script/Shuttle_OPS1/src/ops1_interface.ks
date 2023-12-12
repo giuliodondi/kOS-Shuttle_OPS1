@@ -271,7 +271,7 @@ FUNCTION log_telemetry {
 		SET loglex["Incl"] TO ORBIT:INCLINATION.
 		SET loglex["Ecctr"] TO ORBIT:ECCENTRICITY.
 
-		log_data(loglex).
+		log_data(loglex, "./Shuttle_OPS1/LOGS/" + vehicle["name"] + "_log").
 	}
 }
  

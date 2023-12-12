@@ -3,7 +3,7 @@ GLOBAL quit_program IS FALSE.
 
 function launch{
 	CLEARSCREEN.
-	SET CONFIG:IPU TO 600.					//	Required to run the script fast enough.
+	SET CONFIG:IPU TO 800.					//	Required to run the script fast enough.
 	
 	
 	
