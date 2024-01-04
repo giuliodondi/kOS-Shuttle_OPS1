@@ -56,9 +56,10 @@ FUNCTION const_G_t_m {
 	LOCAL m_final IS stg["m_final"].
 	
 	IF mviol > m_final  {
-		SET out[1] TO mviol.
 		SET m_final TO mviol.
 	}
+	
+	SET out[1] TO m_final.
 	
 	local red_isp is stg["engines"]["isp"]/stg["glim"].
 		

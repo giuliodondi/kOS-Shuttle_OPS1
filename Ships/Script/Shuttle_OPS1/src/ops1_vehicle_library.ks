@@ -680,9 +680,16 @@ FUNCTION update_stage2 {
 		
 		LOCAL x IS glim_t_m(stg2).
 		
-		SET stg2["Tstage"] TO x[0]. 
-		SET stg2["m_final"] TO x[1]. 
-		SET stg2["m_burn"] TO m_initial - x[1].
+		IF (x[0] > 0) {
+			SET stg2["Tstage"] TO x[0]. 
+			SET stg2["m_final"] TO x[1]. 
+			SET stg2["m_burn"] TO m_initial - x[1].
+		} ELSE {
+			SET stg2["Tstage"] TO 0. 
+			SET stg2["m_burn"] TO m_initial - stg2["m_final"].
+		}
+		
+		
 		
 		LOCAL stg3_m_initial IS x[1].
 		LOCAL stg3_m_burn IS res_left - stg2["m_burn"].
@@ -723,6 +730,7 @@ FUNCTION update_stage3 {
 	} ELSE IF stg3["mode"]=2 {
 	
 		LOCAL x IS const_G_t_m(stg3).
+		
 		SET stg3["Tstage"] TO x[0].
 
 		IF (stg3["staging"]["type"]="minthrot") {
@@ -896,11 +904,11 @@ FUNCTION get_shuttle_res_left {
 	SET vehicle["SSME_prop"] TO get_ssme_prop().
 	SET vehicle["OMS_prop"] TO get_oms_prop().
 
-
-	LOCAL total_prop IS 0.
-	IF (vehicle["SSME"]["active"] > 0) {
-		SET total_prop TO total_prop + vehicle["SSME_prop"].
-	}
+	//default and to prevent divisions by zero
+	LOCAL total_prop IS vehicle["SSME_prop"].
+	//IF (vehicle["SSME"]["active"] > 0) {
+	//	SET total_prop TO total_prop + vehicle["SSME_prop"].
+	//}
 	
 	IF (vehicle["OMS"]["active"] > 0) {
 		SET total_prop TO total_prop + vehicle["OMS_prop"].
@@ -1217,8 +1225,12 @@ FUNCTION build_engines_lex {
 		SET tot_isp TO (vehicle["SSME"]["isp"] * ssme_flow + vehicle["OMS"]["isp"] * oms_flow) / tot_flow.
 	}
 	
-	LOCAL tot_minThrot IS (tot_ssme_thrust * vehicle["SSME"]["minThrottle"] + tot_oms_thrust * vehicle["OMS"]["minThrottle"]) / tot_thrust.
-
+	
+	LOCAL tot_minThrot IS vehicle["SSME"]["minThrottle"].
+	IF (tot_thrust > 0) {
+		SET tot_minThrot TO (tot_ssme_thrust * vehicle["SSME"]["minThrottle"] + tot_oms_thrust * vehicle["OMS"]["minThrottle"]) / tot_thrust.
+	}
+	
 	RETURN LEXICON(
 				"thrust", tot_thrust*1000, 
 				"isp", tot_isp, 
