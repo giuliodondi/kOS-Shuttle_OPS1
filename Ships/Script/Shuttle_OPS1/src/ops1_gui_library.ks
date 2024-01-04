@@ -14,8 +14,8 @@ FUNCTION make_main_ascent_gui {
 
 	//create the GUI.
 	GLOBAL main_ascent_gui is gui(main_ascent_gui_width,main_ascent_gui_height).
-	SET main_ascent_gui:X TO 200.
-	SET main_ascent_gui:Y TO 540.
+	SET main_ops3_gui:X TO 170.
+	SET main_ops3_gui:Y TO 670.
 	SET main_ascent_gui:STYLe:WIDTH TO main_ascent_gui_width.
 	SET main_ascent_gui:STYLe:HEIGHT TO main_ascent_gui_height.
 	SET main_ascent_gui:STYLE:ALIGN TO "center".
@@ -86,7 +86,7 @@ FUNCTION make_main_ascent_gui {
 	GLOBAL ascent_traj_disp_clockbox IS ascent_traj_disp:ADDHLAYOUT().
 	SET ascent_traj_disp_clockbox:STYLe:WIDTH TO ascent_traj_disp:STYLE:WIDTH.
 	SET ascent_traj_disp_clockbox:STYLe:HEIGHT TO 1.
-	GLOBAL ascent_traj_disp_clock IS ascent_traj_disp_clockbox:ADDLABEL("MET 00:00:00").
+	GLOBAL ascent_traj_disp_clock IS ascent_traj_disp_clockbox:ADDLABEL("MET 00:00:00:00").
 	SET ascent_traj_disp_clock:STYLE:ALIGN TO "right".
 	SET ascent_traj_disp_clock:STYLE:margin:h to 20.
 	
