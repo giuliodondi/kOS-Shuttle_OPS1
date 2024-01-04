@@ -451,7 +451,7 @@ function update_ascent_traj_disp {
 	
 	update_traj_disp_title(ascent_traj_disp_counter).
 
-	SET ascent_traj_disp_clock:text TO "MET " + sectotime_simple(gui_data["met"], true).
+	SET ascent_traj_disp_clock:text TO "MET " + sectotime_simple(MISSIONTIME, true).
 	
 	set ascent_trajleftdata1:text to "Ḣ   " + round(gui_data["hdot"], 0). 
 	
