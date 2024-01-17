@@ -182,9 +182,10 @@ declare function closed_loop_ascent{
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
 		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
-	} ELSE {
-		SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
 	}
+		
+	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
+	
 	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	SET upfgInternal TO setupUPFG().
