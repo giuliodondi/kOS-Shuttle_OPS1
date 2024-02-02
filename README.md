@@ -1,12 +1,12 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
-## Updated November 2023
+## Updated January 2024
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
 Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
 
 # Remarks
 
-This script was last tested in 1.12 with a full RO install. The algorithms are adapted from the real-life Space Shuttle GN&C document [OI-34 SPACE SHUTTLE ORBITER OPERATIONAL LEVEL C FUNCTIONAL SUBSYSTEM SOFTWARE REQUIREMENTS GUIDANCE, NAVIGATION AND CONTROL PART A](https://www.ibiblio.org/apollo/Shuttle/STS83-0002-34%20-%20Guidance%20Ascent-RTLS.pdf). In real life the alghorithms would probably be tailored to the specific mission by means of I-loaded constants, while I tried to make everything work for generic cases. As such, sometimes behaviour can be a bit iffy, YMMV.
+This script was last tested in 1.12.3 with a full RO install. The algorithms are adapted from the real-life Space Shuttle GN&C document [OI-34 SPACE SHUTTLE ORBITER OPERATIONAL LEVEL C FUNCTIONAL SUBSYSTEM SOFTWARE REQUIREMENTS GUIDANCE, NAVIGATION AND CONTROL PART A](https://www.ibiblio.org/apollo/Shuttle/STS83-0002-34%20-%20Guidance%20Ascent-RTLS.pdf). In real life the alghorithms would probably be tailored to the specific mission by means of I-loaded constants, while I tried to make everything work for generic cases. As such, sometimes behaviour can be a bit iffy, YMMV.
 
 # Installation
 
@@ -247,18 +247,26 @@ The Glide-RTLS phase, which starts after arrival on the RV line, is completely o
 The TAL abort is triggered if an engine is shut down between negative return and 4350 inertial velocity. The boundary is called **press to ATO** and an ATO/AOA abort is commanded after that.  
 The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within ~800km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
 
-Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within 600km crossrange of the landing site. The later the TAL abort, the faster the Shuttle is already and the more deltaV it takes to curve the trajectory.  
-Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump. After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations. I chose not to do this automatically as you do have a small window to do small corrections using the Deorbit script. 
-The Shuttle **usually** manages to steer the entry trajectory towards the landing site without issue.
+Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within the crossrange limits to the landing site. Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump.  
+After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations.
+
+In some cases, attemtping to reduce reentry crossrange may result in a MECO underspeed. This happens in cases where only one TAL site is available and late in the ascent, since the faster the Shuttle is already, the more deltaV it takes to steer the trajectory within crossrange limits.  
+If the underspeed is very severe, you have a small window to do an OMS burn to add a little horizontal velocity before engaging Reentry guidance.  
+**Do not add too much velocity**, even in the nominal TAL case the ballistic trajectory should fall well short of the target.
 
 ## ATO/AOA aborts
 
 Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between Press to ATO and 6100 inertial velocity. The boundary is called **press to MECO** and no abort is commanded after that.  
-This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired. Also no OMs dump is performed as you will need the fuel to do orbital corrections later on.  
+This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired. Also no OMS dump is performed as you will need the fuel to do orbital corrections later on.  
 
-After MECO you will have the option to either circularise and carry out the mission in a lower orbit or do an OMS plane change burn to re-enter on the way down. USe the deorbit tool that comes with my entry script to help you with that. 
-~~The SpaceShuttleSystem has less crossrange capability than in real life, for AOA aborts out of KSC I've only been able to reenter back at the Cape for launches to an inclination of 40° or less. For ISS launches (52° inclination) Northrup strip (White Sands) is the preferred AoA landing site. For launches out of Vandenberg, SpaceShuttleSystem sadly does not have the crossrange to make it back to any site in the continental US~~ If you use my latest version of SpaceShuttleSystem and the fork of FAR that I created, you should have my custom Shuttle aerodynamics module thta implement realistic crossrange, making it possible to cover all AOA trajectories.
+After MECO you have two options:
+- do an OMS burn to raise the orbit and continue your mission
+- firstly do a combined circularization - plane change OMS burn to bring you closer to a landing site on the next pass. Later on do a second OMS deorbit burn with the deorbit planner tool
+
+If you use my latest version of SpaceShuttleSystem and the fork of FAR that I created, with the realistic aerodymamics, you have enough crossrange to cover all Abort Once Around trajectories.  
+For AoA aborts out of KSC, you can return to KSC for inclinations up to ~45° . For higher inclinations, Northrup (White Sands) is your best choice.  
+For Vandenberg launches, AoA back to Vandenberg is your only option
 
 ## Post-ATO engine failure 
 
-After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to get rid of the G-throttling logic as we will never reach 3G acceleration on two engines only.
+After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to get rid of the G-throttling logic.
