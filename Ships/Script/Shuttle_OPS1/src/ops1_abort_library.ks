@@ -626,7 +626,7 @@ FUNCTION get_TAL_site {
 			IF (signed_angle(orbitstate["radius"],site_plane,-current_normal,0) > 0) {
 				
 				//shift ahead by half an hour
-				LOCAL sitepos_shifted IS vecYZ(shift_pos(vecYZ(sitepos),-1800)).
+				LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
 				
 				//correct shifted site within cossrange
 				LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
@@ -756,7 +756,7 @@ FUNCTION TAL_tgt_vec {
 		SET abeam_dt TO abeam_dt - eta_to_dt(eta_cur,target_orbit["SMA"],target_orbit["ecc"]).
 		LOCAL abeam_pos IS rodrigues(posvec,-current_normal,d_eta).
 		
-		SET shifted_site TO vecYZ(shift_pos(vecYZ(sitevec),-abeam_dt)).
+		SET shifted_site TO vecYZ(pos2vec(shift_pos(vecYZ(sitevec),-abeam_dt))).
 		
 		SET shifted_site_proj TO VXCL(current_normal,shifted_site).
 		
