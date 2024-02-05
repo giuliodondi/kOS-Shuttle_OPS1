@@ -1,3 +1,6 @@
+@LAZYGLOBAL OFF.
+CLEARSCREEN.
+
 RUNPATH("0:/Libraries/maths_library").
 RUNPATH("0:/Libraries/misc_library").
 RUNPATH("0:/Libraries/vehicle_library").
@@ -24,7 +27,14 @@ FUNCTION rotate_upvec {
 }
 
 
-FUNCTION loop {
+FUNCTION execute_manoeuvre {
+
+	//check engines 
+	IF (get_running_engines():LENGTH = 0) {
+		PRINT "No active engines,  aborting." .
+		RETURN.
+	}
+
 	CLEARSCREEN.
 	SET TERMINAL:WIDTH TO 55.
 	SET TERMINAL:HEIGHT TO 20.	
@@ -60,34 +70,15 @@ FUNCTION loop {
 		
 	LOCAL burnT IS  burnDT(nodeDV).
 	
-	PRINTPLACE("Manoeuvre Delta V : " + round(nodeDV, 2) + "m/s",30,0,1).
-	PRINTPLACE("Manoeuvre Burn T  : " + sectotime(burnT),30,0,2).
-	
-	WHEN nxtnode:ETA <0.5 THEN {
-		//calculate time of burn
-		
-		SET ignitionflag TO TRUE.
-		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 1.
-		
-		SET shutdownT TO TIME:SECONDS +burnT.
-		
-		WHEN TIME:SECONDS>=shutdownT THEN {
-			SET quitflag TO TRUE.
-			SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-		}
-	}
-	
+	PRINTPLACE("Node Delta V : " + round(nodeDV, 2) + "m/s",30,0,1).
+	PRINTPLACE("Approx. Node Burn T  : " + sectotime(burnT),30,0,2).
+
 	LOCAL abortflag IS FALSE.
 
 	UNTIL FALSE {
 	
-		IF (ignitionflag AND NOT quitflag AND SHIP:CONTROL:PILOTMAINTHROTTLE < 0.01) {
-			SET abortflag TO TRUE.
-		}
-	
 		IF HASNODE {
 			set nodevec tO nxtnode:deltav:NORMALIZED. 
-			//SET nodeDV TO nxtnode:deltav:MAG.
 		}
 		
 		IF (VANG(P_steer:VECTOR,SHIP:FACING:FOREVECTOR) < 10 ) {
@@ -100,25 +91,52 @@ FUNCTION loop {
 		
 		IF ignitionflag AND (quitflag OR abortflag) {BREAK.}
 		
-		IF NOT ignitionflag {
-			LOCAL node_eta IS nextnode:ETA.
+		IF (NOT ignitionflag) {
+			LOCAL node_eta IS nxtnode:ETA.
 			warp_controller(node_eta, FALSE, 25).
 			PRINTPLACE("Node ETA : " + sectotime(node_eta),30,0,4).
+			
+			if (node_eta < 0.1) {
+				SET ignitionflag TO TRUE.
+				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 1.
+				SET shutdownT TO TIME:SECONDS - node_eta + burnT.
+			}
+			
 		} ELSE {
 			PRINTPLACE("Shutdown : " + sectotime(shutdownT - TIME:SECONDS),30,0,4).
+			
+			if (TIME:SECONDS>=shutdownT) {
+				set quitflag to TRUE.
+				BREAK.
+			}
+			
+			if (SHIP:CONTROL:PILOTMAINTHROTTLE < 0.01) {
+				set abortflag to TRUE.
+				BREAK.
+			}
 		}
 		
-		wait 0.1.
+		wait 0.02.
 	
 	}
 	
 	IF (abortflag) {
 		PRINTPLACE("Manoeuvre aborted by the pilot",30,0,4).
 	} ELSE {
-		PRINTPLACE("Manoeuvre complete",30,0,4).
+		//wait for node to be gone 
+		PRINTPLACE("Checking for completion...",30,0,4).
+		UNTIL FALSE {
+			local nodelist is ALLNODES.
+			IF NOT (nodelist:contains(nxtnode)) {BREAK.}
+			wait 0.02.
+		}
+	
+		PRINTPLACE("Manoeuvre complete",30,0,6).
 	}
 	
-	PRINTPLACE("Killing rotation...",30,0,6).
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+	
+	PRINTPLACE("Killing rotation...",30,0,8).
 	
 	LOCK STEERING TO "kill".
 	
@@ -130,7 +148,4 @@ FUNCTION loop {
 
 }
 
-
-
-
-loop().
+execute_manoeuvre().

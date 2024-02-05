@@ -146,24 +146,18 @@ FUNCTION get_stg_tanks_res {
 	local reslex is LEXICON().
 	local tanklist IS LIST().
 	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				
-				LOCAL eng_res IS e:consumedresources:VALUES.
-				LOCAL eng_res_names IS LIST().
-			
-				FOR res IN eng_res {
-					eng_res_names:ADD(res:name).
-					IF NOT reslex:HASKEY(res:name) {
-						reslex:ADD(res:name, res).
-					}
-				}
-				
-				SET tanklist TO parts_tree(e:PARENT,tanklist,eng_res_names).
+	FOR e in get_running_engines() {		
+		LOCAL eng_res IS e:consumedresources:VALUES.
+		LOCAL eng_res_names IS LIST().
+	
+		FOR res IN eng_res {
+			eng_res_names:ADD(res:name).
+			IF NOT reslex:HASKEY(res:name) {
+				reslex:ADD(res:name, res).
 			}
 		}
+		
+		SET tanklist TO parts_tree(e:PARENT,tanklist,eng_res_names).
 	}
 	
 	stg:ADD("resources", reslex).
@@ -201,6 +195,35 @@ FUNCTION get_prop_mass {
     RETURN prop_mass.
 }
 
+
+FUNCTION get_running_engines {
+	LOCAL running_eng_list Is LIST().
+	
+	LIST ENGINES IN all_eng.
+	FOR e IN all_eng {
+		IF e:ISTYPE("engine") {
+			IF e:IGNITION {
+				running_eng_list:ADD(e).
+			}
+		}
+	}	
+	
+	RETURN running_eng_list.
+}
+
+FUNCTION shutdown_running_engines {
+	FOR e IN get_running_engines() {
+		e:SHUTDOWN.
+	}
+}
+
+FUNCTION shutdown_all_engines {
+	LIST ENGINES IN all_eng.
+	FOR e IN all_eng {
+		e:shutdown.
+	}	
+}
+
 //measures current total engine thrust vector and isp of running engines
 
 FUNCTION get_current_thrust_isp {
@@ -209,16 +232,11 @@ FUNCTION get_current_thrust_isp {
 	LOCAL thr IS 0.
 	LOCAL isp_ IS 0.
 	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				LOCAL e_thr IS (e:THRUST * 1000).
-				SET thr TO thr + e_thr.
-				SET isp_ TO isp_ + e:ISP*e_thr.
-				set thrvec to thrvec -e:POSITION:NORMALIZED*e_thr.
-			}
-		}
+	FOR e IN get_running_engines() {
+		LOCAL e_thr IS (e:THRUST * 1000).
+		SET thr TO thr + e_thr.
+		SET isp_ TO isp_ + e:ISP*e_thr.
+		set thrvec to thrvec -e:POSITION:NORMALIZED*e_thr.
 	}	
 	
 	if (thr=0) {
@@ -238,16 +256,11 @@ FUNCTION get_max_thrust_isp{
 	LOCAL thr IS 0.
 	LOCAL isp_ IS 0.
 	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				LOCAL e_thr IS (e:MAXTHRUSTAT(0) * 1000).
-				SET thr TO thr + e_thr.
-				SET isp_ TO isp_ + e:ISPAT(0)*e_thr.
-				set thrvec to thrvec -e:POSITION:NORMALIZED*e_thr.
-			}
-		}
+	FOR e in get_running_engines() {
+		LOCAL e_thr IS (e:MAXTHRUSTAT(0) * 1000).
+		SET thr TO thr + e_thr.
+		SET isp_ TO isp_ + e:ISPAT(0)*e_thr.
+		set thrvec to thrvec -e:POSITION:NORMALIZED*e_thr.
 	}	
 	
 	if (thr=0) {
@@ -295,22 +308,17 @@ FUNCTION thrustrot {
 	local offs is v(0,0,0).
 	LOCAL thr is 0.
 	
-	list ENGINES in all_eng.
-	FOR e IN all_eng {
-		IF e:ISTYPE("engine") {
-			IF e:IGNITION {
-				LOCAL e_thr IS e:MAXTHRUST.
-				
-				IF (running_thrust) {
-					SET e_thr TO e:THRUST.
-				}
-				
-				SET thr TO thr + e_thr.
-				//set x to x + 1.
-				local vel is -e:POSITION:NORMALIZED*e_thr.
-				set offs to offs + vel.
-			}
+	FOR e in get_running_engines() {
+		LOCAL e_thr IS e:MAXTHRUST.
+		
+		IF (running_thrust) {
+			SET e_thr TO e:THRUST.
 		}
+		
+		SET thr TO thr + e_thr.
+		//set x to x + 1.
+		local vel is -e:POSITION:NORMALIZED*e_thr.
+		set offs to offs + vel.
 	}	
 	set thrvec to (offs/thr):NORMALIZED .
 	local ship_fore IS SHIP:FACING:VECTOR:NORMALIZED.
