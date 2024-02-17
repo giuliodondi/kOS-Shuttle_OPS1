@@ -1,7 +1,32 @@
 
 //conic state extrapolation function / gravity integrator
-//RUNPATH("0:/Libraries/cser_new").
-RUNPATH("0:/Libraries/cser_sg_simple").
+FUNCTION cse {
+	 PARAMETER r0.
+	PARAMETER v0.
+	PARAMETER tgo.
+	PARAMETER dummy_ IS 0.
+		
+	LOCAL nstep IS 30.
+	LOCAL dT Is tgo/nstep.
+	
+	LOCAl simstate IS blank_simstate(
+		LEXICON(
+				"position", r0,
+				"velocity", v0
+		)
+	).
+	
+	FROM { LOCAL i IS 1. } UNTIL i>nstep STEP { SET i TO i+1. } DO {
+		SET simstate TO clone_simstate(coast_rk3(dT, simstate)).
+	}
+	
+	RETURN LISt(
+				simstate["position"],
+				simstate["velocity"],
+				dummy_
+	).
+
+}
 
 
 //global UPFG variables 
