@@ -435,10 +435,59 @@ function make_rtls_traj2_disp {
 	SET rtls_traj_disp_rightdatabox:STYLE:ALIGN TO "left".
 	SET rtls_traj_disp_rightdatabox:STYLE:WIDTH TO 125.
     SET rtls_traj_disp_rightdatabox:STYLE:HEIGHT TO 115.
-	set rtls_traj_disp_rightdatabox:style:margin:h to 410.
+	set rtls_traj_disp_rightdatabox:style:margin:h to 385.
 	set rtls_traj_disp_rightdatabox:style:margin:v to 45.
 	
 	make_g_slider(rtls_traj_disp_rightdatabox).
+	
+	GLOBAL rtls_traj_disp_rightattbox IS rtls_traj_disp_rightdatabox:ADDVLAYOUT().
+	SET rtls_traj_disp_rightattbox:STYLE:ALIGN TO "left".
+	SET rtls_traj_disp_rightattbox:STYLE:WIDTH TO 125.
+    SET rtls_traj_disp_rightattbox:STYLE:HEIGHT TO 115.
+	set rtls_traj_disp_rightattbox:style:margin:h to 10.
+	set rtls_traj_disp_rightattbox:style:margin:v to 12.
+	
+	GLOBAL rtls_trajrightdata1 IS rtls_traj_disp_rightattbox:ADDLABEL("R  xxxxxx").
+	set rtls_trajrightdata1:style:margin:v to -4.
+	GLOBAL rtls_trajrightdata2 IS rtls_traj_disp_rightattbox:ADDLABEL("P xxxxxx").
+	set rtls_trajrightdata2:style:margin:v to -4.
+	GLOBAL rtls_trajrightdata3 IS rtls_traj_disp_rightattbox:ADDLABEL("Y xxxxxx").
+	set rtls_trajrightdata3:style:margin:v to -4.
+	
+}
+
+function update_att_angles {
+	parameter gui_data.
+	parameter p_text_handle.
+	parameter r_text_handle.
+	parameter y_text_handle.
+	
+	local rolstr is "R   ".
+	if (gui_data["roll"] >=0) {
+		set rolstr to rolstr + "R".
+	} else {
+		set rolstr to rolstr + "L".
+	}
+	set rolstr to rolstr + round(abs(gui_data["roll"]),0).
+	set r_text_handle:text to rolstr. 
+	
+	local pchstr is "P   ".
+	if (gui_data["pitch"] >=0) {
+		set pchstr to pchstr + "U".
+	} else {
+		set pchstr to pchstr + "D".
+	}
+	set pchstr to pchstr + round(abs(gui_data["pitch"]),0).
+	set p_text_handle:text to pchstr. 
+	
+	local yawstr is "Y   ".
+	if (gui_data["yaw"] >=0) {
+		set yawstr to yawstr + "R".
+	} else {
+		set yawstr to yawstr + "L".
+	}
+	set yawstr to yawstr + round(abs(gui_data["yaw"]),0).
+	set y_text_handle:text to yawstr. 
 	
 }
 
@@ -455,33 +504,12 @@ function update_ascent_traj_disp {
 	
 	set ascent_trajleftdata1:text to "Ḣ   " + round(gui_data["hdot"], 0). 
 	
-	local rolstr is "R   ".
-	if (gui_data["roll"] >=0) {
-		set rolstr to rolstr + "R".
-	} else {
-		set rolstr to rolstr + "L".
-	}
-	set rolstr to rolstr + round(abs(gui_data["roll"]),0).
-	set ascent_trajleftdata3:text to rolstr. 
-	
-	local pchstr is "P   ".
-	if (gui_data["pitch"] >=0) {
-		set pchstr to pchstr + "U".
-	} else {
-		set pchstr to pchstr + "D".
-	}
-	set pchstr to pchstr + round(abs(gui_data["pitch"]),0).
-	set ascent_trajleftdata4:text to pchstr. 
-	
-	local yawstr is "Y   ".
-	if (gui_data["yaw"] >=0) {
-		set yawstr to yawstr + "R".
-	} else {
-		set yawstr to yawstr + "L".
-	}
-	set yawstr to yawstr + round(abs(gui_data["yaw"]),0).
-	set ascent_trajleftdata5:text to yawstr. 
-	
+	update_att_angles(
+					gui_data,
+					ascent_trajleftdata4,
+					ascent_trajleftdata3,
+					ascent_trajleftdata5
+	).
 	
 	set ascent_trajrightdata1:text to "PROP " + round(gui_data["et_prop"],0). 
 	set ascent_trajrightdata2:text to "THR  " + round(gui_data["ssme_thr"], 0). 
@@ -544,6 +572,12 @@ function update_rtls_traj_disp {
 	set rtls_trajleftdata6:text to "<color=#" + upfg_text_color + ">VGO  " + round(gui_data["vgo"], 0) + "</color>". 
 	set rtls_trajleftdata7:text to "<color=#" + guitextgreenhex + ">T_C " + tc_sign + sectotime_simple(ABS(gui_data["rtls_tc"])) + "</color>". 
 	
+	update_att_angles(
+					gui_data,
+					rtls_trajrightdata2,
+					rtls_trajrightdata1,
+					rtls_trajrightdata3
+	).
 
 	update_g_slider(gui_data["twr"]).
 	
