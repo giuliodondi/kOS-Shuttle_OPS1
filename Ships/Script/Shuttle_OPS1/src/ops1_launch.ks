@@ -468,22 +468,14 @@ declare function closed_loop_ascent{
 	close_umbilical().
 	disable_TVC().
 	
-	// IF RTLS enter GRTLS loop and exit
-	IF (DEFINED RTLSAbort) {
-		
-		shutdown_all_engines().
-		
-		dataviz_executor["stop_execution"]().
-		
-		close_all_GUIs().
-		
-		GRTLS().
-		RETURN.
-	}
-	
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
 	SAS ON.
+	
+	// IF RTLS enter GRTLS loop and exit
+	IF (DEFINED RTLSAbort) {
+		RETURN TRUE.
+	}
 	
 	print_ascent_report().
 	
@@ -498,6 +490,12 @@ declare function closed_loop_ascent{
 
 launch().
 
-
+CLEARSCREEN.
 dataviz_executor["stop_execution"]().
 close_all_GUIs().
+
+
+
+IF (DEFINED RTLSAbort) {
+	RUN "0:/ops3".
+}
