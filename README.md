@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
-## Updated January 2024
+## Updated February 2024
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
 Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
@@ -16,7 +16,7 @@ This script was last tested in 1.12.3 with a full RO install. The algorithms are
 - kOS Ferram, now available on CKAN
 - [My own fork of SpaceODY's Space Shuttle System](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
   - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module. Refer to the README
-- **[My Shuttle entry script](https://github.com/giuliodondi/kOS-ShuttleEntrySim) required by RTLS and TAL aborts. Grab the latest version from its repo**
+- **[My OPS3 Shuttle entry program](https://github.com/giuliodondi/kOS-Shuttle-OPS3) required by RTLS and TAL aborts. Grab the latest version from its repo**
 
 **Not compatible with SpaceODY's original fork or any other Shuttle mod.**
 
@@ -155,6 +155,8 @@ The Shuttle has its engines pointed away from the main vehicle axis and as such 
 
 RTLS is triggered if an engine fails before a certain surface-relative velocity is reached. The actual speed varies between 2600 and 2200 m/s depending on how large the desired orbital inclination is. The boundary is called **negative return** and a TAL abort is commanded after that. This abort scenario is quite involved and has a powered phase (until MECO) and a Glide phase after that.
 
+### Powered-RTLS
+
 Powered-RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
 - Altitude about 72 km
 - Moving towards the launch site with velocity that depends on distance at MECO
@@ -168,8 +170,11 @@ Automatic OMS dump is initiated during fuel dissipation.
 - **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses a modified version of PEG for guidance. Since velocity-to-go and time-to-go need to match the 2% propellant constraint at MECO, as well as the constraint between position and velocity, active throttling is used as an extra degree-of-freedom. Throttling is disabled some time seconds before MECO as it can become unstable. 
 The OMS fuel dump will cease before or at MECO during flyback.
 
-After MECO and separation, the **Glide-RTLS (GRTLS)** guidance is activated.  
-The Shuttle pitches up to 40° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces.  At the end of GRTLS the Shuttle will be about 200-250 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent. The entry script will automatically be called and from there on you take over like a normal reentry. You will have to make sure that the landing site is the correct one, and engage steering control and guidance manually in the entry GUI.
+### Glide-RTLS
+
+After MECO and separation, the script will stop and call the OPS3 reentry script which takes case of  **Glide-RTLS (GRTLS)** guidance.  
+In a nutshell: the Shuttle pitches up to 45° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces. At the end of GRTLS the Shuttle will be about 200 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent.  
+**Please read carefully the OPS3 documentation for more about Glide-RTLS**
 
 ### RTLS TRAJ 2 display
 
@@ -179,7 +184,7 @@ This display is rendered when the RTLS abort is initialised (not when the engine
 
 - At the top you have another cutoff velocity indicator, this time in terms of surface velocity. The range is from 1500 to 2500 m/s, and since the goal is to turn back higher cutoff speeds are indicated from right to left.
     - While the CO mark is actively placed in the right place, you should expect the actual speed at cutoff to be off this mark by a little.
-- The right data box only contains the G indicator
+- The right data box only contains the G indicator and attitude angles
 - the left data box contains:
     - vertical speed (H-dot)
     - propellant left (PROP)
