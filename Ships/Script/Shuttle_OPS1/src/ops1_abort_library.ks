@@ -226,7 +226,7 @@ FUNCTION RTLS_rvline_coefs {
 	//RETURN LIST(0.00242, 768.72).		//this is the original from the rtls traj-shaping paper 
 	//RETURN LIST(0.0031, 559.49).		//this was lifted from the sts-1 abort analysis paper 
 	//RETURN LIST(0.004, 234).			//this worked before ops3
-	RETURN LIST(0.0035, 300).
+	RETURN LIST(0.0035, 350).
 }
 
 //calculate the desired RV-line velocity  (DISTANCE IN METRES)
