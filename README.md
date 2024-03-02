@@ -17,6 +17,7 @@ This script was last tested in 1.12.3 with a full RO install. The algorithms are
 - [My own fork of SpaceODY's Space Shuttle System](https://github.com/giuliodondi/Space-Shuttle-System-Expanded). 
   - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module. Refer to the README
 - **[My OPS3 Shuttle entry program](https://github.com/giuliodondi/kOS-Shuttle-OPS3) required by RTLS and TAL aborts. Grab the latest version from its repo**
+  - **no longer compatible with the older kOS-ShuttleEntrySim program**
 
 **Not compatible with SpaceODY's original fork or any other Shuttle mod.**
 
@@ -76,12 +77,20 @@ There is no longer any need for a specific vessel configuration file as the scri
 As mentioned, the mission is started by running **shuttle.ks**. Running this script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch a few seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch. It is possible to launch in the orbital plane of a ship in orbit by selecting it as a target in the map view **BEFORE** running the script. This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.  
 Fuel cells are automatically activated at liftoff. On a nominal mission a roll to heads-up attitude is performed at T+5:50.  
 
-
 Although the Shuttle was a two-stage vehicle, the script treats it as a four-stage vehicle:
 - stage 1 is the SRB atmospheric phase, with open-loop guidance. It terminates 5 seconds after SRB sep.
 - stage 2 is closed-loop PEG guidance with the engines at full constant throttle. It terminates when the acceleration reaches 3G
 - stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached. For missions with very heavy payloads this might be the last phase overall, as fuel will be depleted before the minimum throttle setting is reached.
-- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. It terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch. 
+- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. It terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch.
+
+After MECO the script will automatically:
+- trigger ET sep
+- command an RCS vertical translation manoeuvre
+- close the umbilical doors
+- disable SSME gimballing
+
+The script then enters an infinite loop displaying the results of an orbital analysis, calculating the erros with respect to the desired orbit. At this point you can halt the script with ctrl+C in the script window.
+**Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
 
 The script now implements a functional GUI which re-creates the real-world Space Shuttle monitor displays during ascent. Although the GUI is fully functional, so far it is just a fancy display since there is no possibility of manual control.
 
@@ -127,15 +136,6 @@ This is the display from the final moments of first stage all the way to MECO, d
 The Space Shuttle Main Engine had several performance improvements in its operational life, and you have all the variants at your disposal in KSP RO.  
 The caveat is that "full power" is an ambiguous term in this situation. For this reason we define the Rated Power Level (100% RPL) as 2090 kN, the max thrust of the original variant. 
 This is significant because for the later part of the Shuttle program, when they used the RS-25D variant, the nominal throttle setting was 104% RPL and boosted to the full 109% RPL in case of an abort. This was done to reduce wear and risk of failure on the engines, it's all realistic and simulated by the script.
-
-After MECO the script will automatically:
-- trigger ET sep
-- command an RCS vertical translation manoeuvre
-- close the umbilical doors
-- disable SSME gimballing
-
-The script then enters an infinite loop displaying the results of an orbital analysis, calculating the erros with respect to the desired orbit. At this point you can halt the script with ctrl+C in the script window.
-**Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
 
 ## Aborts
 
@@ -250,7 +250,7 @@ The Glide-RTLS phase, which starts after arrival on the RV line, is completely o
 ## TAL abort
 
 The TAL abort is triggered if an engine is shut down between negative return and 4350 inertial velocity. The boundary is called **press to ATO** and an ATO/AOA abort is commanded after that.  
-The TAL site is selected automatically from the landing sites defined in **Shuttle_entrysim/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within ~800km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
+The TAL site is selected automatically from the landing sites defined in **Shuttle_OPS3/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within ~800km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
 
 Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within the crossrange limits to the landing site. Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump.  
 After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations.
