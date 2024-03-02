@@ -8,7 +8,7 @@ function launch{
 	
 	
 	//	Load libraries
-	RUNPATH("0:/Shuttle_entrysim/landing_sites").
+	RUNPATH("0:/Shuttle_OPS3/landing_sites").
 	RUNPATH("0:/Libraries/misc_library").	
 	RUNPATH("0:/Libraries/maths_library").	
 	RUNPATH("0:/Libraries/navigation_library").	
