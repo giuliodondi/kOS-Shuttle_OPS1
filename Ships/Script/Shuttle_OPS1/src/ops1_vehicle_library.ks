@@ -446,7 +446,7 @@ function ascent_dap_factory {
 	this:add("steer_mode", "").
 	this:add("thr_mode", "").		//ksp 0-1 throttle value
 	
-	this:add("thr_cmd", 1).
+	this:add("thr_cmd", 0).
 	
 	this:add("last_time", TIME:SECONDS).
 	
@@ -484,6 +484,8 @@ function ascent_dap_factory {
 		set this:steer_pitch_delta to signed_angle(tgtv_v, this:steer_dir:forevector, this:steer_dir:starvector, 0).
 		set this:steer_yaw_delta to signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
+		
+		set this:throt_delta to this:thr_cmd - this:thr_tgt.
 	}).
 	
 	this:add("cur_dir", SHIP:FACINg).
@@ -510,6 +512,8 @@ function ascent_dap_factory {
 	
 	this:add("steer_auto_thrvec", {
 		set this:cur_mode to "auto_thrvec".
+		
+		this:measure_cur_state().
 	
 		local steer_err_tol is 0.5.
 		local max_steervec_corr is 3 * STEERINGMANAGER:MAXSTOPPINGTIME.
@@ -543,31 +547,62 @@ function ascent_dap_factory {
 
 	this:add("steer_css", {
 		set this:cur_mode to "css".
+		
+		this:measure_cur_state().
 	
 		//required for continuous pilot input across several funcion calls
 		LOCAL time_gain IS ABS(this:iteration_dt/0.03).
 		
 		//gains suitable for manoeivrable steerign in atmosphere
-		LOCAL pitchgain IS 3 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		LOCAL rollgain IS 5 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		LOCAL yawgain IS 3 * STEERINGMANAGER:MAXSTOPPINGTIME.
-	
-	
+		LOCAL pitchgain IS 0.1 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		LOCAL rollgain IS 0.2 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		LOCAL yawgain IS 0.1 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		
+		LOCAL steer_tol IS 0.1.
+		LOCAL max_steer_dev IS 8.
+		
+		local input_pitch is SHIP:CONTROL:PILOTPITCH.
+		local input_roll is SHIP:CONTROL:PILOTROLL.
+		local input_yaw is SHIP:CONTROL:PILOTYAW.
+		
+		if (abs(input_pitch) < steer_tol) {
+			set input_pitch to 0. 
+		}
+		if (abs(input_roll) < steer_tol) {
+			set input_roll to 0. 
+		}
+		if (abs(input_yaw) < steer_tol) {
+			set input_yaw to 0. 
+		}
+
 		//measure input minus the trim settings
-		LOCAL deltaroll IS time_gain * rollgain * (SHIP:CONTROL:PILOTROLL).
-		LOCAL deltapitch IS time_gain * rollgain * (SHIP:CONTROL:PILOTPITCH).
-		LOCAL deltayaw IS time_gain * yawgain * (SHIP:CONTROL:PILOTYAW).
+		LOCAL deltaroll IS time_gain * rollgain * input_roll.
+		LOCAL deltapitch IS time_gain * pitchgain * input_pitch.
+		LOCAL deltayaw IS time_gain * yawgain * input_yaw.
+		
+		print input_pitch + "  " at (0,20).
+		print input_roll + "  " at (0,21).
+		print input_yaw + "  " at (0,22).
 		
 		local steer_fore is this:steer_dir:forevector.
 		local steer_top is this:steer_dir:topvector.
 		local steer_star is this:steer_dir:starvector.
 		
-		local new_steervec is rodrigues(steer_fore, steer_top, deltayaw).
-		set new_steervec to rodrigues(new_steervec, steer_star, -deltapitch).
-		local new_steertop is rodrigues(steer_top, steer_fore, deltaroll).
-		set new_steertop to vxcl(new_steervec, new_steertop).
+		local new_steerfore is rodrigues(steer_fore, steer_top, deltayaw).
+		set new_steerfore to rodrigues(new_steerfore, steer_star, - deltapitch).
 		
-		set this:steer_dir to LOOKDIRUP(new_steervec, new_steertop ).
+		local cur_fore is this:cur_dir:forevector.
+		
+		local cur_new_norm is vcrs(cur_fore, new_steerfore).
+		
+		LOCAL ang_dev IS MIN(max_steer_dev, vang(cur_fore, new_steerfore) ).
+		
+		set new_steerfore to rodrigues(cur_fore, cur_new_norm, ang_dev).
+		
+		local new_steertop is vxcl(new_steerfore, steer_top).       
+		set new_steertop to rodrigues(new_steertop, new_steerfore, - deltaroll).
+		
+		set this:steer_dir to LOOKDIRUP(new_steerfore, new_steertop ).
 	}).
 	
 	
@@ -601,12 +636,14 @@ function ascent_dap_factory {
 		print "loop dt : " + round(this:iteration_dt(),3) + "    " at (0,line + 3).
 		
 		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 5).
-		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 6).
+		print "cur_steer_roll : " + round(this:cur_steer_roll,3) + "    " at (0,line + 6).
 		print "cur_steer_az : " + round(this:cur_steer_az,3) + "    " at (0,line + 7).
+		print "thr_cmd : " + round(this:thr_cmd,3) + "    " at (0,line + 8).
 		
-		print "steer_pitch_delta : " + round(this:steer_pitch_delta,3) + "    " at (0,line + 9).
-		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 10).
-		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 11).
+		print "steer_pitch_delta : " + round(this:steer_pitch_delta,3) + "    " at (0,line + 10).
+		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 11).
+		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 12).
+		print "throt_delta : " + round(this:throt_delta,3) + "    " at (0,line + 13).
 		
 	}).
 	
