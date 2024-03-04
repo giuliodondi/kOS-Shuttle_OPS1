@@ -466,8 +466,6 @@ function ascent_dap_factory {
 	this:add("steer_yaw_delta", 0).
 	this:add("steer_roll_delta", 0).
 	
-	this:add("", {}).
-	
 	this:add("measure_cur_state", {
 		this:update_time().
 		
@@ -495,6 +493,7 @@ function ascent_dap_factory {
 	
 	this:add("steer_refv", v(0,0,0)).
 	this:add("steer_thrvec", v(0,0,0)).
+	this:add("steer_roll", v(0,0,0)).
 	
 	this:add("steer_tgtdir", SHIP:FACINg).
 	
@@ -510,32 +509,40 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("steer_auto_thrvec", {
+		set this:cur_mode to "auto_thrvec".
 	
-		local thrvec_rate is 30 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		local thrvec_err_tol is 0.5.
-		local max_thrvec_corr is 3 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		local steer_err_tol is 0.5.
+		local max_steervec_corr is 3 * STEERINGMANAGER:MAXSTOPPINGTIME.
 	
 		local roll_rate is 10.
 		local max_roll_corr is 15.
 		
-		local tgt_thrvec is this:steer_thrvec.
-		local thrv_err is vang(this:cur_thrvec, this:steer_thrvec).
+		local cur_steervec is this:steer_dir:forevector.
+		local tgt_steervec is this:steer_tgtdir:forevector.
 		
-		if (thrv_err > thrvec_err_tol) {
-			local thrv_norm is vcrs(this:cur_thrvec, this:steer_thrvec).
-			local thrvec_corr is min(max_thrvec_corr, thrv_err).
+		local steer_err is vang(cur_steervec, tgt_steervec).
+		
+		if (steer_err > steer_err_tol) {
+			local steerv_norm is vcrs(cur_steervec, tgt_steervec).
+			local steerv_corr is min(max_steervec_corr, steer_err).
 			
-			set tgt_thrvec to rodrigues(this:cur_thrvec, thrv_norm, thrvec_corr).
+			set tgt_steervec to rodrigues(cur_steervec, steerv_norm, steerv_corr).
 		}
+		
+		local cur_topvec is vxcl(tgt_steervec, this:steer_dir:topvector).
+		local tgt_topvec is vxcl(tgt_steervec, this:steer_tgtdir:topvector).
+		
+		local roll_err is signed_angle(tgt_topvec, cur_topvec, tgt_steervec, 0).
+		local roll_corr is sign(roll_err) * min(abs(roll_err) ,max_roll_corr).
+		
+		set tgt_topvec to rodrigues(tgt_topvec, tgt_steervec, roll_corr).
 	
-		local roll_err is this:steer_roll - this:cur_roll.
-		local tgt_roll is this:cur_roll + sign(roll_err) * min(abs(roll_err) ,max_roll_corr).
-	
-		set this:steer_dir to aimAndRoll(tgt_thrvec, this:steer_refv, tgt_roll).
+		set this:steer_dir to LOOKDIRUP(tgt_steervec, tgt_topvec ).
 	}).
 
 
 	this:add("steer_css", {
+		set this:cur_mode to "css".
 	
 		//required for continuous pilot input across several funcion calls
 		LOCAL time_gain IS ABS(this:iteration_dt/0.03).
@@ -570,6 +577,7 @@ function ascent_dap_factory {
 	this:add("thr_min", 0).	
 	
 	this:add("thr_control_auto", {
+		set this:cur_mode to "thr_auto".
 	
 		set this:thr_val to CLAMP(this:thr_tgt, this:thr_min, this:thr_max).	
 		set this:thr_cmd to throtteValueConverter(this:thr_val, this:thr_min).
@@ -577,6 +585,7 @@ function ascent_dap_factory {
 	
 	
 	this:add("thr_control_css", {
+		set this:cur_mode to "thr_css".
 	
 		set this:thr_cmd to SHIP:CONTROL:PILOTMAINTHROTTLE.
 		set this:thr_val to throtteValueConverter(this:thr_cmd, this:thr_min, TRUE).	
@@ -591,13 +600,13 @@ function ascent_dap_factory {
 		
 		print "loop dt : " + round(this:iteration_dt(),3) + "    " at (0,line + 3).
 		
-		print "cur pitch : " + round(this:cur_pitch,3) + "    " at (0,line + 5).
-		print "cur roll : " + round(this:cur_roll,3) + "    " at (0,line + 6).
-		print "cur az : " + round(this:cur_az,3) + "    " at (0,line + 7).
+		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 5).
+		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 6).
+		print "cur_steer_az : " + round(this:cur_steer_az,3) + "    " at (0,line + 7).
 		
-		print "steer pitch : " + round(this:steer_pitch,3) + "    " at (0,line + 9).
-		print "steer roll : " + round(this:steer_roll,3) + "    " at (0,line + 10).
-		print "steer az : " + round(this:steer_az,3) + "    " at (0,line + 11).
+		print "steer_pitch_delta : " + round(this:steer_pitch_delta,3) + "    " at (0,line + 9).
+		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 10).
+		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 11).
 		
 	}).
 	
