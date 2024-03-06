@@ -96,7 +96,7 @@ The script now implements a functional GUI which re-creates the real-world Space
 
 ### ASCENT TRAJ 1 display
 
-![ascent_traj_1_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/ascent_traj1_gui.png)
+![ascent_traj_1_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_traj1_gui.png)
 
 This is the display during the majority of first stage, until right before SRB separation.
 - At the top you have the display title and the running mission elapsed time
@@ -114,7 +114,7 @@ This is the display during the majority of first stage, until right before SRB s
 
 ### ASCENT TRAJ 2 display
 
-![ascent_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/ascent_traj2_gui.png)
+![ascent_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_traj2_gui.png)
 
 This is the display from the final moments of first stage all the way to MECO, during nominal ascent, TAL and ATO aborts (RTLS has its own display).
 
@@ -178,7 +178,7 @@ In a nutshell: the Shuttle pitches up to 45° as it performs an aerobraking mano
 
 ### RTLS TRAJ 2 display
 
-![rtls_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj2_gui.png)
+![rtls_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_traj2_gui.png)
 
 This display is rendered when the RTLS abort is initialised (not when the engine is lost) and lasts until after MECO.
 
@@ -210,7 +210,7 @@ Once we trigger Flyback, T_C will settle around zero as the PEG algorithm adjust
 
 Here I present my test results for RTLS aborts. The scenario was STS-9 (RS-25A, Lightweight tank, Spacelab payload at 57° inclination). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to just before Negative Return. The plots include both Powered and GLide RTLS phases 
 
-![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_traj.png)
+![rtls_trajplot](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_traj.png)
 
 The first plot is altitude vs. downrange distance, and shows the general shape of the trajectory. You can see:
 - engine failures before SRB sep result in lofted trajectories, as commanded
@@ -218,7 +218,7 @@ The first plot is altitude vs. downrange distance, and shows the general shape o
 - all trajectories target the same altitude at MECO, it's the "hump" at 72km
 - The downrange distance at MECO is different for all trajectories
 
-![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_vel.png)
+![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_vel.png)
 
 The second plot is horizontal velocity vs. altitude. Here you can see clearly:
 - when the engine was lost (the point of deviaton from the dashed nominal line)
@@ -227,13 +227,13 @@ The second plot is horizontal velocity vs. altitude. Here you can see clearly:
 - that the Shuttle does not come to a dead stop at the inversion point, as there is some sideways motion
 - That, just like downrange distance, all velocities at MECO are different
 
-![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_rvline.png)
+![](https://github.com/giuliodondi/kOS-UPFG_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_rvline.png)
 
 The third plot shows downrange distance vs. velocity, centered around the point of MECO. All the lines terminate close to the Range-Velocity (RV) line, which is the equation that Guidance uses to target MECO. Where exactly you land on the RV line is not important as long as the script cuts off the engines on it, which you can see as the velocity becomes almost constant (before increasing again during the Glide-RTLS descent).  
 Curiously, very early and very late aborts produce trajectories that arrive closer to the site than mid aborts, this trend can also be seen in the farthest distance reached during flyback (see plot 1). Early aborts have low speed and acceleration and so the Shuttle cannot travel very far before flyback, while late aborts have the highest acceleration.
 
 
-![](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/rtls_throt.png)
+![](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_throt.png)
 
 The final plot shows the throttle setting in terms of RPL percentage. The thottle is kept at maximum during fuel dissipation, and is actively adjusted during the flyback phase. You can see:
 - Max-Q throttle-down is done for all cases except a liftoff engine failure
