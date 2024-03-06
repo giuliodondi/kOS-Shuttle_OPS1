@@ -23,6 +23,8 @@ function launch{
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_gui_library.ks").
 	
+	LOCAL dap IS ascent_dap_factory().
+	
 	wait until ship:unpacked and ship:loaded.
 	
 	make_main_ascent_gui().
@@ -37,8 +39,10 @@ function launch{
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
 	GLOBAL dataviz_executor IS loop_executor_factory(
-												0.3,
+												0.15,
 												{
+													dap:steer_css().
+													dap:thr_control_css().
 													dataViz().
 												}
 	).
@@ -60,9 +64,9 @@ function launch{
 
 function countdown{
 
-
-	LOCK THROTTLE to throttleControl().
 	SAS OFF.
+	
+	warp_window(target_orbit["warp_dt"]).	
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
@@ -101,9 +105,14 @@ function countdown{
 	
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
-	LOCK STEERING TO control["steerdir"].
+
 	addGUIMessage("BOOSTER IGNITION").
 	stage.
+	
+	set dap:steer_refv to HEADING(control["launch_az"] + 180, 0):VECTOR.	
+	LOCK STEERING TO dap:steer_dir.
+	LOCK THROTTLE to dap:thr_cmd.
+	
 	wait 0.
 	when (SHIP:VERTICALSPEED > 1) THEN {
 		addGUIMessage("LIFT-OFF CONFIRMED").
@@ -123,8 +132,7 @@ declare function open_loop_ascent{
 	getState().
 		
 	local steer_flag IS false.
-	
-	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.																			   
+																			   
 	
 	getState().
 	

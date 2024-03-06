@@ -107,6 +107,8 @@ FUNCTION prepare_launch {
 	target_orbit:ADD("velocity", 0).
 	target_orbit:ADD("normal", V(0,0,0)).
 	target_orbit:ADD("fpa", 0).
+	target_orbit:ADD("launch_az", 0).
+	target_orbit:ADD("warp_dt", 0).
 	target_orbit:ADD("mode", 1).
 	
 	//first compute in-plane orbital parameters
@@ -226,19 +228,17 @@ FUNCTION prepare_launch {
 		SET time2window TO time2window + SHIP:BODY:ROTATIONPERIOD.
 	}
 	
-	LOCAL warp_time IS TIME:SECONDS + time2window  - vehicle_countdown.
+	set target_orbit["warp_dt"] to TIME:SECONDS + time2window  - vehicle_countdown.
 	
 	//this is for message logging
 	SET vehicle["ign_t"] TO TIME:SECONDS + time2window. 
 	
-	set control["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).	
+	set target_orbit["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).	
 	
 	//print target_orbit:dump.
 	//arrow_body(targetLANvec(target_orbit["LAN"]), "lan").
 	//arrow_body(targetNormal(target_orbit["inclination"], target_orbit["LAN"]), "norm").
 	//until false{}
-		
-	warp_window(warp_time).	
 
 }
 

@@ -12,15 +12,6 @@ GLOBAL vehiclestate IS LEXICON(
 ).
 
 
-GLOBAL control Is LEXICON(
-	"launch_az",0,
-	"aimvec",SHIP:FACING:FOREVECTOR,
-	"steerdir", LOOKDIRUP(-SHIP:ORBIT:BODY:POSITION, SHIP:FACING:TOPVECTOR),
-	"roll_angle",0,
-	"refvec", v(0,0,0)
-).
-
-
 
 GLOBAL events IS LIST().
 
@@ -599,7 +590,8 @@ function ascent_dap_factory {
 		
 		set new_steerfore to rodrigues(cur_fore, cur_new_norm, ang_dev).
 		
-		local new_steertop is vxcl(new_steerfore, steer_top).       
+		local new_steertop is vxcl(new_steerfore, steer_top).   
+		
 		set new_steertop to rodrigues(new_steertop, new_steerfore, - deltaroll).
 		
 		set this:steer_dir to LOOKDIRUP(new_steerfore, new_steertop ).
