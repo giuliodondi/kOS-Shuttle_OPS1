@@ -122,6 +122,7 @@ function initialise_shuttle {
 			"ignition",	TRUE
 		),
 		"ign_t", 0,
+		"Throttle", vehicle["nominalThrottle"],
 		"Tstage",srb_time,
 		"engines",	engines_lex,
 		"mode", 1
@@ -149,6 +150,7 @@ function initialise_shuttle {
 		),
 		"glim", 3,
 		"ign_t", 0,
+		"Throttle", vehicle["nominalThrottle"],
 		"Tstage",0,
 		"engines",	engines_lex,
 		"mode", 1
@@ -181,6 +183,7 @@ function initialise_shuttle {
 		),
 		"glim",new_stg_2["glim"],
 		"ign_t", 0,
+		"Throttle", vehicle["nominalThrottle"],
 		"Tstage",0,
 		"engines",	engines_lex,
 		"mode", 2
@@ -221,6 +224,7 @@ function initialise_shuttle {
 				"ignition",	FALSE
 			),
 			"ign_t", 0,
+			"Throttle", vehicle["minThrottle"],
 			"Tstage",0,
 			"engines",	engines_lex,
 			"mode", 1
@@ -232,9 +236,6 @@ function initialise_shuttle {
 	} 
 	
 	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
-	
-	SET control["roll_angle"] TO vehicle["roll"].
-
 	
 	//debug_vehicle().
 	
@@ -365,9 +366,9 @@ FUNCTION open_loop_pitch {
 
 
 
-
+//LEGACY
 //manage roll to heads-up manoeuvre
-FUNCTION roll_heads_up {
+FUNCTION roll_heads_up_bk {
 
 	//skip if rtls is in progress
 	IF (DEFINED RTLSAbort) {
@@ -406,10 +407,9 @@ FUNCTION roll_heads_up {
 	
 }
 
-
-//Steering controller
-FUNCTION steeringControl {
-	RETURN aimAndRoll(control["aimvec"], control["refvec"], control["roll_angle"]).	
+FUNCTION roll_heads_up {
+	set vehicle["roll"] to 0.
+	set dap:steer_roll to 0.
 }
 
 
@@ -518,6 +518,8 @@ function ascent_dap_factory {
 			local steerv_corr is min(max_steervec_corr, steer_err).
 			
 			set tgt_steervec to rodrigues(cur_steervec, steerv_norm, steerv_corr).
+		} else {
+			set tgt_steervec to tgt_steervec.
 		}
 		
 		local cur_topvec is vxcl(tgt_steervec, this:steer_dir:topvector).
@@ -526,7 +528,7 @@ function ascent_dap_factory {
 		local roll_err is signed_angle(tgt_topvec, cur_topvec, tgt_steervec, 0).
 		local roll_corr is sign(roll_err) * min(abs(roll_err) ,max_roll_corr).
 		
-		set tgt_topvec to rodrigues(tgt_topvec, tgt_steervec, roll_corr).
+		set tgt_topvec to rodrigues(cur_topvec, tgt_steervec, -roll_corr).
 	
 		set this:steer_dir to LOOKDIRUP(tgt_steervec, tgt_topvec ).
 	}).

@@ -31,21 +31,32 @@ function launch{
 	initialise_shuttle().
 	prepare_launch().	
 	
-	//need to have initalised the vehicle first for the vessel name
-	prepare_telemetry().
-	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
-	LOCAL dap IS ascent_dap_factory().
+	GLOBAL dap IS ascent_dap_factory().
 	
 	GLOBAL dataviz_executor IS loop_executor_factory(
 												0.15,
 												{
+													clearscreen.
+													clearvecdraws().
+												
 													dap:steer_auto_thrvec().
 													dap:thr_control_auto().
+													
+													set get_stage()["Throttle"] to dap:thr_cmd.
+													
+													dap:print_debug(2).
+													
+													arrow_ship(2 * dap:steer_dir:forevector,"forevec").
+													arrow_ship(2 * dap:steer_dir:topvector,"topvec").
+													
 													dataViz().
 												}
 	).
+	
+	//need to have initalised the vehicle first for the vessel name
+	prepare_telemetry().
 	
 	IF (NOT countdown()) {
 		WAIT 5.
@@ -66,10 +77,9 @@ function countdown{
 
 	SAS OFF.
 	
-	warp_window(target_orbit["warp_dt"]).	
-	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"].
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO dap:thr_cmd.
+	LOCK THROTTLE to dap:thr_cmd.
 	
 	//precaution
 	SET vehicle["ign_t"] TO TIME:SECONDS + vehicle_countdown.
@@ -78,7 +88,8 @@ function countdown{
 	
 	set dap:thr_max to vehicle["maxThrottle"].
 	set dap:thr_min to vehicle["minThrottle"].
-	SET dap:thr_tgt TO convert_ssme_throt_rpl(1)
+	SET dap:thr_tgt TO convert_ssme_throt_rpl(1).
+	set dap:steer_roll to vehicle["roll"].
 	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
 	LOCAL monitor_rsls IS FALSE.
@@ -112,7 +123,6 @@ function countdown{
 	
 	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
 	LOCK STEERING TO dap:steer_dir.
-	LOCK THROTTLE to dap:thr_cmd.
 	dap:set_steering_low().
 	
 	addGUIMessage("BOOSTER IGNITION").
@@ -140,7 +150,7 @@ declare function open_loop_ascent {
 	WHEN SHIP:VERTICALSPEED >= (vehicle["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
-		dap:set_steering_high()
+		dap:set_steering_high().
 		
 		set vehiclestate["phase"] TO 1.
 		
@@ -232,7 +242,7 @@ declare function closed_loop_ascent{
 		
 	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
 	
-	SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	SET upfgInternal TO setupUPFG().
 	
@@ -382,10 +392,9 @@ declare function closed_loop_ascent{
 					
 					set_steering_high().
 					
-					SET vehicle["roll"] TO 0.
-					SET control["roll_angle"] TO 0.
-					
-					SET control["refvec"] TO VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
+					set vehicle["roll"] to 0.
+					set dap:steer_roll to 0.
+					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
 					
 					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
 					
@@ -398,14 +407,13 @@ declare function closed_loop_ascent{
 						SET RTLSAbort["flyback_flag"] TO TRUE.
 						SET upfgInternal["s_flyback"] TO TRUE.
 						SET upfgInternal["s_throt"] TO TRUE.
-						SET control["refvec"] TO -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+						set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 						
 					}	
 				
 				}
 				
-				SET control["aimvec"] TO vecYZ(RTLS_steering).
-				SET control["steerdir"] TO steeringControl().
+				dap:set_steer_tgt(vecYZ(RTLS_steering)).
 			}
 		
 			SET RTLSAbort["Tc"] TO PEG_Tc.
@@ -413,13 +421,9 @@ declare function closed_loop_ascent{
 		
 		
 		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
-			SET control["aimvec"] TO vecYZ(upfgInternal["steering"]):NORMALIZED.
-			SET control["steerdir"] TO steeringControl().
-			local stg is get_stage().
-			IF stg["mode"] <> 2 {
-				//round to nearest percentage
-				SET stg["Throttle"] TO upfgInternal["throtset"].//FLOOR(upfgInternal["throtset"], 2).		
-			}			
+			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
+		
+			set dap:thr_tgt to upfgInternal["throtset"].	
 		} 
 		
 	}
@@ -429,9 +433,7 @@ declare function closed_loop_ascent{
 	SET upfgInternal["terminal"] TO TRUE.
 	
 	
-	
-	//min throttle for any case
-	fix_minimum_throttle(). 
+	set dap:thr_tgt to dap:thr_min.
 	
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {
@@ -439,6 +441,8 @@ declare function closed_loop_ascent{
 		set_steering_high().
 		
 		LOCAL steervec IS SHIP:FACING:FOREVECTOR.
+		
+		set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
 		UNTIL FALSE{
 			getState().
@@ -454,8 +458,7 @@ declare function closed_loop_ascent{
 				SET steervec TO pitchdowntgtvec.
 			}
 			
-			SET control["steerdir"] TO LOOKDIRUP(steervec, upvec).
-			
+		
 			LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
 			LOCAL tgtsurfvel IS RTLS_rvline(rng).
 			

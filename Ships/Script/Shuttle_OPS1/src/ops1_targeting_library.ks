@@ -235,6 +235,8 @@ FUNCTION prepare_launch {
 	
 	set target_orbit["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).	
 	
+	warp_window(target_orbit["warp_dt"]).	
+	
 	//print target_orbit:dump.
 	//arrow_body(targetLANvec(target_orbit["LAN"]), "lan").
 	//arrow_body(targetNormal(target_orbit["inclination"], target_orbit["LAN"]), "norm").
