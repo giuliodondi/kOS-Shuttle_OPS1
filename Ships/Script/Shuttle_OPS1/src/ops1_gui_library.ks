@@ -207,6 +207,8 @@ function make_ascent_traj1_disp {
 	set ascent_trajleftdata4:style:margin:v to -4.
 	GLOBAL ascent_trajleftdata5 IS ascent_traj_disp_leftdatabox:ADDLABEL("Y xxxxxx").
 	set ascent_trajleftdata5:style:margin:v to -4.
+	GLOBAL ascent_trajleftdata6 IS ascent_traj_disp_leftdatabox:ADDLABEL("T xxxxxx").
+	set ascent_trajleftdata6:style:margin:v to -4.
 	
 	GLOBAL ascent_traj_disp_rightdatabox IS ascent_traj_disp_overlaiddata:ADDHLAYOUT().
 	SET ascent_traj_disp_rightdatabox:STYLE:ALIGN TO "left".
@@ -453,6 +455,8 @@ function make_rtls_traj2_disp {
 	set rtls_trajrightdata2:style:margin:v to -4.
 	GLOBAL rtls_trajrightdata3 IS rtls_traj_disp_rightattbox:ADDLABEL("Y xxxxxx").
 	set rtls_trajrightdata3:style:margin:v to -4.
+	GLOBAL rtls_trajrightdata4 IS rtls_traj_disp_rightattbox:ADDLABEL("T xxxxxx").
+	set rtls_trajrightdata4:style:margin:v to -4.
 	
 }
 
@@ -461,33 +465,58 @@ function update_att_angles {
 	parameter p_text_handle.
 	parameter r_text_handle.
 	parameter y_text_handle.
+	parameter t_text_handle.
 	
-	local rolstr is "R   ".
-	if (gui_data["roll"] >=0) {
+	
+	local r_delta is round(gui_data["r_delta"],0).
+	local r_delta_text_color is guitextgreenhex.
+	if (abs(r_delta) > 2) {
+		set r_delta_text_color to guitextyellowhex.
+	}
+	local rolstr is "<color=#" + r_delta_text_color + ">R  ".
+	if (r_delta > 0) {
 		set rolstr to rolstr + "R".
 	} else {
 		set rolstr to rolstr + "L".
 	}
-	set rolstr to rolstr + round(abs(gui_data["roll"]),0).
+	set rolstr to rolstr + r_delta + "</color>".
 	set r_text_handle:text to rolstr. 
 	
-	local pchstr is "P   ".
-	if (gui_data["pitch"] >=0) {
+	local p_delta is round(gui_data["p_delta"],0).
+	local p_delta_text_color is guitextgreenhex.
+	if (abs(p_delta) > 2) {
+		set p_delta_text_color to guitextyellowhex.
+	}
+	local pchstr is "<color=#" + p_delta_text_color + ">P  ".
+	if (p_delta > 0) {
 		set pchstr to pchstr + "U".
 	} else {
 		set pchstr to pchstr + "D".
 	}
-	set pchstr to pchstr + round(abs(gui_data["pitch"]),0).
+	set pchstr to pchstr + p_delta + "</color>".
 	set p_text_handle:text to pchstr. 
 	
-	local yawstr is "Y   ".
-	if (gui_data["yaw"] >=0) {
+	local y_delta is round(gui_data["y_delta"],0).
+	local y_delta_text_color is guitextgreenhex.
+	if (abs(y_delta) > 2) {
+		set y_delta_text_color to guitextyellowhex.
+	}
+	local yawstr is "<color=#" + y_delta_text_color + ">Y  ".
+	if (y_delta > 0) {
 		set yawstr to yawstr + "R".
 	} else {
 		set yawstr to yawstr + "L".
 	}
-	set yawstr to yawstr + round(abs(gui_data["yaw"]),0).
+	set yawstr to yawstr + y_delta + "</color>".
 	set y_text_handle:text to yawstr. 
+	
+	local t_delta is round(gui_data["t_delta"],0).
+	local t_delta_text_color is guitextgreenhex.
+	if (abs(t_delta) > 2) {
+		set t_delta_text_color to guitextyellowhex.
+	}
+	local thrstr is "<color=#" + t_delta_text_color + ">T  " + t_delta + "</color>".
+	set t_text_handle:text to thrstr.
 	
 }
 
@@ -508,7 +537,8 @@ function update_ascent_traj_disp {
 					gui_data,
 					ascent_trajleftdata4,
 					ascent_trajleftdata3,
-					ascent_trajleftdata5
+					ascent_trajleftdata5,
+					ascent_trajleftdata6
 	).
 	
 	set ascent_trajrightdata1:text to "PROP " + round(gui_data["et_prop"],0). 
@@ -576,7 +606,8 @@ function update_rtls_traj_disp {
 					gui_data,
 					rtls_trajrightdata2,
 					rtls_trajrightdata1,
-					rtls_trajrightdata3
+					rtls_trajrightdata3,
+					rtls_trajrightdata4
 	).
 
 	update_g_slider(gui_data["twr"]).

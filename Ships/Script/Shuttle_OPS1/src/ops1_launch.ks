@@ -48,6 +48,7 @@ function launch{
 													
 													dap:print_debug(2).
 													
+													arrow_ship(3 * dap:steer_thrvec,"steer_thrvec").
 													arrow_ship(2 * dap:steer_dir:forevector,"forevec").
 													arrow_ship(2 * dap:steer_dir:topvector,"topvec").
 													
@@ -144,12 +145,15 @@ function countdown{
 declare function open_loop_ascent {
 		
 	local steer_flag IS false.
+	local throt_flag IS false.
+	local roll_program_flag IS false.
 																			   
 	getState().
 	
 	WHEN SHIP:VERTICALSPEED >= (vehicle["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
+		SET throt_flag TO true.
 		dap:set_steering_high().
 		
 		set vehiclestate["phase"] TO 1.
@@ -195,33 +199,37 @@ declare function open_loop_ascent {
 		if (abort_modes["triggered"]) {
 			set dap:thr_tgt to vehicle["maxThrottle"].
 		} else {
-		
-			if (vehicle["qbucket"]) {
-			
-				IF (surfacestate["q"] >=  surfacestate["maxq"] ) {
-					SET surfacestate["maxq"] TO surfacestate["q"].
-					set vehicle["max_q_reached"] to FALSE.
+			if (throt_flag) {
+				if (vehicle["qbucket"]) {
+				
+					IF (surfacestate["q"] >=  surfacestate["maxq"] ) {
+						SET surfacestate["maxq"] TO surfacestate["q"].
+						set vehicle["max_q_reached"] to FALSE.
+					} else {
+						if (NOT vehicle["max_q_reached"]) {
+							addGUIMessage("VEHICLE HAS REACHED MAX-Q").
+							set vehicle["max_q_reached"] to TRUE.
+						}
+						
+						if (surfacestate["q"] < 0.95*surfacestate["maxq"]) {
+							addGUIMessage("GO AT THROTTLE-UP").
+							set vehicle["qbucket"] to FALSE.
+						}
+					}
+				
+					set dap:thr_tgt to vehicle["qbucketThrottle"].
 				} else {
-					set vehicle["max_q_reached"] to TRUE.
-					
-					if (surfacestate["q"] < 0.95*surfacestate["maxq"]) {
-						addGUIMessage("GO AT THROTTLE-UP").
+					if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > vehicle["qbucketval"]) {
+						set vehicle["qbucket"] to TRUE.
+						addGUIMessage("THROTTLING DOWN").
+					} else {
 						set vehicle["qbucket"] to FALSE.
 					}
+				
+					set dap:thr_tgt to vehicle["nominalThrottle"].
 				}
 			
-				set dap:thr_tgt to vehicle["qbucketThrottle"].
-			} else {
-				if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > vehicle["qbucketval"]) {
-					set vehicle["qbucket"] to TRUE.
-					addGUIMessage("THROTTLING DOWN").
-				} else {
-					set vehicle["qbucket"] to FALSE.
-				}
-			
-				set dap:thr_tgt to vehicle["nominalThrottle"].
 			}
-		
 		}
 	}
 	RETURN TRUE.

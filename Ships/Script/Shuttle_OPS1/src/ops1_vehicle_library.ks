@@ -410,6 +410,12 @@ FUNCTION roll_heads_up_bk {
 FUNCTION roll_heads_up {
 	set vehicle["roll"] to 0.
 	set dap:steer_roll to 0.
+	
+	dap:set_steering_med().
+	
+	when (abs(dap:steer_roll_delta) < 1) then {
+		dap:set_steering_low().
+	}
 }
 
 
@@ -469,7 +475,7 @@ function ascent_dap_factory {
 		
 		
 		set this:steer_pitch_delta to signed_angle(tgtv_v, this:steer_dir:forevector, this:steer_dir:starvector, 0).
-		set this:steer_yaw_delta to signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
+		set this:steer_yaw_delta to -signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
 		
 		set this:throt_delta to this:thr_cmd - this:thr_tgt.
@@ -501,14 +507,16 @@ function ascent_dap_factory {
 		set this:cur_mode to "auto_thrvec".
 		
 		this:measure_cur_state().
+		
+		//required for continuous pilot input across several funcion calls
+		LOCAL time_gain IS ABS(this:iteration_dt/0.03).
 	
 		local steer_err_tol is 0.5.
-		local max_steervec_corr is 3 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		local max_steervec_corr is 5.
 	
-		local roll_rate is 10.
-		local max_roll_corr is 15.
+		local max_roll_corr is 30.
 		
-		local cur_steervec is this:steer_dir:forevector.
+		local cur_steervec is this:cur_dir:forevector.
 		local tgt_steervec is this:steer_tgtdir:forevector.
 		
 		local steer_err is vang(cur_steervec, tgt_steervec).
@@ -522,11 +530,13 @@ function ascent_dap_factory {
 			set tgt_steervec to tgt_steervec.
 		}
 		
-		local cur_topvec is vxcl(tgt_steervec, this:steer_dir:topvector).
+		local cur_topvec is vxcl(tgt_steervec, this:cur_dir:topvector).
 		local tgt_topvec is vxcl(tgt_steervec, this:steer_tgtdir:topvector).
 		
 		local roll_err is signed_angle(tgt_topvec, cur_topvec, tgt_steervec, 0).
 		local roll_corr is sign(roll_err) * min(abs(roll_err) ,max_roll_corr).
+		
+		print "roll_corr " + roll_corr + " " at (0,20).
 		
 		set tgt_topvec to rodrigues(cur_topvec, tgt_steervec, -roll_corr).
 	
