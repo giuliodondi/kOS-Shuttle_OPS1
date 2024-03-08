@@ -76,6 +76,9 @@ function launch{
 
 function countdown{
 
+	//needed to update the dap at least once
+	wait 0.
+
 	SAS OFF.
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
@@ -90,7 +93,7 @@ function countdown{
 	set dap:thr_max to vehicle["maxThrottle"].
 	set dap:thr_min to vehicle["minThrottle"].
 	SET dap:thr_tgt TO convert_ssme_throt_rpl(1).
-	set dap:steer_roll to vehicle["roll"].
+	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
 	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
 	LOCAL monitor_rsls IS FALSE.
@@ -122,9 +125,10 @@ function countdown{
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	
-	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
 	LOCK STEERING TO dap:steer_dir.
 	dap:set_steering_low().
+	set dap:steer_roll to vehicle["roll"].
+	set dap:steer_cmd_roll to dap:cur_steer_roll.
 	
 	addGUIMessage("BOOSTER IGNITION").
 	stage.

@@ -241,7 +241,7 @@ function initialise_shuttle {
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
-	add_action_event(350, roll_heads_up@ ).
+	add_action_event(180, roll_heads_up@ ).
 	
 	setup_engine_failure().
 	
@@ -408,14 +408,15 @@ FUNCTION roll_heads_up_bk {
 }
 
 FUNCTION roll_heads_up {
+	addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 	set vehicle["roll"] to 0.
 	set dap:steer_roll to 0.
 	
 	dap:set_steering_med().
 	
-	when (abs(dap:steer_roll_delta) < 1) then {
-		dap:set_steering_low().
-	}
+	//when (abs(dap:steer_roll_delta) < 1) then {
+	//	dap:set_steering_low().
+	//}
 }
 
 
@@ -451,6 +452,9 @@ function ascent_dap_factory {
 		SET this:iteration_dt TO this:last_time - old_t.
 	}).
 	
+	this:add("cur_dir", SHIP:FACINg).
+	this:add("cur_thrvec", v(0,0,0)).
+	
 	this:add("cur_steer_pitch", 0).
 	this:add("cur_steer_az", 0).
 	this:add("cur_steer_roll", 0).
@@ -458,6 +462,16 @@ function ascent_dap_factory {
 	this:add("steer_pitch_delta", 0).
 	this:add("steer_yaw_delta", 0).
 	this:add("steer_roll_delta", 0).
+	
+	this:add("steer_dir", SHIP:FACINg).
+	
+	this:add("measure_refv_roll", {
+		LOCAL refv IS VXCL(this:steer_thrvec, this:steer_refv):NORMALIZED.
+		LOCAL topv IS VXCL(this:steer_thrvec, this:cur_dir:TOPVECTOR):NORMALIZED.
+		
+		
+		set this:cur_steer_roll to signed_angle(refv, topv, this:steer_thrvec, 1).
+	}).
 	
 	this:add("measure_cur_state", {
 		this:update_time().
@@ -467,7 +481,8 @@ function ascent_dap_factory {
 		
 		set this:cur_steer_az to get_az_lvlh(this:steer_dir).
 		set this:cur_steer_pitch to get_pitch_lvlh(this:steer_dir).
-		set this:cur_steer_roll to get_roll_lvlh(this:steer_dir).
+		
+		this:measure_refv_roll().
 		
 		local tgtv_h is vxcl(this:steer_dir:topvector, this:steer_tgtdir:forevector):normalized.
 		local tgtv_v is vxcl(this:steer_dir:starvector, this:steer_tgtdir:forevector):normalized.
@@ -481,14 +496,12 @@ function ascent_dap_factory {
 		set this:throt_delta to this:thr_cmd - this:thr_tgt.
 	}).
 	
-	this:add("cur_dir", SHIP:FACINg).
-	this:add("cur_thrvec", v(0,0,0)).
 	
-	this:add("steer_dir", SHIP:FACINg).
 	
-	this:add("steer_refv", v(0,0,0)).
-	this:add("steer_thrvec", v(0,0,0)).
-	this:add("steer_roll", v(0,0,0)).
+	this:add("steer_refv", SHIP:FACINg:topvector).
+	this:add("steer_thrvec", SHIP:FACINg:forevector).
+	this:add("steer_roll", 0).
+	this:add("steer_cmd_roll", 0).
 	
 	this:add("steer_tgtdir", SHIP:FACINg).
 	
@@ -500,21 +513,31 @@ function ascent_dap_factory {
 		
 		set this:steer_thrvec to new_thrvec.
 		
-		set this:steer_tgtdir to aimAndRoll(this:steer_thrvec, this:steer_refv, this:steer_roll).
+		//required for continuous pilot input across several funcion calls
+		LOCAL time_gain IS ABS(this:iteration_dt/0.2).
+		
+		local max_roll_corr is 1.5 * time_gain * STEERINGMANAGER:MAXSTOPPINGTIME.
+		
+		local roll_delta is this:steer_cmd_roll - this:steer_roll.
+		set roll_delta to sign(roll_delta) * min(abs(roll_delta) ,max_roll_corr).
+		
+		print "max_roll_corr " + max_roll_corr + " " at (0,20).
+		print "roll_delta " + roll_delta + " " at (0,21).
+		
+		set this:steer_cmd_roll to this:steer_cmd_roll - roll_delta.
+		
+		set this:steer_tgtdir to aimAndRoll(this:steer_thrvec, this:steer_refv, this:steer_cmd_roll).
 	}).
 	
 	this:add("steer_auto_thrvec", {
 		set this:cur_mode to "auto_thrvec".
 		
 		this:measure_cur_state().
-		
-		//required for continuous pilot input across several funcion calls
-		LOCAL time_gain IS ABS(this:iteration_dt/0.03).
 	
 		local steer_err_tol is 0.5.
 		local max_steervec_corr is 5.
 	
-		local max_roll_corr is 30.
+		local max_roll_corr is 20.
 		
 		local cur_steervec is this:cur_dir:forevector.
 		local tgt_steervec is this:steer_tgtdir:forevector.
@@ -533,12 +556,12 @@ function ascent_dap_factory {
 		local cur_topvec is vxcl(tgt_steervec, this:cur_dir:topvector).
 		local tgt_topvec is vxcl(tgt_steervec, this:steer_tgtdir:topvector).
 		
-		local roll_err is signed_angle(tgt_topvec, cur_topvec, tgt_steervec, 0).
-		local roll_corr is sign(roll_err) * min(abs(roll_err) ,max_roll_corr).
-		
-		print "roll_corr " + roll_corr + " " at (0,20).
-		
-		set tgt_topvec to rodrigues(cur_topvec, tgt_steervec, -roll_corr).
+		//local roll_err is signed_angle(tgt_topvec, cur_topvec, tgt_steervec, 0).
+		//local roll_corr is sign(roll_err) * min(abs(roll_err) ,max_roll_corr).
+		//
+		//print "roll_corr " + roll_corr + " " at (0,20).
+		//
+		//set tgt_topvec to rodrigues(cur_topvec, tgt_steervec, -roll_corr).
 	
 		set this:steer_dir to LOOKDIRUP(tgt_steervec, tgt_topvec ).
 	}).
@@ -550,12 +573,12 @@ function ascent_dap_factory {
 		this:measure_cur_state().
 	
 		//required for continuous pilot input across several funcion calls
-		LOCAL time_gain IS ABS(this:iteration_dt/0.03).
+		LOCAL time_gain IS ABS(this:iteration_dt/0.2).
 		
 		//gains suitable for manoeivrable steerign in atmosphere
-		LOCAL pitchgain IS 0.1 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		LOCAL rollgain IS 0.2 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		LOCAL yawgain IS 0.1 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		LOCAL pitchgain IS 1 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		LOCAL rollgain IS 2 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		LOCAL yawgain IS 1 * STEERINGMANAGER:MAXSTOPPINGTIME.
 		
 		LOCAL steer_tol IS 0.1.
 		LOCAL max_steer_dev IS 8.
@@ -638,12 +661,13 @@ function ascent_dap_factory {
 		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 5).
 		print "cur_steer_roll : " + round(this:cur_steer_roll,3) + "    " at (0,line + 6).
 		print "cur_steer_az : " + round(this:cur_steer_az,3) + "    " at (0,line + 7).
-		print "thr_cmd : " + round(this:thr_cmd,3) + "    " at (0,line + 8).
+		print "steer_cmd_roll : " + round(this:steer_cmd_roll,3) + "    " at (0,line + 8).
+		print "thr_cmd : " + round(this:thr_cmd,3) + "    " at (0,line + 9).
 		
-		print "steer_pitch_delta : " + round(this:steer_pitch_delta,3) + "    " at (0,line + 10).
-		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 11).
-		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 12).
-		print "throt_delta : " + round(this:throt_delta,3) + "    " at (0,line + 13).
+		print "steer_pitch_delta : " + round(this:steer_pitch_delta,3) + "    " at (0,line + 11).
+		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 12).
+		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 13).
+		print "throt_delta : " + round(this:throt_delta,3) + "    " at (0,line + 14).
 		
 	}).
 	
