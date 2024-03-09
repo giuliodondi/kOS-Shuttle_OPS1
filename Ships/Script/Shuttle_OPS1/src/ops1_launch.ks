@@ -94,6 +94,8 @@ function countdown{
 	set dap:thr_min to vehicle["minThrottle"].
 	SET dap:thr_tgt TO convert_ssme_throt_rpl(1).
 	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
+	dap:set_steering_low().
+	set dap:steer_roll to vehicle["roll"].
 	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
 	LOCAL monitor_rsls IS FALSE.
@@ -126,9 +128,6 @@ function countdown{
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	
 	LOCK STEERING TO dap:steer_dir.
-	dap:set_steering_low().
-	set dap:steer_roll to vehicle["roll"].
-	set dap:steer_cmd_roll to dap:cur_steer_roll.
 	
 	addGUIMessage("BOOSTER IGNITION").
 	stage.

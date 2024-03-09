@@ -223,6 +223,7 @@ function initialise_shuttle {
 				"type","depletion",
 				"ignition",	FALSE
 			),
+			"glim",new_stg_2["glim"],
 			"ign_t", 0,
 			"Throttle", vehicle["minThrottle"],
 			"Tstage",0,
@@ -241,7 +242,7 @@ function initialise_shuttle {
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
-	add_action_event(180, roll_heads_up@ ).
+	add_action_event(350, roll_heads_up@ ).
 	
 	setup_engine_failure().
 	
@@ -408,15 +409,13 @@ FUNCTION roll_heads_up_bk {
 }
 
 FUNCTION roll_heads_up {
-	addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
-	set vehicle["roll"] to 0.
-	set dap:steer_roll to 0.
-	
-	dap:set_steering_med().
-	
-	//when (abs(dap:steer_roll_delta) < 1) then {
-	//	dap:set_steering_low().
-	//}
+
+	if (vehicle["roll"] <> 0) {
+		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
+		set vehicle["roll"] to 0.
+		set dap:steer_roll to 0.
+		dap:set_steering_med().
+	}
 }
 
 
@@ -516,15 +515,15 @@ function ascent_dap_factory {
 		//required for continuous pilot input across several funcion calls
 		LOCAL time_gain IS ABS(this:iteration_dt/0.2).
 		
-		local max_roll_corr is 1.5 * time_gain * STEERINGMANAGER:MAXSTOPPINGTIME.
+		local max_roll_corr is 13 * time_gain * STEERINGMANAGER:MAXSTOPPINGTIME.
 		
-		local roll_delta is this:steer_cmd_roll - this:steer_roll.
+		local roll_delta is unfixangle(this:cur_steer_roll - this:steer_roll).
 		set roll_delta to sign(roll_delta) * min(abs(roll_delta) ,max_roll_corr).
 		
 		print "max_roll_corr " + max_roll_corr + " " at (0,20).
 		print "roll_delta " + roll_delta + " " at (0,21).
 		
-		set this:steer_cmd_roll to this:steer_cmd_roll - roll_delta.
+		set this:steer_cmd_roll to this:cur_steer_roll - roll_delta.
 		
 		set this:steer_tgtdir to aimAndRoll(this:steer_thrvec, this:steer_refv, this:steer_cmd_roll).
 	}).
@@ -676,7 +675,7 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_med", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.75.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
 	}).
 	
 	this:add("set_steering_low", {

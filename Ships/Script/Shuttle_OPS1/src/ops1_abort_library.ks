@@ -291,7 +291,6 @@ FUNCTION setup_RTLS {
 	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
 	SET vehicle["stages"][2]["mode"] TO 1.
 	SET vehicle["stages"][2]["Throttle"] TO 1.
-	vehicle["stages"][2]:REMOVE("glim").
 	SET vehicle["stages"][2]["engines"] TO build_engines_lex().
 	
 	LOCAL current_m IS SHIP:MASS*1000.
@@ -415,7 +414,16 @@ FUNCTION get_TAL_site {
 		FOR s in ldgsiteslex:KEYS {
 			LOCAL site IS ldgsiteslex[s].
 		
-			LOCAL sitepos IS vecYZ(pos2vec(site["position"])).
+			local rwypos is 0.
+			
+			IF (site:ISTYPE("LEXICON")) {
+				set rwypos to site["position"].
+			} ELSE IF (site:ISTYPE("LIST")) {
+				set rwypos to site[0]["position"].
+			}
+			
+			LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
+			
 			
 			LOCAL site_plane IS VXCL(current_normal,sitepos).
 			
@@ -633,7 +641,6 @@ FUNCTION setup_TAL {
 	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
 	SET vehicle["stages"][2]["mode"] TO 1.
 	SET vehicle["stages"][2]["Throttle"] TO 1.
-	vehicle["stages"][2]:REMOVE("glim").
 	SET vehicle["stages"][2]["engines"] TO build_engines_lex().
 	
 	LOCAL current_m IS SHIP:MASS*1000.
@@ -770,7 +777,6 @@ FUNCTION setup_ATO {
 		SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
 		SET vehicle["stages"][2]["mode"] TO 1.
 		SET vehicle["stages"][2]["Throttle"] TO 1.
-		vehicle["stages"][2]:REMOVE("glim").
 		
 		LOCAL current_m IS SHIP:MASS*1000.
 		local res_left IS get_shuttle_res_left().
@@ -828,7 +834,6 @@ FUNCTION setup_MECO_ENGOUT {
 		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
-		vehicle["stages"][3]:REMOVE("glim").
 		SET vehicle["stages"][3]["engines"] TO build_engines_lex().
 		
 		LOCAL current_m IS SHIP:MASS*1000.

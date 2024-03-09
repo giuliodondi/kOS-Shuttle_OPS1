@@ -253,13 +253,9 @@ FUNCTION vector_pos_bearing {
 }
 
 
-//determine which site is the closest to the current position.
-// takes in a lexicon of sites which are themselves lexicons
-// each must have at least the "position" field defined
-FUNCTION get_closest_site {
+//get a list of runways from the site lexicon, suport for multiple runways per site 
+FUNCTION get_rwylist {
 	PARAMETER sites_lex.
-
-	LOCAL pos IS SHIP:GEOPOSITION.
 
 	local rwylist is list().
 	
@@ -274,6 +270,21 @@ FUNCTION get_closest_site {
 			}
 		}
 	}
+	
+	return rwylist.
+}
+
+
+
+//determine which site is the closest to the current position.
+// takes in a lexicon of sites which are themselves lexicons
+// each must have at least the "position" field defined
+FUNCTION get_closest_site {
+	PARAMETER sites_lex.
+
+	LOCAL pos IS SHIP:GEOPOSITION.
+
+	local rwylist is get_rwylist(sites_lex).
 
 	LOCAL min_dist IS 0.
 	LOCAL closest_site IS 0.
