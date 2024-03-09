@@ -95,7 +95,7 @@ FUNCTION dataViz {
 				"r_delta", dap:steer_roll_delta,
 				"p_delta", dap:steer_pitch_delta,
 				"y_delta", dap:steer_yaw_delta,
-				"t_delta", dap:throt_delta,
+				"t_delta", dap:throt_delta * 100,
 				"vi", SHIP:VELOCITY:ORBIT:MAG,
 				"ve", SHIP:VELOCITY:SURFACE:MAG,
 				"alt", SHIP:ALTITUDE/1000,

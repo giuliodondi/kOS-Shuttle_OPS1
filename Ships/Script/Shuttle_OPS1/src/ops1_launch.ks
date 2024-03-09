@@ -31,6 +31,9 @@ function launch{
 	initialise_shuttle().
 	prepare_launch().	
 	
+	//need to have initalised the vehicle first for the vessel name
+	prepare_telemetry().
+	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
 	GLOBAL dap IS ascent_dap_factory().
@@ -40,9 +43,14 @@ function launch{
 												{
 													clearscreen.
 													clearvecdraws().
-												
-													dap:steer_auto_thrvec().
-													dap:thr_control_auto().
+													
+													if (is_dap_auto()) {
+														dap:steer_auto_thrvec().
+														dap:thr_control_auto().
+													} else if (is_dap_css()) {
+														dap:steer_css().
+														dap:thr_control_css().
+													}
 													
 													set get_stage()["Throttle"] to dap:thr_cmd.
 													
@@ -55,9 +63,6 @@ function launch{
 													dataViz().
 												}
 	).
-	
-	//need to have initalised the vehicle first for the vessel name
-	prepare_telemetry().
 	
 	IF (NOT countdown()) {
 		WAIT 5.
@@ -497,7 +502,7 @@ declare function closed_loop_ascent{
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 	shutdown_all_engines().
 	stop_oms_dump(TRUE).
-	RCS ON.
+	dap:set_rcs(TRUE).
 	
 	//ET sep loop
 	LOCAL etsep_t IS TIME:SECONDS.

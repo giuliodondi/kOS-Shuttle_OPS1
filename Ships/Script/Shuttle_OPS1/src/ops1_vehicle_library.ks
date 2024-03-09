@@ -439,7 +439,7 @@ function ascent_dap_factory {
 	this:add("steer_mode", "").
 	this:add("thr_mode", "").		//ksp 0-1 throttle value
 	
-	this:add("thr_cmd", 0).
+	this:add("thr_cmd", 1).
 	
 	this:add("last_time", TIME:SECONDS).
 	
@@ -461,6 +461,7 @@ function ascent_dap_factory {
 	this:add("steer_pitch_delta", 0).
 	this:add("steer_yaw_delta", 0).
 	this:add("steer_roll_delta", 0).
+	this:add("throt_delta", 0).
 	
 	this:add("steer_dir", SHIP:FACINg).
 	
@@ -492,7 +493,7 @@ function ascent_dap_factory {
 		set this:steer_yaw_delta to -signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
 		
-		set this:throt_delta to this:thr_cmd - this:thr_tgt.
+		set this:throt_delta to this:thr_tgt - this:thr_cmd.
 	}).
 	
 	
@@ -529,7 +530,7 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("steer_auto_thrvec", {
-		set this:cur_mode to "auto_thrvec".
+		set this:steer_mode to "auto_thrvec".
 		
 		this:measure_cur_state().
 	
@@ -567,7 +568,7 @@ function ascent_dap_factory {
 
 
 	this:add("steer_css", {
-		set this:cur_mode to "css".
+		set this:steer_mode to "css".
 		
 		this:measure_cur_state().
 	
@@ -575,9 +576,9 @@ function ascent_dap_factory {
 		LOCAL time_gain IS ABS(this:iteration_dt/0.2).
 		
 		//gains suitable for manoeivrable steerign in atmosphere
-		LOCAL pitchgain IS 1 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		LOCAL rollgain IS 2 * STEERINGMANAGER:MAXSTOPPINGTIME.
-		LOCAL yawgain IS 1 * STEERINGMANAGER:MAXSTOPPINGTIME.
+		LOCAL pitchgain IS 0.7.
+		LOCAL rollgain IS 1.
+		LOCAL yawgain IS 0.7.
 		
 		LOCAL steer_tol IS 0.1.
 		LOCAL max_steer_dev IS 8.
@@ -634,7 +635,7 @@ function ascent_dap_factory {
 	this:add("thr_min", 0).	
 	
 	this:add("thr_control_auto", {
-		set this:cur_mode to "thr_auto".
+		set this:thr_mode to "thr_auto".
 	
 		set this:thr_val to CLAMP(this:thr_tgt, this:thr_min, this:thr_max).	
 		set this:thr_cmd to throtteValueConverter(this:thr_val, this:thr_min).
@@ -642,10 +643,11 @@ function ascent_dap_factory {
 	
 	
 	this:add("thr_control_css", {
-		set this:cur_mode to "thr_css".
+		set this:thr_mode to "thr_css".
 	
-		set this:thr_cmd to SHIP:CONTROL:PILOTMAINTHROTTLE.
-		set this:thr_val to throtteValueConverter(this:thr_cmd, this:thr_min, TRUE).	
+		local thr_input is  SHIP:CONTROL:PILOTMAINTHROTTLE.
+		set this:thr_cmd to thr_input.
+		set this:thr_val to throtteValueConverter(thr_input, this:thr_min, TRUE).	
 	}).
 	
 	
@@ -671,15 +673,31 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_high", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
+		if (is_dap_css()) {
+			this:set_steering_css().
+		} else {
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
+		}
 	}).
 	
 	this:add("set_steering_med", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+		if (is_dap_css()) {
+			this:set_steering_css().
+		} else {
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+		}
 	}).
 	
 	this:add("set_steering_low", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
+		if (is_dap_css()) {
+			this:set_steering_css().
+		} else {
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
+		}
+	}).
+	
+	this:add("set_steering_css", {
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.6.
 	}).
 	
 	this:add("set_rcs", {

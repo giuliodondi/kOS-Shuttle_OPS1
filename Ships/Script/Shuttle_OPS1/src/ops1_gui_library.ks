@@ -6,7 +6,7 @@ GLOBAL guitextredhex IS "ff1514".
 GLOBAL guitextyellowhex IS "fff600".
 
 GLOBAL main_ascent_gui_width IS 550.
-GLOBAL main_ascent_gui_height IS 525.
+GLOBAL main_ascent_gui_height IS 555.
 
 
 FUNCTION make_main_ascent_gui {
@@ -14,8 +14,8 @@ FUNCTION make_main_ascent_gui {
 
 	//create the GUI.
 	GLOBAL main_ascent_gui is gui(main_ascent_gui_width,main_ascent_gui_height).
-	SET main_ascent_gui:X TO 180.
-	SET main_ascent_gui:Y TO 670.
+	SET main_ascent_gui:X TO 185.
+	SET main_ascent_gui:Y TO 640.
 	SET main_ascent_gui:STYLe:WIDTH TO main_ascent_gui_width.
 	SET main_ascent_gui:STYLe:HEIGHT TO main_ascent_gui_height.
 	SET main_ascent_gui:STYLE:ALIGN TO "center".
@@ -66,10 +66,30 @@ FUNCTION make_main_ascent_gui {
 	SET quitb:ONCLICK TO quitcheck@.
 
 	
-	main_ascent_gui:addspacing(7).
+	main_ascent_gui:addspacing(6).
+	
+	
+	GLOBAL ascent_toggles_box IS main_ascent_gui:ADDHLAYOUT().
+	SET ascent_toggles_box:STYLE:WIDTH TO main_ascent_gui_width - 16.
+	
+	GLOBAL dap_b_box IS ascent_toggles_box:ADDHLAYOUT().
+	SET dap_b_box:STYLE:WIDTH TO 120.
+	GLOBAL dap_b_text IS dap_b_box:ADDLABEL("DAP").
+	set dap_b_text:style:margin:v to -3.
+	GLOBAL dap_b IS dap_b_box:addpopupmenu().
+	set dap_b:style:margin:v to -3.
+	SET dap_b:STYLE:WIDTH TO 70.
+	SET dap_b:STYLE:HEIGHT TO 25.
+	SET dap_b:STYLE:ALIGN TO "center".
+	dap_b:addoption("AUTO").
+	dap_b:addoption("CSS").
+	ascent_toggles_box:addspacing(15).
+	
+	
 	
 	GLOBAL ascent_traj_disp_counter IS 1.				   			   
 	
+	main_ascent_gui:addspacing(6).
 	GLOBAL ascent_traj_disp IS main_ascent_gui:addvlayout().
 	SET ascent_traj_disp:STYLE:WIDTH TO main_ascent_gui_width - 16.
 	SET ascent_traj_disp:STYLE:HEIGHT TO 380.
@@ -128,7 +148,7 @@ FUNCTION make_main_ascent_gui {
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:v to shut_bug_pos[1] - 3.
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:h to shut_bug_pos[0].
 	
-	main_ascent_gui:addspacing(7).
+	main_ascent_gui:addspacing(6).
 	
 	GLOBAL ascent_msg_scroll_box IS main_ascent_gui:addvlayout().
 	SET ascent_msg_scroll_box:STYLE:WIDTH TO main_ascent_gui_width - 16.
@@ -142,6 +162,15 @@ FUNCTION make_main_ascent_gui {
 	
 	main_ascent_gui:SHOW().
 	
+}
+
+
+FUNCTION is_dap_css {
+	return (dap_b:VALUE = "CSS").
+}
+
+FUNCTION is_dap_auto {
+	return (dap_b:VALUE = "AUTO").
 }
 
 FUNCTION close_all_GUIs{
@@ -479,7 +508,7 @@ function update_att_angles {
 	} else {
 		set rolstr to rolstr + "L".
 	}
-	set rolstr to rolstr + r_delta + "</color>".
+	set rolstr to rolstr + abs(r_delta) + "</color>".
 	set r_text_handle:text to rolstr. 
 	
 	local p_delta is round(gui_data["p_delta"],0).
@@ -493,7 +522,7 @@ function update_att_angles {
 	} else {
 		set pchstr to pchstr + "D".
 	}
-	set pchstr to pchstr + p_delta + "</color>".
+	set pchstr to pchstr + abs(p_delta) + "</color>".
 	set p_text_handle:text to pchstr. 
 	
 	local y_delta is round(gui_data["y_delta"],0).
@@ -507,10 +536,11 @@ function update_att_angles {
 	} else {
 		set yawstr to yawstr + "L".
 	}
-	set yawstr to yawstr + y_delta + "</color>".
+	
+	set yawstr to yawstr + abs(y_delta) + "</color>".
 	set y_text_handle:text to yawstr. 
 	
-	local t_delta is round(gui_data["t_delta"],0).
+	local t_delta is abs(gui_data["t_delta"]),0.
 	local t_delta_text_color is guitextgreenhex.
 	if (abs(t_delta) > 2) {
 		set t_delta_text_color to guitextyellowhex.
