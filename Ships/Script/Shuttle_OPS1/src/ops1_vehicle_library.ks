@@ -410,6 +410,11 @@ FUNCTION roll_heads_up_bk {
 
 FUNCTION roll_heads_up {
 
+	//skip if rtls is in progress
+	IF (DEFINED RTLSAbort) {
+		RETURN.
+	}
+
 	if (vehicle["roll"] <> 0) {
 		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 		set vehicle["roll"] to 0.
@@ -493,7 +498,7 @@ function ascent_dap_factory {
 		set this:steer_yaw_delta to -signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
 		
-		set this:throt_delta to this:thr_tgt - this:thr_cmd.
+		set this:throt_delta to this:thr_cmd_tgt - this:thr_cmd.
 	}).
 	
 	
@@ -629,25 +634,32 @@ function ascent_dap_factory {
 	}).
 	
 	
-	this:add("thr_tgt", 0).
-	this:add("thr_val", 0).	
+	this:add("thr_rpl_tgt", 0).
+	this:add("thr_cmd_tgt", 0).
 	this:add("thr_max", 1).	
 	this:add("thr_min", 0).	
+	
+	this:add("update_thr_cmd", {
+		local new_thr_rpl is CLAMP(this:thr_rpl_tgt, this:thr_min, this:thr_max).
+		set this:thr_cmd_tgt to throtteValueConverter(new_thr_rpl, this:thr_min).
+	}).
 	
 	this:add("thr_control_auto", {
 		set this:thr_mode to "thr_auto".
 	
-		set this:thr_val to CLAMP(this:thr_tgt, this:thr_min, this:thr_max).	
-		set this:thr_cmd to throtteValueConverter(this:thr_val, this:thr_min).
+		this:update_thr_cmd().
+		
+		set this:thr_cmd to this:thr_cmd_tgt.
 	}).
 	
 	
 	this:add("thr_control_css", {
 		set this:thr_mode to "thr_css".
+		
+		this:update_thr_cmd().
 	
 		local thr_input is  SHIP:CONTROL:PILOTMAINTHROTTLE.
 		set this:thr_cmd to thr_input.
-		set this:thr_val to throtteValueConverter(thr_input, this:thr_min, TRUE).	
 	}).
 	
 	
@@ -661,9 +673,9 @@ function ascent_dap_factory {
 		
 		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 5).
 		print "cur_steer_roll : " + round(this:cur_steer_roll,3) + "    " at (0,line + 6).
-		print "cur_steer_az : " + round(this:cur_steer_az,3) + "    " at (0,line + 7).
-		print "steer_cmd_roll : " + round(this:steer_cmd_roll,3) + "    " at (0,line + 8).
-		print "thr_cmd : " + round(this:thr_cmd,3) + "    " at (0,line + 9).
+		print "steer_cmd_roll : " + round(this:steer_cmd_roll,3) + "    " at (0,line + 7).
+		print "thr_rpl_tgt : " + round(this:thr_rpl_tgt,3) + "    " at (0,line + 8).
+		print "thr_cmd_tgt : " + round(this:thr_cmd_tgt,3) + "    " at (0,line + 9).
 		
 		print "steer_pitch_delta : " + round(this:steer_pitch_delta,3) + "    " at (0,line + 11).
 		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 12).

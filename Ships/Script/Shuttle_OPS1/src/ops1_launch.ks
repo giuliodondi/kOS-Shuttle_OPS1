@@ -87,7 +87,6 @@ function countdown{
 	SAS OFF.
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO dap:thr_cmd.
 	LOCK THROTTLE to dap:thr_cmd.
 	
 	//precaution
@@ -97,7 +96,7 @@ function countdown{
 	
 	set dap:thr_max to vehicle["maxThrottle"].
 	set dap:thr_min to vehicle["minThrottle"].
-	SET dap:thr_tgt TO convert_ssme_throt_rpl(1).
+	SET dap:thr_rpl_tgt TO convert_ssme_throt_rpl(1).
 	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
 	dap:set_steering_low().
 	set dap:steer_roll to vehicle["roll"].
@@ -112,6 +111,8 @@ function countdown{
 		}
 		
 	UNTIL (	TIME:SECONDS >= vehicle["ign_t"] ) {
+		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO dap:thr_cmd.
+	
 		if (quit_program) {
 			RETURN FALSE.
 		}
@@ -167,7 +168,7 @@ declare function open_loop_ascent {
 		set vehiclestate["phase"] TO 1.
 		
 		//reset throttle to maximum
-		SET dap:thr_tgt TO vehicle["nominalThrottle"].
+		SET dap:thr_rpl_tgt TO vehicle["nominalThrottle"].
 		
 		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(dap:steer_roll_delta) < 7 THEN {
 			addGUIMessage("ROLL PROGRAM COMPLETE").
@@ -205,7 +206,7 @@ declare function open_loop_ascent {
 		// q bucket and throttling logic
 		
 		if (abort_modes["triggered"]) {
-			set dap:thr_tgt to vehicle["maxThrottle"].
+			set dap:thr_rpl_tgt to vehicle["maxThrottle"].
 		} else {
 			if (throt_flag) {
 				if (vehicle["qbucket"]) {
@@ -225,7 +226,7 @@ declare function open_loop_ascent {
 						}
 					}
 				
-					set dap:thr_tgt to vehicle["qbucketThrottle"].
+					set dap:thr_rpl_tgt to vehicle["qbucketThrottle"].
 				} else {
 					if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > vehicle["qbucketval"]) {
 						set vehicle["qbucket"] to TRUE.
@@ -234,7 +235,7 @@ declare function open_loop_ascent {
 						set vehicle["qbucket"] to FALSE.
 					}
 				
-					set dap:thr_tgt to vehicle["nominalThrottle"].
+					set dap:thr_rpl_tgt to vehicle["nominalThrottle"].
 				}
 			
 			}
@@ -353,10 +354,13 @@ declare function closed_loop_ascent{
 		
 		//fuel dissipation and flyback trigger logic
 		IF (DEFINED RTLSAbort) {
+		
 
 			LOCAL PEG_Tc IS (upfgInternal["mbo_T"] - upfgInternal["tgo"]).
 		
 			IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
+			
+				dap:set_steering_low().
 			
 				//force unconverged until flyback
 				SET upfgInternal["s_conv"] TO FALSE.
@@ -406,19 +410,16 @@ declare function closed_loop_ascent{
 					//get the current thrust vector, project in the plane containing the peg vector (flyback guidance command) and C1,
 					//rotate ahead by a few degrees
 					
-					set_steering_high().
+					dap:set_steering_high().
 					
 					set vehicle["roll"] to 0.
 					set dap:steer_roll to 0.
+					set dap:max_steervec_corr to 20.
+					
 					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
-					
 					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
-					
-					SET RTLS_steering TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], 20). 
-					
+					SET RTLS_steering TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], 45). 
 					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
-						SET RTLS_steering TO RTLSAbort["pitcharound"]["target"].
-						set_steering_low().
 						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
 						SET RTLSAbort["flyback_flag"] TO TRUE.
 						SET upfgInternal["s_flyback"] TO TRUE.
@@ -439,7 +440,7 @@ declare function closed_loop_ascent{
 		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
 			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
 		
-			set dap:thr_tgt to upfgInternal["throtset"].	
+			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
 		} 
 		
 	}
@@ -449,32 +450,23 @@ declare function closed_loop_ascent{
 	SET upfgInternal["terminal"] TO TRUE.
 	
 	
-	set dap:thr_tgt to dap:thr_min.
+	set dap:thr_rpl_tgt to dap:thr_min.
 	
 	//put RTLS terminal logic in its own block
 	IF (DEFINED RTLSAbort) {
 
-		set_steering_high().
-		
-		LOCAL steervec IS SHIP:FACING:FOREVECTOR.
+		dap:set_steering_high().
 		
 		set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
 		UNTIL FALSE{
 			getState().
 			
-			LOCAL pitchdowntgtvec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
+			LOCAL steervec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
 			LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-			LOCAL rotvec IS VCRS(-SHIP:ORBIT:BODY:POSITION:NORMALIZED, SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.		
 			
-			IF (VANG(steervec, pitchdowntgtvec) > 10) {
-				SET steervec tO rodrigues(SHIP:FACING:FOREVECTOR, rotvec, 10).
-				SET steervec TO VXCL(rotvec,steervec).
-			} ELSE {
-				SET steervec TO pitchdowntgtvec.
-			}
-			
-		
+			set dap:steer_tgtdir to LOOKDIRUP(steervec, upvec).
+
 			LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
 			LOCAL tgtsurfvel IS RTLS_rvline(rng).
 			

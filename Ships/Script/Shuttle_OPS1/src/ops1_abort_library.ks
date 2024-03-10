@@ -217,7 +217,7 @@ FUNCTION RTLS_pitchover_t {
 	PARAMETER c1_vec.
 	PARAMETER pitcharound_vec.
 	
-	LOCAL pitchover_rate IS 20.		//degrees per second 
+	LOCAL pitchover_rate IS 10.		//degrees per second 
 	
 	RETURN VANG(pitcharound_vec, c1_vec)/pitchover_rate.
 }
@@ -273,7 +273,6 @@ FUNCTION setup_RTLS {
 	
 	//vehicle stuff immediately so we can measure the running oms
 	start_oms_dump().
-	set_steering_low().
 	
 	//do it immediately so it's ready when the gui first wants to update it 
 	make_rtls_traj2_disp().

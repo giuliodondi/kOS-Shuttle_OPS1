@@ -540,7 +540,7 @@ function update_att_angles {
 	set yawstr to yawstr + abs(y_delta) + "</color>".
 	set y_text_handle:text to yawstr. 
 	
-	local t_delta is abs(gui_data["t_delta"]),0.
+	local t_delta is round(gui_data["t_delta"],0).
 	local t_delta_text_color is guitextgreenhex.
 	if (abs(t_delta) > 2) {
 		set t_delta_text_color to guitextyellowhex.
