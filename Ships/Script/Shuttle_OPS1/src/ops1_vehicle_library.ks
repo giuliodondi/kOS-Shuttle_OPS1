@@ -503,6 +503,7 @@ function ascent_dap_factory {
 	
 	
 	
+	this:add("max_steervec_corr", 5).
 	this:add("steer_refv", SHIP:FACINg:topvector).
 	this:add("steer_thrvec", SHIP:FACINg:forevector).
 	this:add("steer_roll", 0).
@@ -540,7 +541,6 @@ function ascent_dap_factory {
 		this:measure_cur_state().
 	
 		local steer_err_tol is 0.5.
-		local max_steervec_corr is 5.
 	
 		local max_roll_corr is 20.
 		
@@ -551,7 +551,7 @@ function ascent_dap_factory {
 		
 		if (steer_err > steer_err_tol) {
 			local steerv_norm is vcrs(cur_steervec, tgt_steervec).
-			local steerv_corr is min(max_steervec_corr, steer_err).
+			local steerv_corr is min(this:max_steervec_corr, steer_err).
 			
 			set tgt_steervec to rodrigues(cur_steervec, steerv_norm, steerv_corr).
 		} else {
@@ -586,7 +586,6 @@ function ascent_dap_factory {
 		LOCAL yawgain IS 0.7.
 		
 		LOCAL steer_tol IS 0.1.
-		LOCAL max_steer_dev IS 8.
 		
 		local input_pitch is SHIP:CONTROL:PILOTPITCH.
 		local input_roll is SHIP:CONTROL:PILOTROLL.
@@ -622,7 +621,7 @@ function ascent_dap_factory {
 		
 		local cur_new_norm is vcrs(cur_fore, new_steerfore).
 		
-		LOCAL ang_dev IS MIN(max_steer_dev, vang(cur_fore, new_steerfore) ).
+		LOCAL ang_dev IS MIN(this:max_steervec_corr, vang(cur_fore, new_steerfore) ).
 		
 		set new_steerfore to rodrigues(cur_fore, cur_new_norm, ang_dev).
 		

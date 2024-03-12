@@ -414,7 +414,7 @@ declare function closed_loop_ascent{
 					
 					set vehicle["roll"] to 0.
 					set dap:steer_roll to 0.
-					set dap:max_steervec_corr to 20.
+					set dap:max_steervec_corr to 8.
 					
 					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
 					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
