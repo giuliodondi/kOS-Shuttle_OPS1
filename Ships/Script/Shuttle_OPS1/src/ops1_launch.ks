@@ -119,7 +119,7 @@ declare function open_loop_ascent{
 	
 
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
-	set_steering_high().
+	set_steering_med().
 	
 	getState().
 		
@@ -131,7 +131,7 @@ declare function open_loop_ascent{
 	
 	getState().
 	
-	WHEN SHIP:VERTICALSPEED >= vehicle["pitch_v0"] THEN {
+	WHEN SHIP:VERTICALSPEED >= (vehicle["pitch_v0"] - 3) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		
@@ -140,7 +140,7 @@ declare function open_loop_ascent{
 		
 		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(get_roll_lvlh() - control["roll_angle"]) < 7 THEN {
 			addGUIMessage("ROLL PROGRAM COMPLETE").
-			set_steering_med().
+			set_steering_low().
 		}
 		
 		WHEN vehiclestate["staging_in_progress"] THEN {

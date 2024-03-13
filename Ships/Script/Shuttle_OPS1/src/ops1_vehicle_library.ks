@@ -57,7 +57,8 @@ function initialise_shuttle {
 						"name",SHIP:NAME,
 						"ign_t", 0,
 						"launchTimeAdvance", 300,
-						"pitch_v0",30,
+						"roll_v0",35,
+						"pitch_v0",38.7096,
 						"trajectory_scale",0,
 						"preburn",5.1,
 						"roll",180,
@@ -319,7 +320,7 @@ FUNCTION open_loop_pitch {
 
 	LOCAL v0 IS vehicle["pitch_v0"].
 	
-	LOCAL v_match IS 150.
+	LOCAL v_match IS 110.
 	
 	LOCAL steep_fac IS vehicle["traj_steepness"].
 	
@@ -344,27 +345,33 @@ FUNCTION open_loop_pitch {
 			LOCAL prof_match IS nominal_pitch_profile(vrel_match, steep_fac).
 			
 			LOCAL dv IS 2.
-			LOCAL dp_dv IS ABS(nominal_pitch_profile(vrel_match + dv, steep_fac) - prof_match) / dv.
+			LOCAL dp_dv IS (nominal_pitch_profile(vrel_match + dv, steep_fac) - prof_match) / dv.
 			
-			LOCAL b_ IS (prof_match + dp_dv * vrel_match - 90) / vrel_match^2.
-			LOCAL a_ IS dp_dv - 2 * b_ * vrel_match.
+			local c_ is (2*(prof_match - 90) - dp_dv * vrel_match) / vrel_match^3.
+			local b_ is (-dp_dv/vrel_match - 3*c_*vrel_match)/2.
 			
-			SET pitch_prof tO 90 - a_ * vrel - b_ * vrel^2.
+			SET pitch_prof tO 90 - (b_ + c_ * vrel) * vrel^2.
 			
 		} ELSE {
 			SET pitch_prof TO nominal_pitch_profile(vrel, steep_fac).
+			
+			LOCAL bias IS pitch_prof - surfacestate["vdir"].
+		
+			LOCAL bias_gain IS CLAMP((curv - v_match)/ 200, 0, 0.5).
+			
+			LOCAL prof_corr IS ABS(bias_gain * bias).
+			
+			//don't deviate too much from prograde
+			LOCAL max_prograde_dev IS 12.
+			LOCAL max_prof_dev IS MAX(max_prograde_dev - ABS((bias_gain + 1) * bias), 0).
+			
+			set pitch_prof to surfacestate["vdir"] + SIGN(bias) * MIN(max_prof_dev, prof_corr).
+			
 		}
 		
-		LOCAL bias IS pitch_prof - surfacestate["vdir"].
 		
-		LOCAL bias_gain IS MIN(1.5, curv / 100).
 		
-		//don't deviate too much from prograde
-		LOCAL max_prograde_dev IS 12.
-		
-		LOCAL bias_delta IS SIGN(bias) * MIN(ABS(bias_gain * bias), max_prograde_dev).
-		
-		RETURN CLAMP(surfacestate["vdir"] + bias_delta, 0, 90).
+		RETURN CLAMP(pitch_prof, 0, 90).
 	}
 	
 	
