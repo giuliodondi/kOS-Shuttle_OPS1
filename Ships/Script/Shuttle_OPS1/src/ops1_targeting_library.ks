@@ -260,7 +260,9 @@ FUNCTION update_navigation {
 	
 	LOCAL progv IS v(0,0,0).
 	
-	IF vehiclestate["phase"] >1 {set progv to SHIP:PROGRADE:VECTOR.}
+
+	
+	IF (vehiclestate["phase"] > 1) {set progv to SHIP:PROGRADE:VECTOR.}
 	ELSE {set progv to SHIP:SRFPROGRADE:VECTOR.}
 	
 	SET surfacestate["hdir"] TO compass_for(progv,SHIP:GEOPOSITION ).

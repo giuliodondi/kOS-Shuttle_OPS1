@@ -116,7 +116,6 @@ function countdown{
 
 
 declare function open_loop_ascent{
-	
 
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
 	set_steering_med().
@@ -127,13 +126,13 @@ declare function open_loop_ascent{
 	
 	SET control["refvec"] TO HEADING(control["launch_az"] + 180, 0):VECTOR.																			   
 	
-	SET vehiclestate["phase"] TO 1.
-	
 	getState().
 	
 	WHEN SHIP:VERTICALSPEED >= (vehicle["pitch_v0"] - 3) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
+		
+		set vehiclestate["phase"] TO 1.
 		
 		//reset throttle to maximum
 		SET vehicle["stages"][1]["Throttle"] TO  vehicle["maxThrottle"].

@@ -788,7 +788,6 @@ FUNCTION setup_ATO {
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
 		vehicle["stages"][3]:REMOVE("glim").
-		vehicle["stages"][3]:REMOVE("throt_mult").
 		SET vehicle["stages"][3]["engines"] TO build_engines_lex().
 		
 		LOCAL current_m IS SHIP:MASS*1000.
@@ -829,7 +828,6 @@ FUNCTION setup_MECO_ENGOUT {
 		SET vehicle["stages"][3]["mode"] TO 1.
 		SET vehicle["stages"][3]["Throttle"] TO 1.
 		vehicle["stages"][3]:REMOVE("glim").
-		vehicle["stages"][3]:REMOVE("throt_mult").
 		SET vehicle["stages"][3]["engines"] TO build_engines_lex().
 		
 		LOCAL current_m IS SHIP:MASS*1000.

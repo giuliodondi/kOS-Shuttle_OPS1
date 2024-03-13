@@ -5,9 +5,6 @@ FUNCTION addGUIMessage {
 	PARAMETER msg.
 	
 	LOCAL clear_ is false.
-	//if (vehiclestate["phase"] < 1) {
-	//	set clear_ to TRUE.
-	//}
 	
 	local t_msg is TIME:SECONDS - vehicle["ign_t"].
 	
@@ -49,7 +46,6 @@ FUNCTION addMessage {
 }
 
 FUNCTION dataViz {
-	if (vehiclestate["phase"] =0) {return.}
 	
 	log_telemetry().
 	
@@ -67,7 +63,7 @@ FUNCTION dataViz {
 	LOCAL pred_simstate IS current_simstate().
 	LOCAL sim_dt IS 15.
 	
-	IF (vehiclestate["phase"] =1) {
+	IF (vehiclestate["phase"] = 1) {
 		SET sim_dt TO 7.5.
 	}
 	
@@ -106,7 +102,7 @@ FUNCTION dataViz {
 				"pred_ve", pred_ve,
 				"pred_alt", pred_alt,
 				"twr", get_TWR(),
-				"ssme_thr", 100*get_ssme_throttle(),
+				"ssme_thr", 100 * stg["Throttle"] * vehicle["SSME"]["thrust"] / get_rpl_thrust(),
 				"et_prop", 100*get_et_prop_fraction(),
 				"tgo", tgo,
 				"vgo", vgo,

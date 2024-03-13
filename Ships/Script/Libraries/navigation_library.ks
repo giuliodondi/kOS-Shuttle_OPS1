@@ -569,9 +569,11 @@ FUNCTION get_pitch {
 
 //get current vehicle roll angle wrt local horizontal and vertical
 FUNCTION get_roll_lvlh {
+	parameter facingdir is SHIP:FACING.
+
 	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	LOCAL horiz_facing IS VXCL(topvec,SHIP:FACING:FOREVECTOR:NORMALIZED):NORMALIZED.
-	LOCAL shiptopvec IS VXCL(horiz_facing,SHIP:FACING:TOPVECTOR:NORMALIZED):NORMALIZED.
+	LOCAL horiz_facing IS VXCL(topvec,facingdir:FOREVECTOR:NORMALIZED):NORMALIZED.
+	LOCAL shiptopvec IS VXCL(horiz_facing,facingdir:TOPVECTOR:NORMALIZED):NORMALIZED.
 	
 	RETURN signed_angle(shiptopvec,topvec,horiz_facing,0).
 }
@@ -579,8 +581,11 @@ FUNCTION get_roll_lvlh {
 
 //get current vehicle pitch angle wrt local horizontal and vertical
 FUNCTION get_pitch_lvlh {
+	parameter facingdir is SHIP:FACING.
+
+	local facingvec is facingdir:FOREVECTOR:NORMALIZED.
+
 	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	LOCAL facingvec IS SHIP:FACING:FOREVECTOR:NORMALIZED.
 	LOCAL horiz_facing IS VXCL(topvec,facingvec):NORMALIZED.
 	LOCAL sidevec IS VCRS(horiz_facing,topvec).
 	RETURN signed_angle(
@@ -588,6 +593,24 @@ FUNCTION get_pitch_lvlh {
 						facingvec,
 						sidevec,
 						0
+	).
+}
+
+function get_az_lvlh {
+	parameter facingdir is SHIP:FACING.
+
+	local facingvec is facingdir:FOREVECTOR:NORMALIZED.
+	
+	LOCAL topvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	
+	local northvec is vxcl(topvec, v(0,1,0)).
+	LOCAL horiz_facing IS VXCL(topvec,facingvec):NORMALIZED.
+	
+	RETURN signed_angle(
+						northvec,
+						horiz_facing,
+						topvec,
+						1
 	).
 }
 

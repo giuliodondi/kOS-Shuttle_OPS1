@@ -607,6 +607,10 @@ FUNCTION upfg {
 	LOCAL tu IS LIST().
 	LOCAL tb IS LIST().
 	LOCAL kklist IS LIST().
+	
+	local kk_gl is 0.
+	
+	local kk_cmd is internal["throtset"].
   
 	FROM { LOCAL i IS 0. } UNTIL i>=n STEP { SET i TO i+1. } DO {
 		SM:ADD(vehicle[i]["mode"]).
@@ -621,10 +625,12 @@ FUNCTION upfg {
 		tb:ADD(vehicle[i]["Tstage"]).
 		kklist:ADD(vehicle[i]["Throttle"]).
 		mT:ADD(vehicle[i]["m_initial"]).
+
 		IF (i=0) {
 			SET kklist[i] TO internal["throtset"].	
 			SET mT[i] TO internal["m_cur"].	
 			SET tb[i] TO internal["tb_cur"].	
+			set kk_gl to vehicle[i]["glim"] * g0 * mT[i] / fT[i].
 		}
 		SET fT[i] TO fT[i]*kklist[i].
 		SET md[i] TO md[i]*kklist[i].
@@ -905,7 +911,7 @@ FUNCTION upfg {
 		
 		LOCAL vgravx IS VDOT(vgrav, internal["ix"]).
 		
-		LOCAL KkP IS internal["throtset"] * 100.
+		LOCAL KkP IS kk_cmd * 100.
 		
 		LOCAL beta1 IS 1 + rvline_coefs[0] * (0.5*internal["tgo"] + VDOT((internal["v_cur"] + 0.5*internal["vgo"]), internal["iz"]) * lam_g3 / atrf).
 		LOCAL beta2 IS 1 + vgravx * lam_g1 / (atrf * internal["tgo"]).
@@ -933,7 +939,7 @@ FUNCTION upfg {
 			
 			//print round(Kknew,2) + "   "  at (0,21).
 			
-			SET internal["throtset"] TO CLAMP(Kknew / 100, 0, 1).
+			SET kk_cmd TO CLAMP(Kknew / 100, 0, 1).
 		}
 		
 		SET vgo_err TO (beta5 - delKk) / (beta4 * beta2).
@@ -961,6 +967,11 @@ FUNCTION upfg {
 		SET internal["vd"] TO rodrigues(internal["iz"], internal["iy"], tgt_orb["fpa"]):NORMALIZED * tgt_orb["velocity"].	
 	
 		SET dvgo TO (internal["vd"] - vp).
+		
+		//my addition: throttle controller for nominal case 
+		if (SM[0]=2) {
+			SET kk_cmd TO CLAMP(kk_gl, 0, 1).
+		}
 	}
 
 	//vgo correction subtask
@@ -1018,4 +1029,7 @@ FUNCTION upfg {
 			SET internal["s_alt"] TO FALSE.
 		}
 	}
+	
+	//throttle command 
+	SET internal["throtset"] TO CLAMP(kk_cmd, 0, 1).
 }
