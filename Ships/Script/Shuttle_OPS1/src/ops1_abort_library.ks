@@ -38,7 +38,7 @@ FUNCTION monitor_abort {
 
 	LOCAL current_t IS TIME:SECONDS - vehicle["ign_t"].
 	
-	LOCAL abort_detect IS SSME_out().
+	LOCAL abort_detect IS vehicle["ssme_out_detected"].
 	
 	IF abort_detect {
 		addGUIMessage("ENGINE OUT DETECTED.").
@@ -48,6 +48,7 @@ FUNCTION monitor_abort {
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:SURFACE:MAG.
 		SET vehicle["maxThrottle"] TO 1.
 		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 1.
+		set vehicle["ssme_out_detected"] to FALSE.
 	}
 
 

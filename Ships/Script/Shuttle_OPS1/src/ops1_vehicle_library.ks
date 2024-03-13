@@ -8,7 +8,8 @@ GLOBAL vehiclestate IS LEXICON(
 	"staging_in_progress", FALSE,
 	"m_burn_left", 0,
 	"thr_vec", v(0,0,0),
-	"avg_thr", average_value_factory(6)
+	"avg_thr", average_value_factory(6),
+	"q", 0
 ).
 
 
@@ -53,15 +54,20 @@ function initialise_shuttle {
 						"trajectory_scale",0,
 						"preburn",5.1,
 						"roll",180,
+						"qbucketval", 0.28,
+						"qbucket", FALSE,
+						"max_q_reached", FALSE,
 						"handover", LEXICON("time", srb_time + 5),
 						"maxThrottle",0,	
+						"minThrottle",0,	
 						"SSME_prop_0", 0,
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
 						"OMS_prop", 0,
 						"stages",LIST(),
 						"SSME",0,
-						"OMS",0
+						"OMS",0,
+						"ssme_out_detected", FALSE
 	).
 	
 	SET vehicle["SSME"] TO parse_ssme().
@@ -84,6 +90,9 @@ function initialise_shuttle {
 	
 	//limit upper throttle in nominal case
 	SET vehicle["maxThrottle"] TO vehicle["SSME"]["maxThrottle"].
+	SET vehicle["minThrottle"] TO vehicle["SSME"]["minThrottle"].
+	SET vehicle["nominalThrottle"] TO min(1, convert_ssme_throt_rpl(1.045)).
+	SET vehicle["qbucketThrottle"] TO convert_ssme_throt_rpl(0.75).
 	
 	//measure total mass less the SRBs and clamps
 	LOCAL stack_mass IS getShuttleStackMass().
@@ -114,7 +123,6 @@ function initialise_shuttle {
 		),
 		"ign_t", 0,
 		"Tstage",srb_time,
-		"Throttle",vehicle["maxThrottle"],
 		"engines",	engines_lex,
 		"mode", 1
 	).
@@ -142,7 +150,6 @@ function initialise_shuttle {
 		"glim", 3,
 		"ign_t", 0,
 		"Tstage",0,
-		"Throttle",vehicle["maxThrottle"],
 		"engines",	engines_lex,
 		"mode", 1
 	).
@@ -175,7 +182,6 @@ function initialise_shuttle {
 		"glim",new_stg_2["glim"],
 		"ign_t", 0,
 		"Tstage",0,
-		"Throttle",vehicle["maxThrottle"],
 		"engines",	engines_lex,
 		"mode", 2
 	).
@@ -216,7 +222,6 @@ function initialise_shuttle {
 			),
 			"ign_t", 0,
 			"Tstage",0,
-			"Throttle",engines_lex["minThrottle"],
 			"engines",	engines_lex,
 			"mode", 1
 		).
@@ -230,8 +235,6 @@ function initialise_shuttle {
 	
 	SET control["roll_angle"] TO vehicle["roll"].
 
-	//initialise first stage thrust at 100% rpl 
-	SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(1).
 	
 	//debug_vehicle().
 	
@@ -240,13 +243,6 @@ function initialise_shuttle {
 	add_action_event(350, roll_heads_up@ ).
 	
 	setup_engine_failure().
-	
-	WHEN (SHIP:Q > 0.28) THEN {
-		IF NOT (abort_modes["triggered"]) {
-			addGUIMessage("THROTTLING DOWN").
-			SET vehicle["stages"][1]["Throttle"] TO convert_ssme_throt_rpl(0.75).
-		}
-	}
 	
 }
 
@@ -673,15 +669,21 @@ function ascent_dap_factory {
 									//VEHICLE PERFORMANCE & STAGING FUNCTIONS
 									
 
+// LEGACY , no longer used
 //simple function to check if vehicle is past maxq
-FUNCTION check_maxq {
+FUNCTION measure_q {
 	PARAMETER newq.
 	
-	IF (newq >=  surfacestate["q"] ) {
+	
+	
+	
+	IF (surfacestate["q"] >=  surfacestate["maxq"] ) {
 		SET surfacestate["q"] TO newq.
-	} ELSE {
+	} ELSE if (NOT vehicle["max_q_reached"]) {
 		addGUIMessage("VEHICLE HAS REACHED MAX-Q").
-		surfacestate:REMOVE("q").
+		
+		set vehicle["max_q_reached"] to TRUE.
+		
 		WHEN (SHIP:Q < 0.95*newq) THEN {
 			IF (vehicle["stages"][1]["Throttle"] < 1) {
 				addGUIMessage("GO AT THROTTLE-UP").
@@ -845,8 +847,8 @@ FUNCTION getState {
 		IF (vehiclestate["cur_stg"]=1) {
 		
 			//do it here so we bypass the check during later stages
-			IF (surfacestate:HASKEY("q") AND surfacestate["vs"] > 50 ) {
-				check_maxq(SHIP:Q).
+			IF (surfacestate["vs"] > 50 ) {
+				set surfacestate["q"] to SHIP:Q.
 			}
 		
 			SET cur_stg["Tstage"] TO cur_stg["Tstage"] - deltat.
@@ -1263,7 +1265,7 @@ FUNCTION parse_ssme {
 		"thrust",0,
 		"flow",0,
 		"minThrottle",0,
-		"maxThrottle",0,
+		"maxThrottle",1,
 		"resources",0
 	).
 	
@@ -1313,9 +1315,6 @@ FUNCTION parse_ssme {
 	
 	SET ssmelex["thrust"] TO ssmelex["thrust"]/ssme_count.
 	SET ssmelex["flow"] TO ssmelex["flow"]/ssme_count.
-
-	//calculate max throttle given nominal power level of 104.5%
-	SET ssmelex["maxThrottle"] TO min(1.045*get_rpl_thrust()/ssmelex["thrust"], 1).
 	
 	SET ssmelex["resources"] TO ssme_reslex.
 	
@@ -1385,7 +1384,6 @@ FUNCTION parse_oms {
 	SET omslex["thrust"] TO omslex["thrust"]/oms_count.
 	SET omslex["flow"] TO omslex["flow"]/oms_count.
 
-	//calculate max throttle given nominal power level of 104.5%
 	SET omslex["maxThrottle"] TO 1.
 	
 	SET omslex["resources"] TO oms_reslex.
@@ -1452,32 +1450,10 @@ FUNCTION convert_ssme_throt_rpl {
 
 }
 
-//count active SSMEs and compare with expected number.
-FUNCTION SSME_out {
-
-	//get SSME parameters from vehicle struct snd known number of engines 
-	LOCAL SSMEcount IS 0.
-	
-	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
-		IF e:IGNITION {
-			SET SSMEcount TO SSMEcount + 1.
-		}
-	}
-	
-	IF (SSMEcount < vehicle["SSME"]["active"]) {
-		
-		SET vehicle["SSME"]["active"] TO SSMEcount.
-		
-		measure_update_engines().
-		
-		RETURN TRUE.
-	}
-
-	RETURN FALSE.
-}
-
 //measure running engines of both kinds and rebuild the engines LEXICON
 FUNCTION measure_update_engines {
+	
+	LOCAL SSMEcount_prev IS vehicle["SSME"]["active"].
 	
 	//measure engines 
 	LOCAL SSMEcount IS 0.
@@ -1487,6 +1463,7 @@ FUNCTION measure_update_engines {
 		}
 	}
 	
+	set vehicle["ssme_out_detected"] to (SSMEcount < SSMEcount_prev).
 	
 	SET vehicle["SSME"]["active"] TO SSMEcount.
 	
@@ -1501,6 +1478,8 @@ FUNCTION measure_update_engines {
 	
 	LOCAL cur_stg IS get_stage().
 	SET cur_stg["engines"] TO build_engines_lex().
+	
+		
 }
 
 FUNCTION SSME_flameout {

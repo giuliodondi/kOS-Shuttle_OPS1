@@ -23,8 +23,6 @@ function launch{
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_gui_library.ks").
 	
-	LOCAL dap IS ascent_dap_factory().
-	
 	wait until ship:unpacked and ship:loaded.
 	
 	make_main_ascent_gui().
@@ -38,11 +36,13 @@ function launch{
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
+	LOCAL dap IS ascent_dap_factory().
+	
 	GLOBAL dataviz_executor IS loop_executor_factory(
 												0.15,
 												{
-													dap:steer_css().
-													dap:thr_control_css().
+													dap:steer_auto_thrvec().
+													dap:thr_control_auto().
 													dataViz().
 												}
 	).
@@ -76,6 +76,10 @@ function countdown{
 	
 	addGUIMessage(" T MINUS 10").
 	
+	set dap:thr_max to vehicle["maxThrottle"].
+	set dap:thr_min to vehicle["minThrottle"].
+	SET dap:thr_tgt TO convert_ssme_throt_rpl(1)
+	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
 	LOCAL monitor_rsls IS FALSE.
 	WHEN  TIME:SECONDS>=TT  THEN {
@@ -90,9 +94,9 @@ function countdown{
 			RETURN FALSE.
 		}
 		IF (monitor_rsls) {
-			LOCAL abort_detect IS measure_update_engines().
+			measure_update_engines().
 	
-			IF abort_detect {
+			IF (vehicle["ssme_out_detected"]) {
 				addGUIMessage("RSLS ABORT.").
 				shutdown_all_engines().
 				LOCK THROTTLE to 0.
@@ -105,18 +109,21 @@ function countdown{
 	
 	SET surfacestate["MET"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
-
+	
+	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
+	LOCK STEERING TO dap:steer_dir.
+	LOCK THROTTLE to dap:thr_cmd.
+	dap:set_steering_low().
+	
 	addGUIMessage("BOOSTER IGNITION").
 	stage.
 	
-	set dap:steer_refv to HEADING(control["launch_az"] + 180, 0):VECTOR.	
-	LOCK STEERING TO dap:steer_dir.
-	LOCK THROTTLE to dap:thr_cmd.
-	
-	wait 0.
-	when (SHIP:VERTICALSPEED > 1) THEN {
-		addGUIMessage("LIFT-OFF CONFIRMED").
+	until false {
+		wait 0.	
+		if (SHIP:VERTICALSPEED > 1) {break.}
 	}
+	
+	addGUIMessage("LIFT-OFF CONFIRMED").
 	
 	RETURN TRUE.
 	
@@ -124,34 +131,25 @@ function countdown{
 
 
 
-declare function open_loop_ascent{
-
-	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
-	set_steering_med().
-	
-	getState().
+declare function open_loop_ascent {
 		
 	local steer_flag IS false.
 																			   
-	
 	getState().
 	
-	WHEN SHIP:VERTICALSPEED >= (vehicle["pitch_v0"] - 3) THEN {
+	WHEN SHIP:VERTICALSPEED >= (vehicle["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
+		dap:set_steering_high()
 		
 		set vehiclestate["phase"] TO 1.
 		
 		//reset throttle to maximum
-		SET vehicle["stages"][1]["Throttle"] TO  vehicle["maxThrottle"].
+		SET dap:thr_tgt TO vehicle["nominalThrottle"].
 		
-		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(get_roll_lvlh() - control["roll_angle"]) < 7 THEN {
+		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(dap:steer_roll_delta) < 7 THEN {
 			addGUIMessage("ROLL PROGRAM COMPLETE").
-			set_steering_low().
-		}
-		
-		WHEN vehiclestate["staging_in_progress"] THEN {
-			SET steer_flag TO FALSE.
+			dap:set_steering_low().
 		}
 	}
 	
@@ -160,6 +158,7 @@ declare function open_loop_ascent{
 			RETURN FALSE.
 		}
 	
+		measure_update_engines().
 		monitor_abort().
 		getState().
 		srb_staging().
@@ -168,11 +167,51 @@ declare function open_loop_ascent{
 		
 		IF (tt - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
 		
-		local aimVec is HEADING(control["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
+		if vehiclestate["staging_in_progress"] {
+			SET steer_flag TO FALSE.
+		}
 		
-		IF steer_flag {
-			SET control["aimvec"] TO aimVec.
-			SET control["steerdir"] TO steeringControl().
+		local aimVec is HEADING(target_orbit["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
+		
+		IF steer_flag {			
+			dap:set_steer_tgt(aimVec).
+		}
+		
+		set dap:thr_max to vehicle["maxThrottle"].
+		set dap:thr_min to vehicle["minThrottle"].
+		
+		// q bucket and throttling logic
+		
+		if (abort_modes["triggered"]) {
+			set dap:thr_tgt to vehicle["maxThrottle"].
+		} else {
+		
+			if (vehicle["qbucket"]) {
+			
+				IF (surfacestate["q"] >=  surfacestate["maxq"] ) {
+					SET surfacestate["maxq"] TO surfacestate["q"].
+					set vehicle["max_q_reached"] to FALSE.
+				} else {
+					set vehicle["max_q_reached"] to TRUE.
+					
+					if (surfacestate["q"] < 0.95*surfacestate["maxq"]) {
+						addGUIMessage("GO AT THROTTLE-UP").
+						set vehicle["qbucket"] to FALSE.
+					}
+				}
+			
+				set dap:thr_tgt to vehicle["qbucketThrottle"].
+			} else {
+				if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > vehicle["qbucketval"]) {
+					set vehicle["qbucket"] to TRUE.
+					addGUIMessage("THROTTLING DOWN").
+				} else {
+					set vehicle["qbucket"] to FALSE.
+				}
+			
+				set dap:thr_tgt to vehicle["nominalThrottle"].
+			}
+		
 		}
 	}
 	RETURN TRUE.
@@ -184,7 +223,7 @@ declare function closed_loop_ascent{
 	
 	getState().
 	
-	set_steering_low().
+	dap:set_steering_low().
 	
 	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 		//hard-coded time shift of 5 minutes
@@ -214,6 +253,7 @@ declare function closed_loop_ascent{
 
 		//abort must be set up before getstate so the stage is reconfigured 
 		//and then adjusted to the current fuel mass
+		measure_update_engines().
 		monitor_abort().
 		//move it here so that we have the most accurate time figure for staging checks
 		getState().

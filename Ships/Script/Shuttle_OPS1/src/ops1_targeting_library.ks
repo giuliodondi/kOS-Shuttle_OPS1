@@ -2,7 +2,7 @@
 //GLOBAL NAV VARIABLES 
 
 GLOBAL launchpad IS SHIP:GEOPOSITION.
-GLOBAL surfacestate IS  LEXICON("MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0).
+GLOBAL surfacestate IS  LEXICON("MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0, "maxq", 0).
 GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0). 
 
 
