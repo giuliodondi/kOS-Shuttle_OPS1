@@ -8,7 +8,7 @@ GLOBAL vehiclestate IS LEXICON(
 	"staging_in_progress", FALSE,
 	"m_burn_left", 0,
 	"thr_vec", v(0,0,0),
-	"avg_thr", average_value_factory(6),
+	"avg_thr", average_value_factory(3),
 	"q", 0
 ).
 
@@ -445,6 +445,7 @@ function ascent_dap_factory {
 	this:add("thr_mode", "").		//ksp 0-1 throttle value
 	
 	this:add("thr_cmd", 1).
+	this:add("thr_cmd_rpl", 1).
 	
 	this:add("last_time", TIME:SECONDS).
 	
@@ -498,7 +499,7 @@ function ascent_dap_factory {
 		set this:steer_yaw_delta to -signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
 		
-		set this:throt_delta to this:thr_cmd_tgt - this:thr_cmd.
+		set this:throt_delta to this:thr_rpl_tgt - this:thr_cmd_rpl.
 	}).
 	
 	
@@ -575,6 +576,8 @@ function ascent_dap_factory {
 	this:add("steer_css", {
 		set this:steer_mode to "css".
 		
+		this:set_steering_css().
+		
 		this:measure_cur_state().
 	
 		//required for continuous pilot input across several funcion calls
@@ -649,6 +652,7 @@ function ascent_dap_factory {
 		this:update_thr_cmd().
 		
 		set this:thr_cmd to this:thr_cmd_tgt.
+		set this:thr_cmd_rpl to throtteValueConverter(this:thr_cmd, this:thr_min, TRUE).
 	}).
 	
 	
@@ -659,6 +663,7 @@ function ascent_dap_factory {
 	
 		local thr_input is  SHIP:CONTROL:PILOTMAINTHROTTLE.
 		set this:thr_cmd to thr_input.
+		set this:thr_cmd_rpl to throtteValueConverter(this:thr_cmd, this:thr_min, TRUE).
 	}).
 	
 	
@@ -684,39 +689,22 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_ramp", {
-		if (is_dap_css()) {
-			this:set_steering_css().
-		} else {
-			
-			local max_steer is 0.75.
-			local steer_ramp_rate is max_steer/5.
-			
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
-		}
+		local max_steer is 0.75.
+		local steer_ramp_rate is max_steer/5.
+		
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
 	}).
 	
 	this:add("set_steering_high", {
-		if (is_dap_css()) {
-			this:set_steering_css().
-		} else {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
-		}
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
 	}).
 	
 	this:add("set_steering_med", {
-		if (is_dap_css()) {
-			this:set_steering_css().
-		} else {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
-		}
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
 	}).
 	
 	this:add("set_steering_low", {
-		if (is_dap_css()) {
-			this:set_steering_css().
-		} else {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
-		}
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
 	}).
 	
 	this:add("set_steering_css", {

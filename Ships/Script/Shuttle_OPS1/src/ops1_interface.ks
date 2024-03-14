@@ -103,7 +103,7 @@ FUNCTION dataViz {
 				"pred_ve", pred_ve,
 				"pred_alt", pred_alt,
 				"twr", get_TWR(),
-				"ssme_thr", 100 * dap:thr_rpl_tgt * vehicle["SSME"]["thrust"] / get_rpl_thrust(),
+				"ssme_thr", 100 * dap:thr_cmd_rpl * vehicle["SSME"]["thrust"] / get_rpl_thrust(),
 				"et_prop", 100*get_et_prop_fraction(),
 				"tgo", tgo,
 				"vgo", vgo,

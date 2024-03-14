@@ -52,7 +52,7 @@ function launch{
 														dap:thr_control_css().
 													}
 													
-													set get_stage()["Throttle"] to dap:thr_cmd.
+													set get_stage()["Throttle"] to dap:thr_rpl_tgt.
 													
 													dap:print_debug(2).
 													
