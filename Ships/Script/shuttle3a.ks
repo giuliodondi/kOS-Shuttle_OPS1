@@ -9,7 +9,7 @@
 GLOBAL target_orbit IS LEXICON (	
 								"periapsis",0,
 								"apoapsis",195,
-								"cutoff alt",115,
+								"cutoff alt",112,
 								"inclination",-104
 ).
 

@@ -355,7 +355,9 @@ FUNCTION open_loop_pitch {
 		} ELSE {
 			SET pitch_prof TO nominal_pitch_profile(vrel, steep_fac).
 			
-			LOCAL bias IS pitch_prof - surfacestate["vdir"].
+			local prog_p is get_surf_fpa().
+			
+			LOCAL bias IS pitch_prof - prog_p.
 		
 			LOCAL bias_gain IS CLAMP((curv - v_match)/ 200, 0, 0.5).
 			
@@ -365,7 +367,7 @@ FUNCTION open_loop_pitch {
 			LOCAL max_prograde_dev IS 12.
 			LOCAL max_prof_dev IS MAX(max_prograde_dev - ABS((bias_gain + 1) * bias), 0).
 			
-			set pitch_prof to surfacestate["vdir"] + SIGN(bias) * MIN(max_prof_dev, prof_corr).
+			set pitch_prof to pitch_prof + SIGN(bias) * MIN(max_prof_dev, prof_corr).
 			
 		}
 		
