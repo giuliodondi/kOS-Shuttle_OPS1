@@ -163,17 +163,11 @@ declare function open_loop_ascent {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		SET throt_flag TO true.
-		dap:set_steering_high().
 		
 		set vehiclestate["phase"] TO 1.
 		
 		//reset throttle to maximum
 		SET dap:thr_rpl_tgt TO vehicle["nominalThrottle"].
-		
-		WHEN SHIP:VERTICALSPEED >= 100 AND ABS(dap:steer_roll_delta) < 7 THEN {
-			addGUIMessage("ROLL PROGRAM COMPLETE").
-			dap:set_steering_low().
-		}
 	}
 	
 	UNTIL FALSE {	
@@ -196,7 +190,9 @@ declare function open_loop_ascent {
 		
 		local aimVec is HEADING(target_orbit["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
 		
-		IF steer_flag {			
+		
+		IF steer_flag {		
+			dap:set_steering_ramp().
 			dap:set_steer_tgt(aimVec).
 		}
 		

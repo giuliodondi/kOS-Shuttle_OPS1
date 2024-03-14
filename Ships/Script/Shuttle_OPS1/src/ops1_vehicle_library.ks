@@ -683,6 +683,18 @@ function ascent_dap_factory {
 		
 	}).
 	
+	this:add("set_steering_ramp", {
+		if (is_dap_css()) {
+			this:set_steering_css().
+		} else {
+			
+			local max_steer is 0.75.
+			local steer_ramp_rate is max_steer/5.
+			
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
+		}
+	}).
+	
 	this:add("set_steering_high", {
 		if (is_dap_css()) {
 			this:set_steering_css().
