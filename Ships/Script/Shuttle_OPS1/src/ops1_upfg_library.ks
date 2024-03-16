@@ -967,15 +967,16 @@ FUNCTION upfg {
 		SET internal["vd"] TO rodrigues(internal["iz"], internal["iy"], tgt_orb["fpa"]):NORMALIZED * tgt_orb["velocity"].	
 	
 		SET dvgo TO (internal["vd"] - vp).
-		
-		//my addition: throttle controller for nominal case 
-		if (SM[0]=2) {
-			SET kk_cmd TO CLAMP(kk_gl, 0, 1).
-		}
 	}
+	
 
 	//vgo correction subtask
 	SET internal["vgo"] TO internal["vgo"] + dvgo.
+	
+	//my addition: throttle controller for constant g in any case 
+	if (SM[0]=2) {
+		SET kk_cmd TO CLAMP(kk_gl, 0, 1).
+	}
 	
 	//convergence check subtask 
 	LOCAL wasconv IS internal["s_conv"].
