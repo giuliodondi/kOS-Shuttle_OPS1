@@ -639,6 +639,7 @@ FUNCTION setup_TAL {
 						engines_lex,
 						vehicle["maxThrottle"]
 	).
+	reset_stage().
 	
 	LOCAL DVrem IS calculate_dv_remaining().
 	

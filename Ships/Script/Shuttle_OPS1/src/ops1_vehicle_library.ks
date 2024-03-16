@@ -133,16 +133,27 @@ function initialise_shuttle {
 
 	vehicle["stages"]:ADD(new_stg_1).
 	
+	//setup_shuttle_stages(
+	//					new_stg_1["m_final"],
+	//					vehicle["stack_empty_mass"],
+	//					engines_lex,
+	//					vehicle["nominalThrottle"]
+	//).
+	
+	
+	//test vehicle init
+	set vehicle["SSME"]["active"] to 2.
+	set engines_lex to build_engines_lex().
 	setup_shuttle_stages(
-						new_stg_1["m_final"],
+						140000,
 						vehicle["stack_empty_mass"],
 						engines_lex,
-						vehicle["nominalThrottle"]
+						vehicle["SSME"]["maxThrottle"]
 	).
 	
 	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
 	
-	//debug_vehicle().
+	debug_vehicle().
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).
@@ -1012,6 +1023,11 @@ FUNCTION increment_stage {
 
 }
 
+//to be called after stage setup in aborts
+FUNCTION reset_stage {
+	set vehiclestate["cur_stg"] to 2.
+}
+
 
 FUNCTION srb_staging {
 	IF vehiclestate["staging_in_progress"] {RETURN.}
@@ -1100,7 +1116,7 @@ function setup_shuttle_stages {
 	
 	LOCAL gl_out IS glim_t_m(new_stg_2).
 	
-	If gl_out[0] <= 0 {
+	If (gl_out[1] <= 0) {
 		// won't violate the glim
 		SET new_stg_2["Tstage"] TO const_f_t(new_stg_2).
 		SET new_stg_2["staging"]["type"] TO "depletion".
@@ -1115,12 +1131,14 @@ function setup_shuttle_stages {
 		
 	} else {
 		// will violate the glim 
-		set stage3InitialMass to gl_out[1].
-		set stage3mode to 2.
-		set new_stg_2["m_final"] to gl_out[1].
+		
+		set new_stg_2["m_final"] to MIN(gl_out[1], new_stg_2["m_initial"]).
 		SET new_stg_2["m_burn"] TO new_stg_2["m_initial"] - new_stg_2["m_final"].
-		SET new_stg_2["Tstage"] TO gl_out[0].
+		SET new_stg_2["Tstage"] TO MAX(gl_out[0], 0).
 		SET new_stg_2["staging"]["type"] TO "glim".
+		
+		set stage3InitialMass to new_stg_2["m_final"].
+		set stage3mode to 2.
 	}
 	
 	local new_stg_3 is empty_stg_template().
