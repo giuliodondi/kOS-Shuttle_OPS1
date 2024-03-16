@@ -58,8 +58,11 @@ function initialise_shuttle {
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
 						"handover", LEXICON("time", srb_time + 5),
+						"glim", 3,
 						"maxThrottle",0,	
 						"minThrottle",0,	
+						"nominalThrottle",0,	
+						"qbucketThrottle",0,	
 						"SSME_prop_0", 0,
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
@@ -148,7 +151,7 @@ function initialise_shuttle {
 			"type","glim",
 			"ignition",	FALSE
 		),
-		"glim", 3,
+		"glim", vehicle["glim"],
 		"ign_t", 0,
 		"Throttle", vehicle["nominalThrottle"],
 		"Tstage",0,
@@ -181,7 +184,7 @@ function initialise_shuttle {
 					"type","minthrot",
 					"ignition",	FALSE
 		),
-		"glim",new_stg_2["glim"],
+		"glim", vehicle["glim"],
 		"ign_t", 0,
 		"Throttle", vehicle["nominalThrottle"],
 		"Tstage",0,
@@ -223,7 +226,7 @@ function initialise_shuttle {
 				"type","depletion",
 				"ignition",	FALSE
 			),
-			"glim",new_stg_2["glim"],
+			"glim", vehicle["glim"],
 			"ign_t", 0,
 			"Throttle", vehicle["minThrottle"],
 			"Tstage",0,
