@@ -19,7 +19,6 @@ GLOBAL events IS LIST().
 
 //VEHICLE INITIALISATION FUNCTION 
 
-
 function initialise_shuttle {
 
 	//RUNPATH("0:/Libraries/resources_library").	
@@ -67,9 +66,11 @@ function initialise_shuttle {
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
 						"OMS_prop", 0,
-						"stages",LIST(),
 						"SSME",0,
 						"OMS",0,
+						"stack_full_mass", 0,
+						"stack_empty_mass", 0,
+						"stages",LIST(),
 						"ssme_out_detected", FALSE
 	).
 	
@@ -98,146 +99,46 @@ function initialise_shuttle {
 	SET vehicle["qbucketThrottle"] TO convert_ssme_throt_rpl(0.75).
 	
 	//measure total mass less the SRBs and clamps
-	LOCAL stack_mass IS getShuttleStackMass().
+	SET vehicle["stack_full_mass"] TO getShuttleStackMass().
 	
 	//nominally we just burn SSME propellant
 	LOCAL total_prop_mass IS vehicle["SSME_prop"].
 	
-	LOCAL stack_empty_mass IS stack_mass - total_prop_mass.	
+	SET vehicle["stack_empty_mass"] TO vehicle["stack_full_mass"] - total_prop_mass.	
 	
 	
 	//prepare stages list
 	
 	LOCAL engines_lex IS build_engines_lex().
 	
-	
 	//zeroth stage 
 	vehicle["stages"]:ADD(0).
 	
 	//stage1 - SRB
 	
-	LOCAL new_stg_1 IS LEXICON(
-		"m_initial",	stack_mass,
-		"m_final",	0,
-		"m_burn",	0,
-		"staging", LEXICON (
-			"type","time",
-			"ignition",	TRUE
-		),
-		"ign_t", 0,
-		"Throttle", vehicle["nominalThrottle"],
-		"Tstage",srb_time,
-		"engines",	engines_lex,
-		"mode", 1
-	).
+	LOCAL new_stg_1 IS empty_stg_template().
+	
+	set new_stg_1["m_initial"] to vehicle["stack_full_mass"].
+	set new_stg_1["glim"] to vehicle["glim"].
+	set new_stg_1["Throttle"] to vehicle["nominalThrottle"].
+	set new_stg_1["Tstage"] to srb_time.
+	set new_stg_1["engines"] to engines_lex.
+	set new_stg_1["mode"] to 1.
+	SET new_stg_1["staging"]["type"] TO "time".
 	
 	LOCAL stage1_final_mass IS const_f_dt_mfinal(new_stg_1).
 	
-	SET new_stg_1["m_final"] TO stack_mass - stage1_final_mass.
-	SET new_stg_1["m_burn"] TO stage1_final_mass. 
+	SET new_stg_1["m_burn"] TO vehicle["stack_full_mass"] - stage1_final_mass.
+	SET new_stg_1["m_final"] TO stage1_final_mass. 
 
 	vehicle["stages"]:ADD(new_stg_1).
 	
-	
-	//stage 2 - SSME CONSTANT T
-	
-	LOCAL stage2InitialMass IS stage1_final_mass.
-	
-	LOCAL new_stg_2 IS LEXICON(
-		"m_initial",	stage2InitialMass,
-		"m_final",	stack_empty_mass,
-		"m_burn",	stage2InitialMass - stack_empty_mass,
-		"staging", LEXICON (
-			"type","glim",
-			"ignition",	FALSE
-		),
-		"glim", vehicle["glim"],
-		"ign_t", 0,
-		"Throttle", vehicle["nominalThrottle"],
-		"Tstage",0,
-		"engines",	engines_lex,
-		"mode", 1
+	setup_shuttle_stages(
+						new_stg_1["m_final"],
+						vehicle["stack_empty_mass"],
+						engines_lex,
+						vehicle["nominalThrottle"]
 	).
-	
-	//will the stage exceed the g limit?
-	LOCAL x IS glim_t_m(new_stg_2).
-	If x[0] <= 0 {
-		PRINT ("ERROR! THE VEHICLE WILL NEVER EXCEED THE 3G ACCELERATION LIMIT. VERIFY PAYLOAD MASS WITHIN LIMITS") AT (1,5).
-		LOCAL X IS 1/0.
-	}
-	
-	LOCAL stage3InitialMass IS x[1].
-	SET new_stg_2["Tstage"] TO x[0].
-	SET new_stg_2["m_final"] TO stage3InitialMass.
-	SET new_stg_2["m_burn"] TO new_stg_2["m_initial"] - stage3InitialMass.
-	
-	
-	vehicle["stages"]:ADD(new_stg_2).
-	
-	//stage 3 - SSME CONSTANT G until depletion or violation
-	
-	LOCAL new_stg_3 IS LEXICON(
-		"m_initial",	stage3InitialMass,
-		"m_final",	stack_empty_mass,
-		"m_burn", stage3InitialMass - stack_empty_mass,
-		"staging", LEXICON (
-					"type","minthrot",
-					"ignition",	FALSE
-		),
-		"glim", vehicle["glim"],
-		"ign_t", 0,
-		"Throttle", vehicle["nominalThrottle"],
-		"Tstage",0,
-		"engines",	engines_lex,
-		"mode", 2
-	).
-	
-	LOCAL y IS const_G_t_m(new_stg_3).
-	SET new_stg_3["Tstage"] TO y[0].
-	LOCAL stage4InitialMass IS y[1].
-	
-	//we don't want to ad a fourth stage unless it burns for at least 3 seconds
-	//to avoid problems with mass uncertainties
-	//if it's zero already because there is no need for a fourth stage at all we fall in the same condition 
-	
-	LOCAL min_stage4InitialMass IS stack_empty_mass + 3 * engines_lex["flow"] * engines_lex["minThrottle"] .
-	
-	If stage4InitialMass <= min_stage4InitialMass {
-		//no fourth stage to be added
-		SET new_stg_3["staging"]["type"] TO "depletion".
-		SET stage4InitialMass TO 0.
-	} ELSE {
-		SET new_stg_3["m_final"] TO stage4InitialMass.
-		SET new_stg_3["m_burn"] TO new_stg_3["m_initial"] - stage4InitialMass.
-	}
-	
-	vehicle["stages"]:ADD(new_stg_3).
-	
-	
-	IF (stage4InitialMass>0) {
-	
-		//stage 4 - SSME CONSTANT T at minimum throttle
-	
-		LOCAL new_stg_4 IS LEXICON(
-			"m_initial",	stage4InitialMass,
-			"m_final",	stack_empty_mass,
-			"m_burn",	stage4InitialMass - stack_empty_mass,
-			"staging", LEXICON (
-				"type","depletion",
-				"ignition",	FALSE
-			),
-			"glim", vehicle["glim"],
-			"ign_t", 0,
-			"Throttle", vehicle["minThrottle"],
-			"Tstage",0,
-			"engines",	engines_lex,
-			"mode", 1
-		).
-		
-		SET new_stg_4["Tstage"] TO const_f_t(new_stg_4).
-	
-		vehicle["stages"]:ADD(new_stg_4).
-	} 
 	
 	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
 	
@@ -251,16 +152,23 @@ function initialise_shuttle {
 	
 }
 
+
 FUNCTION debug_vehicle {
+	
+	dump_vehicle().
+	
+	until false{
+		print "vehicle debug, press crtl-c to quit" at (0,2).
+		wait 0.1.
+	}
+}
+
+FUNCTION dump_vehicle {
 	IF EXISTS("0:/vehicledump.txt") {
 		DELETEPATH("0:/vehicledump.txt").
 	}
 	
 	log vehicle:dump() to "0:/vehicledump.txt".
-	
-	until false{
-		wait 0.1.
-	}
 }
 
 
@@ -423,6 +331,12 @@ FUNCTION roll_heads_up {
 		set vehicle["roll"] to 0.
 		set dap:steer_roll to 0.
 		dap:set_steering_med().
+		
+		local tnext is TIME:SECONDS + 40.
+		
+		WHEN(TIME:SECONDS > tnext) THEN {
+			dap:set_steering_low().
+		}
 	}
 }
 
@@ -692,7 +606,7 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_ramp", {
-		local max_steer is 0.75.
+		local max_steer is 1.
 		local steer_ramp_rate is max_steer/5.
 		
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
@@ -703,7 +617,7 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_med", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.5.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.75.
 	}).
 	
 	this:add("set_steering_low", {
@@ -876,6 +790,33 @@ FUNCTION get_TWR {
 	RETURN vehiclestate["avg_thr"]:average()/(1000*SHIP:MASS*g0).
 }
 
+function calculate_dv_remaining {
+
+	local DVrem is 0.
+
+	local stages is vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]).
+	for stg in stages {
+	
+		LOCAL ve_ IS stg["engines"]["isp"] * g0.
+		LOCAL at_ IS stg["engines"]["thrust"] * stg["Throttle"] / stg["m_initial"].
+		LOCAL tu_ IS ve_ / at_.
+		LOCAL tb_ IS stg["Tstage"].
+		
+		if (stg["mode"] = 1) {
+			set dv_ to ve_*LN(tu_/(tu_-tb_)).
+		} else if (stg["mode"] = 2) {
+			local aL_ is stg["glim"] * g0.
+			set dv_ to aL_*tb_.
+		} else {
+			set dv_ to 0.
+		}
+	
+		set DVrem to DVrem + dv_.
+	}
+	
+	return DVrem.
+}
+
 
 //measures everything about the current state of the vehicle, including instantaneous thrust
 //thrust only averaged over if staging is not in progress
@@ -937,6 +878,10 @@ FUNCTION getState {
 	
 	//moved this here bc we must update oms propellant once before checking if it's time to stop
 	stop_oms_dump().
+	
+	if (debug_mode) {
+		dump_vehicle().
+	}
 }
 
 FUNCTION update_stage2 {
@@ -957,18 +902,20 @@ FUNCTION update_stage2 {
 		
 		LOCAL x IS glim_t_m(stg2).
 		
+		LOCAL stg3_m_initial IS 0.
+		
 		IF (x[0] > 0) {
 			SET stg2["Tstage"] TO x[0]. 
 			SET stg2["m_final"] TO x[1]. 
 			SET stg2["m_burn"] TO m_initial - x[1].
+			set stg3_m_initial to x[1].
 		} ELSE {
 			SET stg2["Tstage"] TO 0. 
 			SET stg2["m_burn"] TO m_initial - stg2["m_final"].
+			set stg3_m_initial to stg2["m_final"].
 		}
 		
 		
-		
-		LOCAL stg3_m_initial IS x[1].
 		LOCAL stg3_m_burn IS res_left - stg2["m_burn"].
 		
 		update_stage3(stg3_m_initial, stg3_m_burn).
@@ -1126,6 +1073,136 @@ FUNCTION ssme_staging_flameout {
 
 
 //		SHUTTLE-SPECIFIC FUNCTIONS 
+
+
+function setup_shuttle_stages {
+	parameter initial_mass.
+	parameter stack_empty_mass.
+	parameter engines_lex.
+	parameter max_throtval.
+	
+	local stg_1 is vehicle["stages"][1].
+	
+	// ssme constant F stage
+	
+	local new_stg_2 is empty_stg_template().
+	
+	set new_stg_2["m_initial"] to initial_mass.
+	set new_stg_2["m_final"] to stack_empty_mass.
+	set new_stg_2["m_burn"] to initial_mass - stack_empty_mass.
+	set new_stg_2["glim"] to vehicle["glim"].
+	set new_stg_2["Throttle"] to max_throtval.
+	set new_stg_2["engines"] to engines_lex.
+	set new_stg_2["mode"] to 1.
+	
+	LOCAL stage3InitialMass IS 0.
+	LOCAL stage3mode IS 0.
+	
+	LOCAL gl_out IS glim_t_m(new_stg_2).
+	
+	If gl_out[0] <= 0 {
+		// won't violate the glim
+		SET new_stg_2["Tstage"] TO const_f_t(new_stg_2).
+		SET new_stg_2["staging"]["type"] TO "depletion".
+		
+		if (new_stg_2["Tstage"] = 0) {
+			set new_stg_2["m_final"] to new_stg_2["m_initial"].
+			set new_stg_2["m_burn"] to 0.
+		}
+		
+		set stage3InitialMass to new_stg_2["m_final"].
+		set stage3mode to 1.
+		
+	} else {
+		// will violate the glim 
+		set stage3InitialMass to gl_out[1].
+		set stage3mode to 2.
+		set new_stg_2["m_final"] to gl_out[1].
+		SET new_stg_2["m_burn"] TO new_stg_2["m_initial"] - new_stg_2["m_final"].
+		SET new_stg_2["Tstage"] TO gl_out[0].
+		SET new_stg_2["staging"]["type"] TO "glim".
+	}
+	
+	local new_stg_3 is empty_stg_template().
+	
+	set new_stg_3["m_initial"] to stage3InitialMass.
+	set new_stg_3["m_final"] to stack_empty_mass.
+	set new_stg_3["m_burn"] to stage3InitialMass - stack_empty_mass.
+	set new_stg_3["glim"] to vehicle["glim"].
+	set new_stg_3["Throttle"] to max_throtval.
+	set new_stg_3["engines"] to engines_lex.
+	set new_stg_3["mode"] to stage3mode.
+	
+	LOCAL stage4InitialMass IS 0.
+	
+	if (stage3mode = 1) {
+		// only if we never reach the glim 
+		
+		set stage4InitialMass to new_stg_3["m_final"].
+		
+		SET new_stg_3["Tstage"] TO const_f_t(new_stg_3).
+		SET new_stg_3["staging"]["type"] TO "depletion".
+		
+	} else if (stage3mode = 2) {
+		LOCAL gtm_out IS const_G_t_m(new_stg_3).
+		
+		set stage4InitialMass to gtm_out[1].
+		SET new_stg_3["m_final"] TO gtm_out[1].
+		SET new_stg_3["m_burn"] TO new_stg_3["m_initial"] - new_stg_3["m_final"].
+		SET new_stg_3["Tstage"] TO gtm_out[0].
+		
+		
+		
+		if (stage4InitialMass > stack_empty_mass) {
+			SET new_stg_3["staging"]["type"] TO "minthrot".
+		} else {
+			SET new_stg_3["staging"]["type"] TO "depletion".
+		}
+		
+	}	
+	
+	
+	local new_stg_4 is empty_stg_template().
+	
+	set new_stg_4["m_initial"] to stage4InitialMass.
+	set new_stg_4["m_final"] to stack_empty_mass.
+	set new_stg_4["m_burn"] to stage4InitialMass - stack_empty_mass.
+	set new_stg_4["glim"] to vehicle["glim"].
+	set new_stg_4["Throttle"] to vehicle["minThrottle"].
+	set new_stg_4["engines"] to engines_lex.
+	set new_stg_4["mode"] to 1.
+	set new_stg_4["staging"]["type"] TO "depletion".
+	SET new_stg_4["Tstage"] TO const_f_t(new_stg_4).
+	
+	set vehicle["stages"] to list(
+									0,
+									stg_1,
+									new_stg_2,
+									new_stg_3,
+									new_stg_4
+	).
+
+}
+
+function empty_stg_template {
+
+	return LEXICON(
+		"m_initial", 0,
+		"m_final", 0,
+		"m_burn", 0,
+		"staging", LEXICON (
+					"type","",
+					"ignition",	FALSE
+		),
+		"glim", 0,
+		"ign_t", 0,
+		"Throttle", 0,
+		"Tstage",0,
+		"engines", 0,
+		"mode", 0
+	).
+
+}
 
 
 FUNCTION get_srb_thrust {

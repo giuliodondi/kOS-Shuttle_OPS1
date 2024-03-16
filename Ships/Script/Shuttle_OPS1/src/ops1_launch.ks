@@ -5,7 +5,7 @@ function launch{
 	CLEARSCREEN.
 	SET CONFIG:IPU TO 800.					//	Required to run the script fast enough.
 	
-	
+	global debug_mode is true.
 	
 	//	Load libraries
 	RUNPATH("0:/Shuttle_OPS3/landing_sites").
@@ -23,13 +23,19 @@ function launch{
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
 	RUNPATH("0:/Shuttle_OPS1/src/ops1_gui_library.ks").
 	
-	wait until ship:unpacked and ship:loaded.
+	close_all_GUIs().
 	
 	make_main_ascent_gui().
 	make_ascent_traj1_disp().
 	
+	wait until ship:unpacked and ship:loaded.
+	
 	initialise_shuttle().
 	prepare_launch().	
+	
+	
+	
+	
 	
 	//need to have initalised the vehicle first for the vessel name
 	prepare_telemetry().
@@ -54,11 +60,15 @@ function launch{
 													
 													set get_stage()["Throttle"] to dap:thr_rpl_tgt.
 													
-													dap:print_debug(2).
+													if (debug_mode) {
+														
+														dap:print_debug(2).
+														
+														arrow_ship(3 * dap:steer_thrvec,"steer_thrvec").
+														arrow_ship(2 * dap:steer_dir:forevector,"forevec").
+														arrow_ship(2 * dap:steer_dir:topvector,"topvec").
 													
-													arrow_ship(3 * dap:steer_thrvec,"steer_thrvec").
-													arrow_ship(2 * dap:steer_dir:forevector,"forevec").
-													arrow_ship(2 * dap:steer_dir:topvector,"topvec").
+													}
 													
 													dataViz().
 												}
@@ -444,7 +454,6 @@ declare function closed_loop_ascent{
 	SET vehiclestate["phase"] TO 3.
  
 	SET upfgInternal["terminal"] TO TRUE.
-	
 	
 	set dap:thr_rpl_tgt to dap:thr_min.
 	

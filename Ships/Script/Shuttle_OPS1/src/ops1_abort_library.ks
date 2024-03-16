@@ -47,7 +47,6 @@ FUNCTION monitor_abort {
 		SET abort_modes["t_abort"] TO MAX( current_t + 1, vehicle["handover"]["time"] + 2 ).
 		SET abort_modes["abort_v"] TO SHIP:VELOCITY:SURFACE:MAG.
 		SET vehicle["maxThrottle"] TO 1.
-		SET vehicle["stages"][vehiclestate["cur_stg"]]["Throttle"] TO 1.
 		set vehicle["ssme_out_detected"] to FALSE.
 	}
 
@@ -628,41 +627,26 @@ FUNCTION setup_TAL {
 	//vehicle stuff immediately so we can measure the running oms
 	start_oms_dump().
 	
-	//performance calculations first since we need an estimate of the deltaV remaining
-	//save the current engine lex (no oms)
-	LOCAL cur_stg IS get_stage().
-	LOCAL ssme_only_englex IS cur_stg["engines"].
-	
 	measure_update_engines().
-	
-	SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
-	
-	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
-	SET vehicle["stages"][2]["mode"] TO 1.
-	SET vehicle["stages"][2]["Throttle"] TO 1.
-	SET vehicle["stages"][2]["engines"] TO build_engines_lex().
+	local engines_lex is build_engines_lex().
 	
 	LOCAL current_m IS SHIP:MASS*1000.
 	local res_left IS get_shuttle_res_left().
 	
-	update_stage2(current_m, res_left).
+	setup_shuttle_stages(
+						current_m,
+						current_m - res_left,
+						engines_lex,
+						vehicle["maxThrottle"]
+	).
 	
-	
-	//estimate deltaV remaining in constant-thrust depletion stage
-	LOCAL ve2 IS vehicle["stages"][2]["engines"]["isp"]*g0.
-	LOCAL at2 IS vehicle["stages"][2]["engines"]["thrust"]*vehicle["stages"][2]["Throttle"]/vehicle["stages"][2]["m_initial"].
-	LOCAL tu2 IS ve2/at2.
-	LOCAL tb2 IS vehicle["stages"][2]["Tstage"].
-	
-	LOCAL DVrem IS ve2*LN(tu2/(tu2-tb2)).
-	
+	LOCAL DVrem IS calculate_dv_remaining().
 	
 	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site(DVrem).
 	
 	SET target_orbit["mode"] TO 6.
 	SET target_orbit["cutoff alt"] TO CLAMP(0.83 * target_orbit["cutoff alt"], 110, 140).		//force cutoff alt 
 	SET target_orbit["apoapsis"] TO target_orbit["cutoff alt"].
-	
 	
 	// declare it to signal that TAL has bene initialised
 	GLOBAL TALAbort IS LEXICON (
@@ -673,6 +657,8 @@ FUNCTION setup_TAL {
 	SET target_orbit TO TAL_cutoff_params(target_orbit, target_orbit["radius"]).
 	
 	SET upfgInternal["s_init"] TO FALSE.
+	
+	set upfgInternal["throtset"] to vehicle["maxThrottle"].
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
