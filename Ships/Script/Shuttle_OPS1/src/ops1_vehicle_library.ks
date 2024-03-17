@@ -133,27 +133,27 @@ function initialise_shuttle {
 
 	vehicle["stages"]:ADD(new_stg_1).
 	
-	//setup_shuttle_stages(
-	//					new_stg_1["m_final"],
-	//					vehicle["stack_empty_mass"],
-	//					engines_lex,
-	//					vehicle["nominalThrottle"]
-	//).
-	
-	
-	//test vehicle init
-	set vehicle["SSME"]["active"] to 2.
-	set engines_lex to build_engines_lex().
 	setup_shuttle_stages(
-						140000,
+						new_stg_1["m_final"],
 						vehicle["stack_empty_mass"],
 						engines_lex,
-						vehicle["SSME"]["maxThrottle"]
+						vehicle["nominalThrottle"]
 	).
+	
+	//test vehicle init
+	//set vehicle["SSME"]["active"] to 2.
+	//set engines_lex to build_engines_lex().
+	//setup_shuttle_stages(
+	//					140000,
+	//					vehicle["stack_empty_mass"],
+	//					engines_lex,
+	//					vehicle["SSME"]["maxThrottle"]
+	//).
+	//
 	
 	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
 	
-	debug_vehicle().
+	//debug_vehicle().
 	
 	//prepare launch triggers 
 	add_action_event(1, activate_fuel_cells@ ).

@@ -270,31 +270,30 @@ FUNCTION setup_RTLS {
 		RETURN.
 	}
 	
-	//vehicle stuff immediately so we can measure the running oms
-	start_oms_dump().
 	
 	//do it immediately so it's ready when the gui first wants to update it 
 	make_rtls_traj2_disp().
 	
+	
+	start_oms_dump().
+	
+	// so g-limiting is skipped
+	set vehicle["glim"] to 10.
+	
 	//redefine vehicle 
-	
-	//save the current engine lex (no oms)
-	LOCAL cur_stg IS get_stage().
-	LOCAL ssme_only_englex IS cur_stg["engines"].
-	
 	measure_update_engines().
-	
-	SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
-	
-	SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
-	SET vehicle["stages"][2]["mode"] TO 1.
-	SET vehicle["stages"][2]["Throttle"] TO 1.
-	SET vehicle["stages"][2]["engines"] TO build_engines_lex().
+	local engines_lex is build_engines_lex().
 	
 	LOCAL current_m IS SHIP:MASS*1000.
 	local res_left IS get_shuttle_res_left().
 	
-	update_stage2(current_m, res_left).
+	setup_shuttle_stages(
+						current_m,
+						current_m - res_left,
+						engines_lex,
+						vehicle["maxThrottle"]
+	).
+	reset_stage().
 
 	vehicle:ADD("mbod",0).
 	
@@ -723,6 +722,20 @@ FUNCTION setup_ATO {
 		RETURN.
 	}
 	
+	measure_update_engines().
+	local engines_lex is build_engines_lex().
+	
+	LOCAL current_m IS SHIP:MASS*1000.
+	local res_left IS get_shuttle_res_left().
+	
+	setup_shuttle_stages(
+						current_m,
+						current_m - res_left,
+						engines_lex,
+						vehicle["maxThrottle"]
+	).
+	reset_stage().
+	
 	// declare it to signal that ATO has been initialised
 	GLOBAL ATOAbort IS LEXICON (
 		"t_abort",TIME:SECONDS
@@ -754,42 +767,6 @@ FUNCTION setup_ATO {
 	
 	set target_orbit["fpa"] to orbit_eta_fpa(target_orbit["eta"], target_orbit["SMA"], target_orbit["ecc"]).
 	
-	
-	//need to take care of the stages, contrary to RTLS and TAL we might already be in constant-G mode
-	IF (vehiclestate["cur_stg"]=2) {
-		
-		SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,3).
-	
-		SET vehicle["stages"][2]["staging"]["type"] TO "depletion".
-		SET vehicle["stages"][2]["mode"] TO 1.
-		SET vehicle["stages"][2]["Throttle"] TO 1.
-		
-		LOCAL current_m IS SHIP:MASS*1000.
-		local res_left IS get_shuttle_res_left().
-		
-		
-		
-		SET vehicle["stages"][2]["engines"] TO build_engines_lex().
-		
-		update_stage2(current_m, res_left).
-		
-	} ELSE IF (vehiclestate["cur_stg"]=3) {
-	
-		SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,4).
-	
-		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
-		SET vehicle["stages"][3]["mode"] TO 1.
-		SET vehicle["stages"][3]["Throttle"] TO 1.
-		vehicle["stages"][3]:REMOVE("glim").
-		SET vehicle["stages"][3]["engines"] TO build_engines_lex().
-		
-		LOCAL current_m IS SHIP:MASS*1000.
-		local res_left IS get_shuttle_res_left().
-		
-		update_stage3(current_m, res_left).
-		
-	} 
-	
 	SET upfgInternal["s_init"] TO FALSE.
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
@@ -812,34 +789,19 @@ FUNCTION setup_MECO_ENGOUT {
 
 	//no changes in targeting, just convert the stages to constant thrust depletion stages and trigger dump 
 	
-
-	IF (vehiclestate["cur_stg"]=3) {
+	measure_update_engines().
+	local engines_lex is build_engines_lex().
 	
-		SET vehicle["stages"] TO vehicle["stages"]:SUBLIST(0,4).
+	LOCAL current_m IS SHIP:MASS*1000.
+	local res_left IS get_shuttle_res_left().
 	
-		SET vehicle["stages"][3]["staging"]["type"] TO "depletion".
-		SET vehicle["stages"][3]["mode"] TO 1.
-		SET vehicle["stages"][3]["Throttle"] TO 1.
-		SET vehicle["stages"][3]["engines"] TO build_engines_lex().
-		
-		LOCAL current_m IS SHIP:MASS*1000.
-		local res_left IS get_shuttle_res_left().
-		
-		update_stage3(current_m, res_left).
-		
-	} ELSE IF (vehiclestate["cur_stg"]=4) {
-	
-		SET vehicle["stages"][4]["staging"]["type"] TO "depletion".
-		SET vehicle["stages"][4]["mode"] TO 1.
-		SET vehicle["stages"][4]["Throttle"] TO 1.
-		SET vehicle["stages"][4]["engines"] TO build_engines_lex().
-		
-		LOCAL current_m IS SHIP:MASS*1000.
-		local res_left IS get_shuttle_res_left().
-		
-		update_stage4(current_m, res_left).
-		
-	} 
+	setup_shuttle_stages(
+						current_m,
+						current_m - res_left,
+						engines_lex,
+						vehicle["maxThrottle"]
+	).
+	reset_stage().
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 }

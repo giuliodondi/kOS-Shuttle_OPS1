@@ -425,7 +425,7 @@ declare function closed_loop_ascent{
 					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
 					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
 					SET RTLS_steering TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], 45). 
-					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 10) {
+					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 20) {
 						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
 						SET RTLSAbort["flyback_flag"] TO TRUE.
 						SET upfgInternal["s_flyback"] TO TRUE.
