@@ -5,7 +5,7 @@ function launch{
 	CLEARSCREEN.
 	SET CONFIG:IPU TO 800.					//	Required to run the script fast enough.
 	
-	global debug_mode is true.
+	global debug_mode is false.
 	
 	//	Load libraries
 	RUNPATH("0:/Shuttle_OPS3/landing_sites").
@@ -187,6 +187,7 @@ declare function open_loop_ascent {
 	
 		measure_update_engines().
 		//monitor_abort().	//disabled
+		ato_abort_boundary().
 		getState().
 		srb_staging().
 		
@@ -288,6 +289,7 @@ declare function closed_loop_ascent{
 		//and then adjusted to the current fuel mass
 		measure_update_engines().
 		//monitor_abort().	//disabled
+		ato_abort_boundary().
 		//move it here so that we have the most accurate time figure for staging checks
 		getState().
 		

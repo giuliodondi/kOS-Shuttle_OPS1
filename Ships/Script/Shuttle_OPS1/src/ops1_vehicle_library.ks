@@ -801,12 +801,44 @@ FUNCTION get_TWR {
 	RETURN vehiclestate["avg_thr"]:average()/(1000*SHIP:MASS*g0).
 }
 
-
-function calculate_perf_remaining {
+//needed for aborts 
+//given specified engines and assuming max throttle, calculate deltav and time to burn 
+function veh_perf_estimator {
 	parameter engines_lex.
+	
+	local prop_left is vehiclestate["m_burn_left"].
+	
+	local m_initial is get_stage()["m_initial"].
+	
+	LOCAL ve_ IS engines_lex["isp"] * g0.
+	
+	local deltav_ is ve_*ln(m_initial/(m_initial - prop_left)).
+	
+	local burnt is ((m_initial * ve_) / engines_lex["thrust"] * vehicle["maxThrottle"]) * (1 - CONSTANT:E^(- deltav_/ve_)).
+	
+	
+	return lexicon(
+					"time", burnt,
+					"deltav", deltav_
+	
+	).
+
+}
+
+function estimate_perf_remaining {
+	parameter engines_lex.
+	
+	local prop_left is vehiclestate["m_burn_left"].
+	
+	LOCAL ve_ IS engines_lex["isp"] * g0.
+	LOCAL at_ IS engines_lex["thrust"] * stg["Throttle"] / stg["m_initial"].
+	
+	//pretend a constant thrust 
 	
 	local dvtot is 0.
 	local timetot is 0.
+	
+	
 	
 	local stages is vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]).
 	for stg in stages {

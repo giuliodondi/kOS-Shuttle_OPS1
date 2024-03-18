@@ -55,6 +55,21 @@ FUNCTION nominal_cutoff_params {
 	RETURN tgt_orb.
 }
 
+//upfg-compatible velocity vector
+function cutoff_velocity_vector {
+	parameter cutoff_r.
+	parameter normvec.
+	parameter cutoff_vel.
+	parameter cutoff_fpa.
+	
+	local ix_ is cutoff_r:normalized.
+	local iy_ is normvec:normalized.
+	local iz_ is VCRS(ix_, iy_):NORMALIZED.
+	
+	return rodrigues(iz_, iy_, cutoff_fpa):NORMALIZED * cutoff_vel.	
+
+}
+
 //given target deltav and performance figures, account for gravity losses
 //and estimate excess deltav
 function estimate_excess_deltav {
@@ -68,13 +83,19 @@ function estimate_excess_deltav {
 	local dvh is vdot(tgt_deltav, i_).
 	local dvv is vdot(tgt_deltav, z_).
 	
-	local v_ is perf["deltav"]
+	local v_ is perf["deltav"].
 	local a_ is dvv/dvh.
 	local g_ is gacc:MAG * perf["time"].
 	
 	local k1 is (1 + a_^2).
 	
-	local xdv is (sqrt(v^2*k1 - g_^2) - a_*g_) / k1.
+	local k2 is k1 * v_^2 - g_^2.
+	
+	local xdv is 0.
+	if (k2 > 0) {
+		set xdv to (sqrt(k2) - a_*g_) / k1.
+	}
+	
 	local ydv is a_*xdv.
 	
 	local dveff is sqrt(xdv^2 + ydv^2).

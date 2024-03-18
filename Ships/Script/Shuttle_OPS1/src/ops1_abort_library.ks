@@ -395,29 +395,28 @@ FUNCTION setup_RTLS {
 
 FUNCTION get_TAL_sites {
 	
-	local 2_eng_lex is build_engines_lex(2, 0).
-	local 1_eng_lex is build_engines_lex(1, 0).
+	local two_eng_lex is build_engines_lex(2, 0).
+	local one_eng_lex is build_engines_lex(1, 0).
 	
-	local 2_eng_perf is calculate_perf_remaining(2_eng_lex).
-	local 1_eng_perf is calculate_perf_remaining(1_eng_lex).
+	local two_eng_perf is estimate_perf_remaining(two_eng_lex).
+	local one_eng_perf is estimate_perf_remaining(one_eng_lex).
 	
 	local sites_downrange is get_sites_downrange().
 	
-	local 2_eng_candidate_sites is list().
-	local 2_eng_best_site is lexicon(
+	local two_eng_candidate_sites is list().
+	local two_eng_best_site is lexicon(
 								"site", "",
-								"excess_dv", -10000000000,
-	
+								"excess_dv", -10000000000
 	).
 		
-	local 1_eng_candidate_sites is list().
-	local 1_eng_best_site is lexicon(
+	local one_eng_candidate_sites is list().
+	local one_eng_best_site is lexicon(
 								"site", "",
-								"excess_dv", -10000000000,
+								"excess_dv", -10000000000
 	
 	).
 	
-	local cur_gacc is simple_g().
+	local cur_gacc is simple_g(orbitstate["radius"]).
 	
 	for s in sites_downrange {
 		LOCAL site IS ldgsiteslex[s].
@@ -447,45 +446,45 @@ FUNCTION get_TAL_sites {
 		LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
 		LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]):MAG.
 		
-		local 2_eng_dv_excess is estimate_excess_deltav(
+		local two_eng_dv_excess is estimate_excess_deltav(
 												dv2site,
-												2_eng_perf,
+												two_eng_perf,
 												cur_gacc
 		
 		).
 		
-		local 2_eng_tal_site_dv is lexicon(
+		local two_eng_tal_site_dv is lexicon(
 									"site", s,
-									"excess_dv", 2_eng_dv_excess,
+									"excess_dv", two_eng_dv_excess
 		
 		).
 		
-		if (2_eng_tal_site_dv["excess_dv"] > 0) {
-			2_eng_candidate_sites:add(2_eng_tal_site_dv).
+		if (two_eng_tal_site_dv["excess_dv"] > 0) {
+			two_eng_candidate_sites:add(two_eng_tal_site_dv).
 		} else {
-			if (2_eng_tal_site_dv["excess_dv"] > 2_eng_best_site["excess_dv"] ) {
-				set 2_eng_best_site to 2_eng_tal_site_dv.
+			if (two_eng_tal_site_dv["excess_dv"] > two_eng_best_site["excess_dv"] ) {
+				set two_eng_best_site to two_eng_tal_site_dv.
 			}
 		}
 		
-		local 1_eng_dv_excess is estimate_excess_deltav(
+		local one_eng_dv_excess is estimate_excess_deltav(
 												dv2site,
-												1_eng_perf,
+												one_eng_perf,
 												cur_gacc
 		
 		).
 		
-		local 1_eng_tal_site_dv is lexicon(
+		local one_eng_tal_site_dv is lexicon(
 									"site", s,
-									"excess_dv", 1_eng_dv_excess,
+									"excess_dv", one_eng_dv_excess
 		
 		).
 		
-		if (1_eng_tal_site_dv["excess_dv"] > 0) {
-			1_eng_candidate_sites:add(1_eng_tal_site_dv).
+		if (one_eng_tal_site_dv["excess_dv"] > 0) {
+			one_eng_candidate_sites:add(one_eng_tal_site_dv).
 		} else {
-			if (1_eng_tal_site_dv["excess_dv"] > 1_eng_best_site["excess_dv"] ) {
-				set 1_eng_best_site to 1_eng_tal_site_dv.
+			if (one_eng_tal_site_dv["excess_dv"] > one_eng_best_site["excess_dv"] ) {
+				set one_eng_best_site to one_eng_tal_site_dv.
 			}
 		}
 	}
@@ -773,6 +772,8 @@ FUNCTION setup_TAL {
 	
 //		ATO / AOA FUNCTIONS 
 
+
+
 //find new normal vector for ATO targeting
 //find the plane containing the current pos vector ( in UPFG coords!!) and vel vector
 FUNCTION ATO_normal {
@@ -840,13 +841,15 @@ FUNCTION setup_ATO {
 		"t_abort",TIME:SECONDS
 	).
 	
+	local ato_tgt_orbit is ato_tgt_orbit().
+	
 	//UPFG mode is the nominal one, only change MECO targets
 	//lower apoapsis (not too low)
-	SET target_orbit["apoapsis"] TO MIN(160, 0.8*target_orbit["apoapsis"]).
-	SET target_orbit["periapsis"] TO 0.5 * target_orbit["periapsis"].
+	SET target_orbit["apoapsis"] TO ato_tgt_orbit["apoapsis"].
+	SET target_orbit["periapsis"] TO ato_tgt_orbit["periapsis"].
 	//lower cutoff altitude
-	SET target_orbit["cutoff alt"] TO 0.985*target_orbit["cutoff alt"].
-	SET target_orbit["radius"] TO target_orbit["radius"]:NORMALIZED*(target_orbit["cutoff alt"] * 1000 + SHIP:BODY:RADIUS).
+	SET target_orbit["cutoff alt"] TO ato_tgt_orbit["cutoff_alt"].
+	SET target_orbit["radius"] TO ato_tgt_orbit["radius"].
 	//variable iy steering 
 	SET target_orbit["normal"] TO ATO_normal().
 	SET target_orbit["Inclination"] TO VANG(target_orbit["normal"],v(0,0,1)).
@@ -855,22 +858,106 @@ FUNCTION setup_ATO {
 	SET target_orbit["mode"] TO 7.
 	
 	
-	SET target_orbit["SMA"] TO orbit_appe_sma(target_orbit["apoapsis"], target_orbit["periapsis"]).
-	SET target_orbit["ecc"] TO orbit_appe_ecc(target_orbit["apoapsis"], target_orbit["periapsis"]).
+	SET target_orbit["SMA"] TO ato_tgt_orbit["SMA"].
+	SET target_orbit["ecc"] TO ato_tgt_orbit["ecc"].
+
+	set target_orbit["eta"] to ato_tgt_orbit["eta"].
 	
-	LOCAL rdmag IS target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS.
+	set target_orbit["velocity"] to ato_tgt_orbit["velocity"].
 	
-	set target_orbit["eta"] to orbit_alt_eta(rdmag, target_orbit["SMA"], target_orbit["ecc"]).
-	
-	set target_orbit["velocity"] to orbit_alt_vel(rdmag, target_orbit["SMA"]).
-	
-	set target_orbit["fpa"] to orbit_eta_fpa(target_orbit["eta"], target_orbit["SMA"], target_orbit["ecc"]).
+	set target_orbit["fpa"] to ato_tgt_orbit["fpa"].
 	
 	SET upfgInternal["s_init"] TO FALSE.
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 }
 
+
+
+function get_ato_tgt_orbit {
+	
+	local ato_apoapsis is MIN(160, 0.8*target_orbit["apoapsis"]).
+	local ato_periapsis is 0.5 * target_orbit["periapsis"].
+	local ato_cutoff_alt is 0.985*target_orbit["cutoff alt"].
+	
+	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
+	
+	local sma_ is orbit_appe_sma(ato_apoapsis, ato_periapsis).
+	local ecc_ is orbit_appe_ecc(ato_apoapsis, ato_periapsis).
+	
+	local eta_ is orbit_alt_eta(ato_cutoff_radius, sma_, ecc_).
+	
+	local ato_cutoff_vel is orbit_alt_vel(ato_cutoff_radius, sma_).
+	
+	local fpa_ is orbit_eta_fpa(eta_, sma_, ecc_).
+	
+	local normvec is currentNormal().
+	local inclination_ is VANG(target_orbit["normal"],v(0,0,1)).
+	
+	local velvec is cutoff_velocity_vector(
+										orbitstate["radius"],
+										normvec,
+										ato_cutoff_vel,
+										fpa_
+	).
+	
+	return lexicon(
+					"apoapsis", ato_apoapsis,
+					"periapsis", ato_periapsis,
+					"cutoff_alt", ato_cutoff_alt,
+					"radius", ato_cutoff_radius,
+					"SMA", sma_,
+					"ecc", ecc_,
+					"eta", eta_,
+					"velocity", ato_cutoff_vel,
+					"fpa", fpa_,
+					"normvec", normvec,
+					"Inclination", inclination_,
+					"velvec", velvec
+	).
+
+}
+
+function ato_abort_boundary {
+
+	local two_eng_lex is build_engines_lex(2, 0).
+	local one_eng_lex is build_engines_lex(1, 0).
+	
+	local two_eng_perf is veh_perf_estimator(two_eng_lex).
+	local one_eng_perf is veh_perf_estimator(one_eng_lex).
+	
+	local cur_gacc is simple_g(orbitstate["radius"]).
+	
+	local ato_tgt_orbit is get_ato_tgt_orbit().
+	
+	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
+		
+	local two_eng_dv_excess is estimate_excess_deltav(
+											ato_dv,
+											two_eng_perf,
+											cur_gacc
+	
+	).
+	
+	
+	local one_eng_dv_excess is estimate_excess_deltav(
+											ato_dv,
+											one_eng_perf,
+											cur_gacc
+	
+	).
+	
+	print two_eng_perf at (0,1).
+	
+	print one_eng_perf at (0,4).
+	
+	print two_eng_dv_excess at (0,10).
+	
+	
+	print one_eng_dv_excess at (0,11).
+	
+	
+}
 
 
 //		POST-ATO ENGINE OUT FUNCTIONS
