@@ -393,9 +393,106 @@ FUNCTION setup_RTLS {
 //		TAL FUNCTIONS 
 
 
+FUNCTION get_TAL_sites {
+	
+	local 2_eng_lex is build_engines_lex(2, 0).
+	local 1_eng_lex is build_engines_lex(1, 0).
+	
+	local 2_eng_perf is calculate_perf_remaining(2_eng_lex).
+	local 1_eng_perf is calculate_perf_remaining(1_eng_lex).
+	
+	local sites_downrange is get_sites_downrange().
+	
+	local 2_eng_candidate_sites is list().
+	local 2_eng_best_site is lexicon(
+								"site", "",
+								"excess_dv", -10000000000,
+	
+	).
+		
+	local 1_eng_candidate_sites is list().
+	local 1_eng_best_site is lexicon(
+								"site", "",
+								"excess_dv", -10000000000,
+	
+	).
+	
+	local cur_gacc is simple_g().
+	
+	for s in sites_downrange {
+		LOCAL site IS ldgsiteslex[s].
+		
+		local rwypos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set rwypos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set rwypos to site[0]["position"].
+		}
+		
+		LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
+		
+		LOCAL site_plane IS VXCL(current_normal,sitepos).
+		
+		//shift ahead by half an hour
+		LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+		
+		//correct shifted site within cossrange
+		LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
+		
+		LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
+		
+		//estimate deltav to curve velocity to point to the target site
+		LOCAL tgtMECOvel IS 7650.
+		LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
+		LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]):MAG.
+		
+		local 2_eng_dv_excess is estimate_excess_deltav(
+												dv2site,
+												2_eng_perf,
+												cur_gacc
+		
+		).
+		
+		local 2_eng_tal_site_dv is lexicon(
+									"site", s,
+									"excess_dv", 2_eng_dv_excess,
+		
+		).
+		
+		if (2_eng_tal_site_dv["excess_dv"] > 0) {
+			2_eng_candidate_sites:add(2_eng_tal_site_dv).
+		} else {
+			if (2_eng_tal_site_dv["excess_dv"] > 2_eng_best_site["excess_dv"] ) {
+				set 2_eng_best_site to 2_eng_tal_site_dv.
+			}
+		}
+		
+		local 1_eng_dv_excess is estimate_excess_deltav(
+												dv2site,
+												1_eng_perf,
+												cur_gacc
+		
+		).
+		
+		local 1_eng_tal_site_dv is lexicon(
+									"site", s,
+									"excess_dv", 1_eng_dv_excess,
+		
+		).
+		
+		if (1_eng_tal_site_dv["excess_dv"] > 0) {
+			1_eng_candidate_sites:add(1_eng_tal_site_dv).
+		} else {
+			if (1_eng_tal_site_dv["excess_dv"] > 1_eng_best_site["excess_dv"] ) {
+				set 1_eng_best_site to 1_eng_tal_site_dv.
+			}
+		}
+	}
+
+}
 
 
-//hard-coded selector of TAL sites based on inclination
 FUNCTION get_TAL_site {
 	PARAMETER DVrem.
 
@@ -640,7 +737,9 @@ FUNCTION setup_TAL {
 	).
 	reset_stage().
 	
-	LOCAL DVrem IS calculate_dv_remaining().
+	local perf_rem is calculate_perf_remaining(engines_lex).
+	
+	LOCAL DVrem IS perf_rem["deltav"].
 	
 	SET abort_modes["TAL"]["tgt_site"] TO get_TAL_site(DVrem).
 	

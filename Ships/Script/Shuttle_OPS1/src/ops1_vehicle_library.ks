@@ -801,6 +801,41 @@ FUNCTION get_TWR {
 	RETURN vehiclestate["avg_thr"]:average()/(1000*SHIP:MASS*g0).
 }
 
+
+function calculate_perf_remaining {
+	parameter engines_lex.
+	
+	local dvtot is 0.
+	local timetot is 0.
+	
+	local stages is vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]).
+	for stg in stages {
+	
+		LOCAL ve_ IS engines_lex["isp"] * g0.
+		LOCAL at_ IS engines_lex["thrust"] * stg["Throttle"] / stg["m_initial"].
+		LOCAL tu_ IS ve_ / at_.
+		LOCAL tb_ IS stg["Tstage"].
+		
+		if (stg["mode"] = 1) {
+			set dv_ to ve_*LN(tu_/(tu_-tb_)).
+		} else if (stg["mode"] = 2) {
+			local aL_ is stg["glim"] * g0.
+			set dv_ to aL_*tb_.
+		} else {
+			set dv_ to 0.
+		}
+	
+		set dvtot to dvtot + dv_.
+		set timetot to timetot + tb_.
+	}
+	
+	return lexicon(
+					"time", timetot,
+					"deltav", dvtot
+	
+	).
+}
+
 function calculate_dv_remaining {
 
 	local DVrem is 0.
@@ -1564,13 +1599,15 @@ FUNCTION build_ssme_lex {
 }
 
 FUNCTION build_engines_lex {
+	parameter ssme_active is vehicle["SSME"]["active"].
+	parameter oms_active is vehicle["OMS"]["active"].
 
-	LOCAL tot_ssme_thrust IS vehicle["SSME"]["active"]*vehicle["SSME"]["thrust"].
-	LOCAL tot_oms_thrust IS vehicle["OMS"]["active"]*vehicle["OMS"]["thrust"].
+	LOCAL tot_ssme_thrust IS ssme_active*vehicle["SSME"]["thrust"].
+	LOCAL tot_oms_thrust IS oms_active*vehicle["OMS"]["thrust"].
 	LOCAL tot_thrust IS tot_ssme_thrust + tot_oms_thrust.
 
-	LOCAL ssme_flow IS vehicle["SSME"]["active"]*vehicle["SSME"]["flow"].
-	LOCAL oms_flow IS vehicle["OMS"]["active"]*vehicle["OMS"]["flow"].
+	LOCAL ssme_flow IS ssme_active*vehicle["SSME"]["flow"].
+	LOCAL oms_flow IS oms_active*vehicle["OMS"]["flow"].
 	LOCAL tot_flow IS ssme_flow + oms_flow.
 	
 	LOCAL tot_isp IS 0.

@@ -186,7 +186,7 @@ declare function open_loop_ascent {
 		}
 	
 		measure_update_engines().
-		monitor_abort().
+		//monitor_abort().	//disabled
 		getState().
 		srb_staging().
 		
@@ -287,7 +287,7 @@ declare function closed_loop_ascent{
 		//abort must be set up before getstate so the stage is reconfigured 
 		//and then adjusted to the current fuel mass
 		measure_update_engines().
-		monitor_abort().
+		//monitor_abort().	//disabled
 		//move it here so that we have the most accurate time figure for staging checks
 		getState().
 		

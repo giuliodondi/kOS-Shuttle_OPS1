@@ -55,6 +55,35 @@ FUNCTION nominal_cutoff_params {
 	RETURN tgt_orb.
 }
 
+//given target deltav and performance figures, account for gravity losses
+//and estimate excess deltav
+function estimate_excess_deltav {
+	parameter tgt_deltav.
+	parameter perf.
+	parameter gacc.
+	
+	local i_ is vxcl(gacc, tgt_deltav):normalized.
+	local z_ is -gacc:normalized.
+	
+	local dvh is vdot(tgt_deltav, i_).
+	local dvv is vdot(tgt_deltav, z_).
+	
+	local v_ is perf["deltav"]
+	local a_ is dvv/dvh.
+	local g_ is gacc:MAG * perf["time"].
+	
+	local k1 is (1 + a_^2).
+	
+	local xdv is (sqrt(v^2*k1 - g_^2) - a_*g_) / k1.
+	local ydv is a_*xdv.
+	
+	local dveff is sqrt(xdv^2 + ydv^2).
+	
+	local fudge_fac is 1.05.
+
+	return dveff - fudge_fac * tgt_deltav:MAG.
+
+}
 
 //only called if hastarget=true
 //propagates the current target orbital parameters forward in time 
