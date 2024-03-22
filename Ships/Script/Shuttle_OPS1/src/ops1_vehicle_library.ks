@@ -808,7 +808,7 @@ function veh_perf_estimator {
 	
 	local prop_left is vehiclestate["m_burn_left"].
 	
-	local m_initial is get_stage()["m_initial"].
+	local m_initial is vehicle["stack_empty_mass"] + prop_left.
 	
 	LOCAL ve_ IS engines_lex["isp"] * g0.
 	
@@ -818,8 +818,10 @@ function veh_perf_estimator {
 	
 	
 	return lexicon(
+					"m_initial", m_initial,
 					"time", burnt,
-					"deltav", deltav_
+					"deltav", deltav_,
+					"engines", engines_lex
 	
 	).
 

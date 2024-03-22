@@ -77,32 +77,57 @@ function estimate_excess_deltav {
 	parameter perf.
 	parameter gacc.
 	
-	local i_ is vxcl(gacc, tgt_deltav):normalized.
-	local z_ is -gacc:normalized.
+	local iz_ is -gacc:normalized.
 	
-	local dvh is vdot(tgt_deltav, i_).
-	local dvv is vdot(tgt_deltav, z_).
+	local tgt_dvh is vxcl(iz_, tgt_deltav):mag.
+	local tgt_dvv is vdot(iz_, tgt_deltav).
+
+	local m0 is perf["m_initial"].
+	local mdot is perf["engines"]["flow"].
+	local thrust_ is perf["engines"]["thrust"].
+	local vex is thrust_/mdot.
 	
-	local v_ is perf["deltav"].
-	local a_ is dvv/dvh.
-	local g_ is gacc:MAG * perf["time"].
+	local mbar is m0 - 0.5*mdot*perf["time"].
 	
-	local k1 is (1 + a_^2).
+	local tu0 is m0 * vex * (1 - CONSTANT:E^(- tgt_dvh/vex)).
+	local c_ is tgt_dvv * mbar / tu0.
+	local b_ is gacc:mag / (perf["engines"]["thrust"]/mbar).
 	
-	local k2 is k1 * v_^2 - g_^2.
+	local y_ is 1 + c_^2 - b_^2.
 	
-	local xdv is 0.
-	if (k2 > 0) {
-		set xdv to (sqrt(k2) - a_*g_) / k1.
+	//print tgt_dvv at (0,1).
+	//print tgt_dvh at (0,2).
+	
+	//print b_  at (0,5).
+	//print c_  at (0,4).
+	
+	local dvtot is 0.
+	
+	if (y_ <= 0) {
+		set vgrav to gacc:mag * perf["time"].
+	} else {
+		local x_1 is (b_ + c_ * sqrt(y_))/(1 + c_^2).
+		local x_2 is (b_ - c_ * sqrt(y_))/(1 + c_^2).
+		
+		local x_ is 0.
+		if (abs(x_1) < 1) {
+			set x_ to x_1.
+		} else {
+			set x_ to x_2.
+		}
+		
+		local dt1 is tu0/(perf["engines"]["thrust"] * sqrt(1 - x_^2) ).
+		set dt1 to min(dt1, perf["time"]).
+		
+		//print arcsin(x_)  at (0,7).
+		//print dt1  at (0,8).
+		
+		set vgrav to x_ * vex * ln(m0/(m0 - mdot*dt1)).
 	}
 	
-	local ydv is a_*xdv.
+	local dvtot is sqrt(vgrav^2 + tgt_dvh^2).
 	
-	local dveff is sqrt(xdv^2 + ydv^2).
-	
-	local fudge_fac is 1.05.
-
-	return dveff - fudge_fac * tgt_deltav:MAG.
+	return perf["deltav"] - dvtot.
 
 }
 

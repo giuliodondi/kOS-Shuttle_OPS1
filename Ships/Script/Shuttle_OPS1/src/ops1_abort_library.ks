@@ -920,9 +920,11 @@ function get_ato_tgt_orbit {
 
 function ato_abort_boundary {
 
+	local three_eng_lex is build_engines_lex(3, 0).
 	local two_eng_lex is build_engines_lex(2, 0).
 	local one_eng_lex is build_engines_lex(1, 0).
 	
+	local three_eng_perf is veh_perf_estimator(three_eng_lex).
 	local two_eng_perf is veh_perf_estimator(two_eng_lex).
 	local one_eng_perf is veh_perf_estimator(one_eng_lex).
 	
@@ -931,6 +933,13 @@ function ato_abort_boundary {
 	local ato_tgt_orbit is get_ato_tgt_orbit().
 	
 	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
+	
+	local three_eng_dv_excess is estimate_excess_deltav(
+											ato_dv,
+											three_eng_perf,
+											cur_gacc
+	
+	).
 		
 	local two_eng_dv_excess is estimate_excess_deltav(
 											ato_dv,
@@ -947,14 +956,13 @@ function ato_abort_boundary {
 	
 	).
 	
-	print two_eng_perf at (0,1).
+
 	
-	print one_eng_perf at (0,4).
-	
+	print three_eng_dv_excess at (0,9).
 	print two_eng_dv_excess at (0,10).
-	
-	
 	print one_eng_dv_excess at (0,11).
+	
+	
 	
 	
 }
