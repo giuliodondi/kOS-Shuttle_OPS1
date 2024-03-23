@@ -70,8 +70,9 @@ function cutoff_velocity_vector {
 
 }
 
-//given target deltav and performance figures, account for gravity losses
-//and estimate excess deltav
+//givne target deltav and performance, solves for constant thrust angle and burn time 
+//that solve the velocity equatinos of motion accounting for gravity
+//then compares with the current budget
 function estimate_excess_deltav {
 	parameter tgt_deltav.
 	parameter perf.
@@ -98,7 +99,7 @@ function estimate_excess_deltav {
 	//print tgt_dvv at (0,1).
 	//print tgt_dvh at (0,2).
 	
-	//print b_  at (0,5).
+	//print b_  at (0,3).
 	//print c_  at (0,4).
 	
 	local dvtot is 0.
@@ -115,6 +116,9 @@ function estimate_excess_deltav {
 		} else {
 			set x_ to x_2.
 		}
+		
+		//print x_1  at (0,5).
+		//print x_2  at (0,6).
 		
 		local dt1 is tu0/(perf["engines"]["thrust"] * sqrt(1 - x_^2) ).
 		set dt1 to min(dt1, perf["time"]).
