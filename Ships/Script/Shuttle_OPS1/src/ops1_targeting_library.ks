@@ -74,14 +74,22 @@ function cutoff_velocity_vector {
 //that solve the velocity equatinos of motion accounting for gravity
 //then compares with the current budget
 function estimate_excess_deltav {
+	parameter r0.
+	parameter v0.
 	parameter tgt_deltav.
 	parameter perf.
-	parameter gacc.
 	
-	local iz_ is -gacc:normalized.
+	local iz_ is r0:normalized.
+	
+	local v0h is vxcl(iz_, v0):mag.
+	local r0m is r0:mag.
 	
 	local tgt_dvh is vxcl(iz_, tgt_deltav):mag.
 	local tgt_dvv is vdot(iz_, tgt_deltav).
+	
+	local geff is BODY:MU / (r0m^2) - (v0h)^2 / r0m.
+	
+	//print geff at (0,0).
 
 	local m0 is perf["m_initial"].
 	local mdot is perf["engines"]["flow"].
@@ -92,7 +100,7 @@ function estimate_excess_deltav {
 	
 	local tu0 is m0 * vex * (1 - CONSTANT:E^(- tgt_dvh/vex)).
 	local c_ is tgt_dvv * mbar / tu0.
-	local b_ is gacc:mag / (perf["engines"]["thrust"]/mbar).
+	local b_ is geff / (perf["engines"]["thrust"]/mbar).
 	
 	local y_ is 1 + c_^2 - b_^2.
 	
@@ -105,7 +113,7 @@ function estimate_excess_deltav {
 	local dvtot is 0.
 	
 	if (y_ <= 0) {
-		set vgrav to gacc:mag * perf["time"].
+		set vgrav to geff * perf["time"].
 	} else {
 		local x_1 is (b_ + c_ * sqrt(y_))/(1 + c_^2).
 		local x_2 is (b_ - c_ * sqrt(y_))/(1 + c_^2).
@@ -309,12 +317,22 @@ FUNCTION prepare_launch {
 	
 	set target_orbit["warp_dt"] to TIME:SECONDS + time2window  - vehicle_countdown.
 	
+	//initialise target normal and velocity for abort calculations - in upfg coords
+	local cur_r is vecYZ(SHIP:ORBIT:BODY:POSITION)*-1.
+	local cutvec is VXCL(target_orbit["normal"], cur_r):NORMALIZED.
+	set cutvec to rodrigues(cutvec, target_orbit["normal"], 10).
+	local cutoff_r is cutvec:NORMALIZED * (target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS).
+	SET target_orbit TO nominal_cutoff_params(target_orbit, cutoff_r).
+	
 	//this is for message logging
 	SET vehicle["ign_t"] TO TIME:SECONDS + time2window. 
 	
 	set target_orbit["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).	
 	
+	initialise_abort_sites().
+	
 	warp_window(target_orbit["warp_dt"]).	
+	
 	
 	//print target_orbit:dump.
 	//arrow_body(targetLANvec(target_orbit["LAN"]), "lan").

@@ -47,7 +47,7 @@ function launch{
 	GLOBAL dataviz_executor IS loop_executor_factory(
 												0.15,
 												{
-													clearscreen.
+													//clearscreen.
 													clearvecdraws().
 													
 													if (is_dap_auto()) {
@@ -187,7 +187,7 @@ declare function open_loop_ascent {
 	
 		measure_update_engines().
 		//monitor_abort().	//disabled
-		ato_abort_boundary().
+		abort_region_determinator().
 		getState().
 		srb_staging().
 		
@@ -289,7 +289,7 @@ declare function closed_loop_ascent{
 		//and then adjusted to the current fuel mass
 		measure_update_engines().
 		//monitor_abort().	//disabled
-		ato_abort_boundary().
+		abort_region_determinator().
 		//move it here so that we have the most accurate time figure for staging checks
 		getState().
 		
