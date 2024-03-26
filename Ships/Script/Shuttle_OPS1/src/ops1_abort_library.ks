@@ -114,49 +114,49 @@ function abort_region_determinator {
 	
 	LOCAL current_normal IS currentNormal().
 	
-	local line is 3.
+	local line is 7.
 	
-	//for s in abort_modes["tal_candidates"] {
-	//	LOCAL site IS ldgsiteslex[s].
-	//	
-	//	local rwypos is 0.
-	//	
-	//	IF (site:ISTYPE("LEXICON")) {
-	//		set rwypos to site["position"].
-	//	} ELSE IF (site:ISTYPE("LIST")) {
-	//		set rwypos to site[0]["position"].
-	//	}
-	//	
-	//	LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
-	//	
-	//	LOCAL site_plane IS VXCL(current_normal,sitepos).
-	//	
-	//	//shift ahead by half an hour
-	//	LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
-	//	
-	//	//correct shifted site within cossrange
-	//	LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
-	//	
-	//	LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
-	//	
-	//	//estimate deltav to curve velocity to point to the target site
-	//	LOCAL tgtMECOvel IS 7250.
-	//	LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
-	//	LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]).
-	//	
-	//	local two_eng_tal_dv_excess is estimate_excess_deltav(
-	//											orbitstate["radius"],
-	//											orbitstate["velocity"],
-	//											dv2site,
-	//											two_eng_perf
-	//	
-	//	).
-	//	
-	//	print s + " " + two_eng_tal_dv_excess at (0,line).
-	//	set line to line + 1.
-	//	
-	//	tal_2e_dv:add(s, two_eng_tal_dv_excess).
-	//}
+	for s in abort_modes["tal_candidates"] {
+		LOCAL site IS ldgsiteslex[s].
+		
+		local rwypos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set rwypos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set rwypos to site[0]["position"].
+		}
+		
+		LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
+		
+		LOCAL site_plane IS VXCL(current_normal,sitepos).
+		
+		//shift ahead by half an hour
+		LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+		
+		//correct shifted site within cossrange
+		LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
+		
+		LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
+		
+		//estimate deltav to curve velocity to point to the target site
+		LOCAL tgtMECOvel IS 7250.
+		LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
+		LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]).
+		
+		local two_eng_tal_dv_excess is estimate_excess_deltav(
+												orbitstate["radius"],
+												orbitstate["velocity"],
+												dv2site,
+												two_eng_perf
+		
+		).
+		
+		print s + " " + two_eng_tal_dv_excess at (0,line).
+		set line to line + 1.
+		
+		tal_2e_dv:add(s, two_eng_tal_dv_excess).
+	}
 	
 
 }
