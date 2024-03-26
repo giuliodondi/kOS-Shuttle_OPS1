@@ -220,11 +220,18 @@ FUNCTION TAL_site_xrange_shift {
 
 function get_ato_tgt_orbit {
 	
-	local ato_apoapsis is MIN(150, 0.8*target_orbit["apoapsis"]).
-	local ato_periapsis is 0.4 * target_orbit["periapsis"].
-	local ato_cutoff_alt is 0.985*target_orbit["cutoff alt"].
+	local ato_apoapsis is MIN(180, 0.8*target_orbit["apoapsis"]).
 	
+	local ato_cutoff_alt is target_orbit["cutoff alt"].
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
+	
+	//250 m/s burn to circularise at apoapsis
+	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - 250.
+	
+	local ato_sma is 2/ato_cutoff_radius - ato_ap_v^2/BODY:MU.
+	set ato_sma to 1/ato_sma.
+	
+	local ato_periapsis is 2*(ato_sma - SHIP:BODY:RADIUS) - ato_apoapsis.
 	
 	local sma_ is orbit_appe_sma(ato_apoapsis, ato_periapsis).
 	local ecc_ is orbit_appe_ecc(ato_apoapsis, ato_periapsis).

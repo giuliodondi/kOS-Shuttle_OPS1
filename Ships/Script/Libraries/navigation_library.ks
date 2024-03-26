@@ -560,6 +560,15 @@ FUNCTION orbit_eta_alt {
 
 }
 
+// calculates circular orbital velocity at altitude 
+//altitude must be measured from the body centre
+FUNCTION orbit_alt_vsat {
+	parameter h.
+	
+	RETURN SQRT( BODY:MU / h ).
+
+}
+
 
 
 //VEHICLE-SPECIFIC FUNCTIONS
