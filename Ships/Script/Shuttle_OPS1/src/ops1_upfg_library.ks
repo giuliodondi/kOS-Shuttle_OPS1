@@ -608,9 +608,8 @@ FUNCTION upfg {
 	LOCAL tb IS LIST().
 	LOCAL kklist IS LIST().
 	
-	local kk_gl is 0.
-	
 	local kk_cmd is internal["throtset"].
+	local kk_gl is kk_cmd.
   
 	FROM { LOCAL i IS 0. } UNTIL i>=n STEP { SET i TO i+1. } DO {
 		SM:ADD(vehicle[i]["mode"]).
@@ -630,7 +629,10 @@ FUNCTION upfg {
 			SET kklist[i] TO internal["throtset"].	
 			SET mT[i] TO internal["m_cur"].	
 			SET tb[i] TO internal["tb_cur"].	
-			set kk_gl to vehicle[i]["glim"] * g0 * mT[i] / fT[i].
+			
+			if (SM[i]=2) {
+				set kk_gl to vehicle[i]["glim"] * g0 * mT[i] / fT[i].
+			}
 		}
 		SET fT[i] TO fT[i]*kklist[i].
 		SET md[i] TO md[i]*kklist[i].

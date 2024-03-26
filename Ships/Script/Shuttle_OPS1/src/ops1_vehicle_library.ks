@@ -959,6 +959,7 @@ FUNCTION getState {
 	//moved this here bc we must update oms propellant once before checking if it's time to stop
 	stop_oms_dump().
 	
+	
 	if (debug_mode) {
 		dump_vehicle().
 	}
@@ -978,18 +979,18 @@ FUNCTION update_stage2 {
 		SET stg2["Tstage"] TO const_f_t(stg2).	
 		
 	} ELSE IF (stg2["staging"]["type"]="glim") {
-		//assume the g limit will be exceeded 
 		
 		LOCAL x IS glim_t_m(stg2).
 		
 		LOCAL stg3_m_initial IS 0.
 		
-		IF (x[0] > 0) {
+		IF (x[0] >= 0) {
 			SET stg2["Tstage"] TO x[0]. 
 			SET stg2["m_final"] TO x[1]. 
 			SET stg2["m_burn"] TO m_initial - x[1].
 			set stg3_m_initial to x[1].
 		} ELSE {
+			//will never violate the limit
 			SET stg2["Tstage"] TO 0. 
 			SET stg2["m_burn"] TO m_initial - stg2["m_final"].
 			set stg3_m_initial to stg2["m_final"].
@@ -1078,8 +1079,6 @@ FUNCTION increment_stage {
 	LOCAL j IS vehiclestate["cur_stg"].
 	
 	SET vehiclestate["cur_stg"] TO j + 1.
-			
-	SET vehicle["stages"][j] TO 0.
 	
 	SET vehicle["stages"][j+1]["ign_t"] TO vehiclestate["staging_time"].
 	
@@ -1185,7 +1184,7 @@ function setup_shuttle_stages {
 	
 	LOCAL gl_out IS glim_t_m(new_stg_2).
 	
-	If (gl_out[1] <= 0) {
+	If (gl_out[0] < 0) {
 		// won't violate the glim
 		SET new_stg_2["Tstage"] TO const_f_t(new_stg_2).
 		SET new_stg_2["staging"]["type"] TO "depletion".
