@@ -115,7 +115,7 @@ FUNCTION upfg_standard_initialise {
 	PARAMETER tgt_orb.
 	PARAMETER internal.
 	
-	LOCAL curT IS surfacestate["MET"].
+	LOCAL curT IS surfacestate["time"].
 	LOCAL curR IS orbitstate["radius"].
 	LOCAL curV IS orbitstate["velocity"].
 	
@@ -155,7 +155,7 @@ FUNCTION upfg_rtls_initialise {
 	PARAMETER tgt_orb.
 	PARAMETER internal.
 	
-	LOCAL curT IS surfacestate["MET"].
+	LOCAL curT IS surfacestate["time"].
 	LOCAL curR IS orbitstate["radius"].
 	LOCAL curV IS orbitstate["velocity"].
 	
@@ -183,7 +183,7 @@ FUNCTION upfg_sense_current_state {
 	
 	LOCAL stg IS get_stage().
 	
-	SET internal["t_cur"] TO surfacestate["MET"].
+	SET internal["t_cur"] TO surfacestate["time"].
 	SET internal["r_cur"] TO orbitstate["radius"].
 	SET internal["v_cur"] TO orbitstate["velocity"].
 	SET internal["m_cur"] TO stg["m_initial"].

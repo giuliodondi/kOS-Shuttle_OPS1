@@ -1,28 +1,28 @@
 @LAZYGLOBAL OFF.
+CLEARSCREEN.
+SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
+global debug_mode is false.
 
-function launch{
-	CLEARSCREEN.
-	SET CONFIG:IPU TO 800.					//	Required to run the script fast enough.
-	
-	global debug_mode is false.
-	
-	//	Load libraries
-	RUNPATH("0:/Shuttle_OPS3/landing_sites").
-	RUNPATH("0:/Libraries/misc_library").	
-	RUNPATH("0:/Libraries/maths_library").	
-	RUNPATH("0:/Libraries/navigation_library").	
-	RUNPATH("0:/Libraries/vehicle_library").	
-	RUNPATH("0:/Libraries/aerosim_library").	
-	
-	
-	RUNPATH("0:/Shuttle_OPS1/src/ops1_interface").
-	RUNPATH("0:/Shuttle_OPS1/src/ops1_vehicle_library").
-	RUNPATH("0:/Shuttle_OPS1/src/ops1_targeting_library").
-	RUNPATH("0:/Shuttle_OPS1/src/ops1_upfg_library").
-	RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
-	RUNPATH("0:/Shuttle_OPS1/src/ops1_gui_library.ks").
-	
+
+//	Load libraries
+RUNPATH("0:/Shuttle_OPS3/landing_sites").
+RUNPATH("0:/Libraries/misc_library").	
+RUNPATH("0:/Libraries/maths_library").	
+RUNPATH("0:/Libraries/navigation_library").	
+RUNPATH("0:/Libraries/vehicle_library").	
+RUNPATH("0:/Libraries/aerosim_library").	
+
+
+RUNPATH("0:/Shuttle_OPS1/src/ops1_interface").
+RUNPATH("0:/Shuttle_OPS1/src/ops1_vehicle_library").
+RUNPATH("0:/Shuttle_OPS1/src/ops1_targeting_library").
+RUNPATH("0:/Shuttle_OPS1/src/ops1_upfg_library").
+RUNPATH("0:/Shuttle_OPS1/src/ops1_abort_library").
+RUNPATH("0:/Shuttle_OPS1/src/ops1_gui_library.ks").
+
+function ops1_main_exec {
+
 	close_all_GUIs().
 	
 	make_main_ascent_gui().
@@ -34,9 +34,6 @@ function launch{
 	prepare_launch().	
 	
 	
-	
-	
-	
 	//need to have initalised the vehicle first for the vessel name
 	prepare_telemetry().
 	
@@ -44,7 +41,7 @@ function launch{
 	
 	GLOBAL dap IS ascent_dap_factory().
 	
-	GLOBAL dataviz_executor IS loop_executor_factory(
+	GLOBAL dap_gui_executor IS loop_executor_factory(
 												0.15,
 												{
 													//clearscreen.
@@ -74,11 +71,11 @@ function launch{
 												}
 	).
 	
-	IF (NOT countdown()) {
+	IF (NOT ops1_countdown()) {
 		WAIT 5.
 		RETURN.
 	}
-	if (NOT open_loop_ascent()) {
+	if (NOT ops1_first_stage()) {
 		RETURN.
 	}
 	if (NOT closed_loop_ascent()) {
@@ -89,7 +86,7 @@ function launch{
 
 
 
-function countdown{
+function ops1_countdown{
 
 	//needed to update the dap at least once
 	wait 0.
@@ -140,13 +137,12 @@ function countdown{
 		}
 	}
 	
-	SET surfacestate["MET"] TO TIME:SECONDS. 
-	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	
 	LOCK STEERING TO dap:steer_dir.
 	
 	addGUIMessage("BOOSTER IGNITION").
 	stage.
+	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	
 	until false {
 		wait 0.	
@@ -161,7 +157,7 @@ function countdown{
 
 
 
-declare function open_loop_ascent {
+function ops1_first_stage {
 		
 	local steer_flag IS false.
 	local throt_flag IS false.
@@ -185,15 +181,10 @@ declare function open_loop_ascent {
 			RETURN FALSE.
 		}
 	
-		measure_update_engines().
-		//monitor_abort().	//disabled
-		abort_region_determinator().
+		abort_handler().
 		getState().
-		srb_staging().
 		
-		LOCAL tt IS TIME:SECONDS.
-		
-		IF (tt - vehicle["ign_t"] >= vehicle["handover"]["time"] ) {BREAK.}
+		IF (surfacestate["MET"] >= vehicle["handover"]["time"] ) {BREAK.}
 		
 		if vehiclestate["staging_in_progress"] {
 			SET steer_flag TO FALSE.
@@ -253,18 +244,11 @@ declare function open_loop_ascent {
 }
 
 
-declare function closed_loop_ascent{
+function ops1_second_stage_nominal {
 	
 	getState().
 	
 	dap:set_steering_low().
-	
-	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
-		//hard-coded time shift of 5 minutes
-		SET target_orbit TO tgt_j2_timefor(target_orbit,300).
-	}
-		
-	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
@@ -273,6 +257,40 @@ declare function closed_loop_ascent{
 	SET vehiclestate["phase"] TO 2.
 	
 	addGUIMessage("RUNNING UPFG ALGORITHM").
+	
+	
+	UNTIL FALSE{
+		if (quit_program) {
+			RETURN FALSE.
+		}
+	
+		IF (upfgInternal["itercount"] = 0) { //detects first pass or convergence lost
+			WHEN (upfgInternal["s_conv"]) THEN {
+				addGUIMessage("GUIDANCE CONVERGED IN " + upfgInternal["itercount"] + " ITERATIONS").
+			}
+		}	
+
+		abort_handler().
+		getState().
+		
+		if (vehicle["low_level"]) {
+			addGUIMessage("LOW LEVEL").
+			return true.
+		}
+		
+		//check for orbital terminal conditions 
+		
+		
+	}
+
+}
+
+function closed_loop_ascent{
+	
+	
+		
+	
+	
 
 	UNTIL FALSE{
 		if (quit_program) {
@@ -553,14 +571,14 @@ declare function closed_loop_ascent{
 }
 
 
-launch().
+ops1_main_exec().
 
 CLEARSCREEN.
-dataviz_executor["stop_execution"]().
+dap_gui_executor["stop_execution"]().
 close_all_GUIs().
 
 
 
-IF (DEFINED RTLSAbort) {
-	RUN "0:/ops3".
-}
+//IF (DEFINED RTLSAbort) {
+//	RUN "0:/ops3".
+//}

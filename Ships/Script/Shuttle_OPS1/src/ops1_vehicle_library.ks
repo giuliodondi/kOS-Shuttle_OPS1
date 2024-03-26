@@ -6,6 +6,10 @@ GLOBAL vehiclestate IS LEXICON(
 	"cur_stg", 1,
 	"staging_time", 0,
 	"staging_in_progress", FALSE,
+	"srb_sep",LEXICON(
+							"v",0,
+							"alt",0
+							),
 	"m_burn_left", 0,
 	"thr_vec", v(0,0,0),
 	"avg_thr", average_value_factory(3),
@@ -58,6 +62,8 @@ function initialise_shuttle {
 						"max_q_reached", FALSE,
 						"handover", LEXICON("time", srb_time + 5),
 						"glim", 3,
+						"low_level", FALSE,
+						"low_level_burnt", 5,
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
@@ -71,7 +77,8 @@ function initialise_shuttle {
 						"stack_full_mass", 0,
 						"stack_empty_mass", 0,
 						"stages",LIST(),
-						"ssme_out_detected", FALSE
+						"ssme_out_detected", FALSE,
+						"rtls_mbod", 0,
 	).
 	
 	SET vehicle["SSME"] TO parse_ssme().
@@ -902,12 +909,11 @@ function calculate_dv_remaining {
 //thrust only averaged over if staging is not in progress
 FUNCTION getState {
 	
-	LOCAL deltat IS surfacestate["MET"].
+	LOCAL deltat IS surfacestate["time"].
 	
 	update_navigation().
 	
-	SET deltat TO surfacestate["MET"] - deltat.
-
+	SET deltat TO surfacestate["time"] - deltat.
 	
 	IF DEFINED events {	events_handler().}
 	
@@ -941,17 +947,24 @@ FUNCTION getState {
 		
 			SET cur_stg["Tstage"] TO cur_stg["Tstage"] - deltat.
 			
-		} ELSE IF (vehiclestate["cur_stg"]=2) {
-		
-			update_stage2(current_m, res_left).
-	
-		} ELSE IF (vehiclestate["cur_stg"]=3) {
+			srb_staging().
 			
-			update_stage3(current_m, res_left).
-		
-		} ELSE IF (vehiclestate["cur_stg"]=4) {
+		} ELSE {
+			IF (vehiclestate["cur_stg"]=2) {
 			
-			update_stage4(current_m, res_left).
+				update_stage2(current_m, res_left).
+		
+			} ELSE IF (vehiclestate["cur_stg"]=3) {
+				
+				update_stage3(current_m, res_left).
+			
+			} ELSE IF (vehiclestate["cur_stg"]=4) {
+				
+				update_stage4(current_m, res_left).
+			}
+			
+			ssme_staging(vehiclestate["cur_stg"]).
+			ssme_low_level(vehiclestate["cur_stg"]).
 		}
 	
 	}
@@ -1102,9 +1115,8 @@ FUNCTION srb_staging {
 
 	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 4 ) {
 		SET vehiclestate["staging_in_progress"] TO TRUE.
-		//SET control["steerdir"] TO SHIP:FACING.
+
 		addGUIMessage("STAND-BY FOR SRB SEP").
-		
 		
 		//WHEN (get_TWR()<0.98) THEN {
 		WHEN (get_srb_thrust()<400) THEN {	//try srb thrust triggering
@@ -1114,9 +1126,9 @@ FUNCTION srb_staging {
 			
 			//measure conditions at staging 
 			LOCAL v_stg IS SHIP:VELOCITY:SURFACE:MAG.
-			SET abort_modes["abort_v"] TO v_stg.	//if an abort hasn't been triggered yet it wil be overwritten
-			SET abort_modes["staging"]["v"] TO v_stg.
-			SET abort_modes["staging"]["alt"] TO SHIP:ALTITUDE.
+
+			SET vehiclestate["srb_sep"]["v"] TO v_stg.
+			SET vehiclestate["srb_sep"]["alt"] TO SHIP:ALTITUDE.
 			
 			increment_stage().
 			
@@ -1127,23 +1139,34 @@ FUNCTION srb_staging {
 
 }
 
-
-//combined function that takes care of staging during ssme burnign phase 
-//returns true when we're at the last ssme phase and close to depletion
-FUNCTION ssme_staging_flameout {
-	IF vehiclestate["staging_in_progress"] {RETURN.}
-
-	LOCAL j IS vehiclestate["cur_stg"].
+FUNCTION ssme_staging {
+	parameter cur_stg.
 	
-	IF j = (vehicle["stages"]:LENGTH - 1) {
-		RETURN (vehicle["stages"][j]["Tstage"] <= upfgInternal["terminal_time"]).
-	} ELSE {
-		
-		IF (vehicle["stages"][j]["Tstage"] <=0.1) {
+	IF vehiclestate["staging_in_progress"] {RETURN.}
+	
+	if (vehicle["stages"][cur_stg]["Tstage"] <= 0.1) {
+		if (cur_stg < (vehicle["stages"]:LENGTH - 1)) {
 			SET vehiclestate["staging_in_progress"] TO TRUE.
 			increment_stage().
 		}
-		RETURN FALSE.
+	}
+}
+
+
+//returns true when we're close to depletion at minimum throttle on three engines
+FUNCTION ssme_low_level {
+	parameter cur_stg.
+	
+	IF (cur_stg = (vehicle["stages"]:LENGTH - 1)) {
+	
+		local three_eng_lex is build_engines_lex(3, 0).
+	
+		local prop_left is vehicle["SSME_prop"].
+		
+		local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * vehicle["low_level_burnt"].
+		
+		set vehicle["low_level"] to (prop_left <= low_level_prop).
+		
 	}
 
 }
@@ -1622,15 +1645,6 @@ FUNCTION parse_oms {
 	
 }
 
-FUNCTION build_ssme_lex {
-
-	RETURN LEXICON(
-				"thrust", vehicle["SSME"]["active"]*vehicle["SSME"]["thrust"]*1000, 
-				"isp", vehicle["SSME"]["isp"], 
-				"flow",vehicle["SSME"]["active"]*vehicle["SSME"]["flow"]
-	).
-}
-
 FUNCTION build_engines_lex {
 	parameter ssme_active is vehicle["SSME"]["active"].
 	parameter oms_active is vehicle["OMS"]["active"].
@@ -1695,7 +1709,8 @@ FUNCTION measure_update_engines {
 		}
 	}
 	
-	set vehicle["ssme_out_detected"] to (SSMEcount < SSMEcount_prev).
+	//latch flag until reset by the abort initialiser
+	set vehicle["ssme_out_detected"] to (vehicle["ssme_out_detected"] OR (SSMEcount < SSMEcount_prev)).
 	
 	SET vehicle["SSME"]["active"] TO SSMEcount.
 	

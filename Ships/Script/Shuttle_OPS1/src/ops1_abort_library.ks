@@ -5,10 +5,6 @@ GLOBAL abort_modes IS LEXICON(
 					"t_abort_true",0,
 					"t_abort",0,
 					"abort_v",0,
-					"staging",LEXICON(
-							"v",0,
-							"alt",0
-							),
 					"oms_dump",FALSE,
 					"rtls_site", "",
 					"tal_candidates", "",
@@ -46,13 +42,25 @@ function initialise_abort_sites {
 }
 
 
+//gather abort redion determinator, abort initialiser, and anything else that may come up
+function abort_handler {
+
+	//before getstate we need to update engines and setup aborts so the stage is reconfigured 
+	//and then adjusted to the current fuel mass
+	measure_update_engines().
+	
+	abort_region_determinator().
+
+}
+
+
 function abort_region_determinator {
 
 	clearscreen.
 	
-	local three_eng_lex is build_engines_lex(3, 0).
-	local two_eng_lex is build_engines_lex(2, 0).
-	local one_eng_lex is build_engines_lex(1, 0).
+	local three_eng_lex is build_engines_lex(3).
+	local two_eng_lex is build_engines_lex(2).
+	local one_eng_lex is build_engines_lex(1).
 	
 	local three_eng_perf is veh_perf_estimator(three_eng_lex).
 	local two_eng_perf is veh_perf_estimator(two_eng_lex).

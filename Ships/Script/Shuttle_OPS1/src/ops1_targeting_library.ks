@@ -2,7 +2,7 @@
 //GLOBAL NAV VARIABLES 
 
 GLOBAL launchpad IS SHIP:GEOPOSITION.
-GLOBAL surfacestate IS  LEXICON("MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0, "maxq", 0).
+GLOBAL surfacestate IS  LEXICON("time",0,"MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0, "maxq", 0).
 GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0). 
 
 
@@ -317,13 +317,6 @@ FUNCTION prepare_launch {
 	
 	set target_orbit["warp_dt"] to TIME:SECONDS + time2window  - vehicle_countdown.
 	
-	//initialise target normal and velocity for abort calculations - in upfg coords
-	local cur_r is vecYZ(SHIP:ORBIT:BODY:POSITION)*-1.
-	local cutvec is VXCL(target_orbit["normal"], cur_r):NORMALIZED.
-	set cutvec to rodrigues(cutvec, target_orbit["normal"], 10).
-	local cutoff_r is cutvec:NORMALIZED * (target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS).
-	SET target_orbit TO nominal_cutoff_params(target_orbit, cutoff_r).
-	
 	//this is for message logging
 	SET vehicle["ign_t"] TO TIME:SECONDS + time2window. 
 	
@@ -332,6 +325,21 @@ FUNCTION prepare_launch {
 	initialise_abort_sites().
 	
 	warp_window(target_orbit["warp_dt"]).	
+	
+	
+	//if has target, shift ahead to acocunt for j2
+	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
+		//hard-coded time shift of 8 minutes
+		SET target_orbit TO tgt_j2_timefor(target_orbit,480).
+	}
+	
+	
+	//initialise target normal and velocity for abort calculations - in upfg coords
+	local cur_r is vecYZ(SHIP:ORBIT:BODY:POSITION)*-1.
+	local cutvec is VXCL(target_orbit["normal"], cur_r):NORMALIZED.
+	set cutvec to rodrigues(cutvec, target_orbit["normal"], 10).
+	local cutoff_r is cutvec:NORMALIZED * (target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS).
+	SET target_orbit TO nominal_cutoff_params(target_orbit, cutoff_r).
 	
 	
 	//print target_orbit:dump.
@@ -352,7 +360,8 @@ FUNCTION prepare_launch {
 
 FUNCTION update_navigation {
 	
-	SET surfacestate["MET"] TO TIME:SECONDS. 
+	SET surfacestate["time"] TO TIME:SECONDS. 
+	SET surfacestate["MET"] TO surfacestate["time"] - vehicle["ign_t"]. 
 	
 	
 	//measure position and orbit parameters
