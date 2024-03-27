@@ -1316,7 +1316,7 @@ function empty_stg_template {
 
 FUNCTION get_srb_thrust {
 
-	local srb is ship:partsdubbed("ShuttleRocketBooster")[0].
+	local srb is get_srb_parts()[0].
 	
 	return srb:thrust.
 
@@ -1374,6 +1374,10 @@ FUNCTION get_shuttle_res_left {
 	}
 		
 	return total_prop.
+}
+
+function get_srb_parts {
+	return ship:partsdubbed("ShuttleRocketBooster").
 }
 
 //return the ET part to read fuel quantities

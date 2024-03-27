@@ -346,11 +346,11 @@ function ops1_second_stage_nominal {
 function ops1_et_sep {
 	parameter fast_sep is false.
 	
-	local pre_sep_t is 0.
+	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
 	local translation_t is 0.
 	
-	if (fast_sep) {
+	if (NOT fast_sep) {
 		addGUIMessage("STAND-BY FOR ET SEP").
 		set pre_sequence_t to 1.5.
 		set pre_sep_t to 1.5.
