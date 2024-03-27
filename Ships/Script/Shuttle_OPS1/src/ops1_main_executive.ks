@@ -78,9 +78,14 @@ function ops1_main_exec {
 	if (NOT ops1_first_stage()) {
 		RETURN.
 	}
-	if (NOT closed_loop_ascent()) {
+	
+	if (NOT ops1_second_stage_nominal()) {
 		RETURN.
 	}
+	
+	//handle sequence for rtls and contingency 
+	
+	ops1_et_sep().
 }
 
 
@@ -142,6 +147,7 @@ function ops1_countdown{
 	
 	addGUIMessage("BOOSTER IGNITION").
 	stage.
+	SET surfacestate["time"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	
 	until false {
@@ -258,7 +264,7 @@ function ops1_second_stage_nominal {
 	
 	addGUIMessage("RUNNING UPFG ALGORITHM").
 	
-	
+	//upfg loop
 	UNTIL FALSE{
 		if (quit_program) {
 			RETURN FALSE.
@@ -275,22 +281,130 @@ function ops1_second_stage_nominal {
 		
 		if (vehicle["low_level"]) {
 			addGUIMessage("LOW LEVEL").
-			return true.
+			BREAK.
 		}
 		
 		//check for orbital terminal conditions 
 		
+		local guided_meco_flag is (upfgInternal["s_conv"] AND (upfgInternal["tgo"] < upfgInternal["terminal_time"]) AND (orbitstate["velocity"]:MAG >= 0.9*target_orbit["velocity"])).
+		local unguided_meco_flag is (orbitstate["velocity"]:MAG>= 0.995*target_orbit["velocity"]).
 		
+		IF guided_meco_flag OR unguided_meco_flag {
+			addGUIMessage("TERMINAL GUIDANCE").
+			BREAK.
+		}
+		
+		upfg_sense_current_state(upfgInternal).
+		
+		upfg(
+			vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]),
+			target_orbit,
+			upfgInternal
+		).
+		
+		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
+			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
+			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
+		}
 	}
+	
+	//terminal loop 
+	
+	SET vehiclestate["phase"] TO 3.
+ 
+	SET upfgInternal["terminal"] TO TRUE.
+	
+	set dap:thr_rpl_tgt to dap:thr_min.
+	
+	addGUIMessage("WAITING FOR MECO").
+	
+	UNTIL FALSE {
+		getState().
+		IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
+			BREAK.
+		}
+	}
+	
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
+	
+	//stop oms dump for intact aborts
+	LOCK THROTTLE to 0.
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+	shutdown_ssmes().
+	stop_oms_dump(TRUE).
+	dap:set_rcs(TRUE).
+	
+	RETURN TRUE.
 
 }
 
-function closed_loop_ascent{
+
+function ops1_et_sep {
+	parameter fast_sep is false.
+	
+	local pre_sep_t is 0.
+	local pre_sep_t is 0.
+	local translation_t is 0.
+	
+	if (fast_sep) {
+		addGUIMessage("STAND-BY FOR ET SEP").
+		set pre_sequence_t to 1.5.
+		set pre_sep_t to 1.5.
+		set translation_t to 15.
+	} else {
+		addGUIMessage("FAST ET SEP").
+		set pre_sequence_t to 0.1.
+		set pre_sep_t to 1.
+		set translation_t to 5.
+	}
 	
 	
+	//ET sep loop
+	LOCAL sequence_start_t IS surfacestate["time"].
+	LOCAL sequence_exit is false.
+	WHEN ( surfacestate["time"] > sequence_start_t + pre_sep_t) THEN {
+		SET SHIP:CONTROL:TOP TO 1.
+		SET SHIP:CONTROL:FORE TO 1.
 		
+		WHEN ( surfacestate["time"] > sequence_start_t + pre_sep_t) THEN {
+			et_sep().
+			
+			WHEN ( surfacestate["time"] > sequence_start_t + translation_t) THEN {
+				SET vehiclestate["phase"] TO 4.
+				set sequence_exit to true.
+				//to disable RCS separation maneouvre
+				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+			}
+		}
+	}
 	
 	
+	UNTIL FALSE{
+		getState().
+		
+		IF (sequence_exit) {
+			BREAK.
+		}
+		WAIT 0.1.
+	}
+	
+	close_umbilical().
+	disable_TVC().
+	
+	//this is presumably where we add logic for atttude control in contingency
+	
+	UNLOCK THROTTLE.
+	UNLOCK STEERING.
+	SAS ON.
+	
+	
+	RETURN TRUE.
+}
+
+
+function closed_loop_ascent_bk{
+	
+
 
 	UNTIL FALSE{
 		if (quit_program) {

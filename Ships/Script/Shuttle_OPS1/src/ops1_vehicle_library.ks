@@ -78,7 +78,7 @@ function initialise_shuttle {
 						"stack_empty_mass", 0,
 						"stages",LIST(),
 						"ssme_out_detected", FALSE,
-						"rtls_mbod", 0,
+						"rtls_mbod", 0
 	).
 	
 	SET vehicle["SSME"] TO parse_ssme().
@@ -163,7 +163,7 @@ function initialise_shuttle {
 	//debug_vehicle().
 	
 	//prepare launch triggers 
-	add_action_event(1, activate_fuel_cells@ ).
+	activate_fuel_cells().
 	add_action_event(350, roll_heads_up@ ).
 	
 	setup_engine_failure().
@@ -1441,6 +1441,13 @@ FUNCTION activate_fuel_cells {
 	}
 }
 
+function et_sep {
+	local et_part is get_ext_tank_part().
+	
+	local dm is et_part:getmodule("ModuleDecouple").
+	dm:doaction("Decouple", true).
+}
+
 FUNCTION disable_TVC {
 	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
 		IF ssme:ISTYPE("engine") {
@@ -1736,4 +1743,11 @@ FUNCTION SSME_flameout {
 		}
 	}
 	RETURN FALSE.
+}
+
+
+FUNCTION shutdown_ssmes {
+	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
+		e:shutdown.
+	}	
 }
