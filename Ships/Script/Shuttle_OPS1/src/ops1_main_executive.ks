@@ -72,16 +72,22 @@ function ops1_main_exec {
 	).
 	
 	IF (NOT ops1_countdown()) {
-		WAIT 5.
-		RETURN.
-	}
-	if (NOT ops1_first_stage()) {
+		if (NOT quit_program) {
+			WAIT 5.
+		}
 		RETURN.
 	}
 	
-	if (NOT ops1_second_stage_nominal()) {
-		RETURN.
-	}
+	ops1_first_stage().
+	
+	if (quit_program) {RETURN.}
+	
+	// check for abort modes, proceed to nominal, rtls or contingency
+	
+	ops1_second_stage_nominal().
+	
+	if (quit_program) {RETURN.}
+	
 	
 	//handle sequence for rtls and contingency 
 	
@@ -184,7 +190,7 @@ function ops1_first_stage {
 	
 	UNTIL FALSE {	
 		if (quit_program) {
-			RETURN FALSE.
+			RETURN.
 		}
 	
 		abort_handler().
@@ -245,7 +251,6 @@ function ops1_first_stage {
 			}
 		}
 	}
-	RETURN TRUE.
 	
 }
 
@@ -267,7 +272,7 @@ function ops1_second_stage_nominal {
 	//upfg loop
 	UNTIL FALSE{
 		if (quit_program) {
-			RETURN FALSE.
+			RETURN.
 		}
 	
 		IF (upfgInternal["itercount"] = 0) { //detects first pass or convergence lost
@@ -334,7 +339,6 @@ function ops1_second_stage_nominal {
 	stop_oms_dump(TRUE).
 	dap:set_rcs(TRUE).
 	
-	RETURN TRUE.
 
 }
 
@@ -398,7 +402,7 @@ function ops1_et_sep {
 	SAS ON.
 	
 	
-	RETURN TRUE.
+	RETURN.
 }
 
 
