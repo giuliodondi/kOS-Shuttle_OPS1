@@ -80,19 +80,13 @@ FUNCTION dataViz {
 	LOCAL pred_ve IS pred_simstate["surfvel"]:MAG.
 	LOCAL pred_alt IS pred_simstate["altitude"]/1000.
 	
-	local tgo is 0.
-	local vgo is 0.
-	
-	LOCAL converged IS FALSE.
-	if (vehiclestate["major_mode"] > 102) {
-		set tgo to upfgInternal["Tgo"].
-		set vgo to upfgInternal["vgo"]:MAG.
-		SET converged TO (upfgInternal["s_conv"]) AND (NOT upfgInternal["terminal"]).
-	}	
+	local tgo is upfgInternal["Tgo"].
+	local vgo is upfgInternal["vgo"]:MAG.
+	LOCAL converged IS (upfgInternal["s_conv"]) AND (NOT upfgInternal["terminal"]).
 	
 	LOCAL gui_data IS lexicon(
 				"met", TIME:SECONDS - vehicle["ign_t"],
-				"phase", vehiclestate["major_mode"],
+				"major_mode", vehiclestate["major_mode"],
 				"hdot", SHIP:VERTICALSPEED,
 				"r_delta", dap:steer_roll_delta,
 				"p_delta", dap:steer_pitch_delta,

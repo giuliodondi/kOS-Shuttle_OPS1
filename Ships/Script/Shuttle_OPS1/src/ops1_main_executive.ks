@@ -82,6 +82,8 @@ function ops1_main_exec {
 	
 	if (quit_program) {RETURN.}
 	
+	setupUPFG().
+	
 	// check for abort modes, proceed to nominal, rtls or contingency
 	
 	ops1_second_stage_nominal().
@@ -264,8 +266,6 @@ function ops1_second_stage_nominal {
 	dap:set_steering_low().
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	
-	SET upfgInternal TO setupUPFG().
 	
 	SET vehiclestate["major_mode"] TO 103.
 	

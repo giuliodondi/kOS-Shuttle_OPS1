@@ -31,7 +31,14 @@ FUNCTION cse {
 
 //global UPFG variables 
 
-GLOBAL upfgInternal IS LEXICON().
+// dummy lexicon for gui printout before mode 103
+GLOBAL upfgInternal IS LEXICON(
+							"tgo", 1,
+							"vgo", v(0,0,0),
+							"terminal", FALSE,
+							"s_init", FALSE,
+							"s_conv", FALSE
+).
 	
 
 									//	UPFG HANDLING FUNCTIONS
@@ -48,7 +55,7 @@ FUNCTION setupUPFG {
 	local init_throt is stg["Throttle"].
 	LOCAL min_throt IS stg["engines"]["minThrottle"].
 
-	return LEXICON(
+	SET upfgInternal TO  LEXICON(
 		"r_cur", V(0, 0, 0),
 		"v_cur", V(0, 0, 0),
 		"t_cur", 0,
@@ -107,7 +114,7 @@ FUNCTION upfg_normal {
 
 FUNCTION resetUPFG {
 	addGUIMessage("RESETTING UPFG").
-	return setupUPFG().
+	setupUPFG().
 }
 
 
@@ -549,7 +556,7 @@ FUNCTION upfg_own {
 				SET internal["s_conv"] tO TRUE.
 			}
 		} ELSE { //something is wrong, reset
-			SET internal TO resetUPFG().
+			resetUPFG().
 			RETURN.
 		}
 	} ELSE {
@@ -997,7 +1004,7 @@ FUNCTION upfg {
 				SET internal["s_conv"] tO TRUE.
 			}
 		} ELSE { //something is wrong, reset
-			SET internal TO resetUPFG().
+			resetUPFG().
 			RETURN.
 		}
 	} ELSE {
