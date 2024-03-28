@@ -94,6 +94,8 @@ function ops1_main_exec {
 	//handle sequence for rtls and contingency 
 	
 	ops1_et_sep().
+	
+	ops1_termination().
 }
 
 
@@ -345,13 +347,13 @@ function ops1_et_sep {
 	
 	if (NOT fast_sep) {
 		addGUIMessage("STAND-BY FOR ET SEP").
-		set pre_sequence_t to 1.5.
-		set pre_sep_t to 1.5.
+		set pre_sequence_t to 2.
+		set pre_sep_t to 2.
 		set translation_t to 15.
 	} else {
 		addGUIMessage("FAST ET SEP").
 		set pre_sequence_t to 0.1.
-		set pre_sep_t to 1.
+		set pre_sep_t to 0.5.
 		set translation_t to 5.
 	}
 	
@@ -359,7 +361,7 @@ function ops1_et_sep {
 	//ET sep loop
 	LOCAL sequence_start_t IS surfacestate["time"].
 	LOCAL sequence_exit is false.
-	WHEN ( surfacestate["time"] > sequence_start_t + pre_sep_t) THEN {
+	WHEN ( surfacestate["time"] > sequence_start_t + pre_sequence_t) THEN {
 		SET SHIP:CONTROL:TOP TO 1.
 		SET SHIP:CONTROL:FORE TO 1.
 		
@@ -395,6 +397,17 @@ function ops1_et_sep {
 	
 	
 	RETURN.
+}
+
+//figure out what to do based on mode and abort modes 
+function ops1_termination {
+	
+	if (vehiclestate["major_mode"] = 104) {
+		print_ascent_report().
+	
+		WAIT 5.
+	}
+
 }
 
 

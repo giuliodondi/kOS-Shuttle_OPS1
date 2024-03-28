@@ -230,7 +230,7 @@ function get_ato_tgt_orbit {
 	
 	local ato_apoapsis is MIN(160, 0.8*target_orbit["apoapsis"]).
 	
-	local ato_cutoff_alt is target_orbit["cutoff alt"].
+	local ato_cutoff_alt is 0.95 * target_orbit["cutoff alt"].
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
 	
 	//300 m/s burn to circularise at apoapsis

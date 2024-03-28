@@ -156,6 +156,7 @@ FUNCTION prepare_telemetry {
 	if logdata=TRUE {	
 		GLOBAL loglex IS LEXICON(
 										"Time",0,
+										"major_mode", 0, 
 										"Lat",0,
 										"Lng",0,
 										"Altitude",0,
@@ -186,6 +187,7 @@ FUNCTION log_telemetry {
 		//prepare list of values to log.
 		
 		SET loglex["Time"] TO TIME:SECONDS - vehicle["ign_t"].
+		SET loglex["major_mode"] TO vehiclestate["major_mode"].
 		SET loglex["Lat"] TO SHIP:GEOPOSITION:LAT.
 		SET loglex["Lng"] TO SHIP:GEOPOSITION:LNG.
 		SET loglex["Altitude"] TO SHIP:ALTITUDE/1000.
