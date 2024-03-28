@@ -240,9 +240,7 @@ FUNCTION open_loop_pitch {
 	LOCAL steep_fac IS vehicle["traj_steepness"].
 	
 	//bias trajectory in case of first-stage rtls
-	IF (abort_modes["triggered"] ) {
-		SET steep_fac TO steep_fac + RTLS_first_stage_lofting_bias(abort_modes["t_abort_true"]).
-	}
+	SET steep_fac TO steep_fac + first_stage_engout_lofting_bias().
 	
 	IF (curv<=v0) {
 		RETURN 90.
@@ -285,57 +283,13 @@ FUNCTION open_loop_pitch {
 			set pitch_prof to pitch_prof + SIGN(bias) * MIN(max_prof_dev, prof_corr).
 			
 		}
-		
-		
-		
+
 		RETURN CLAMP(pitch_prof, 0, 90).
 	}
 	
 	
 }
 
-
-
-//LEGACY
-//manage roll to heads-up manoeuvre
-FUNCTION roll_heads_up_bk {
-
-	//skip if rtls is in progress
-	IF (DEFINED RTLSAbort) {
-		RETURN.
-	}
-	
-	//setup the new roll and steering
-	if (vehicle["roll"] <> 0) {
-		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
-		SET vehicle["roll"] TO 0.
-		set_steering_med().
-	}
-	
-	LOCAL aimv IS control["aimvec"].
-	LOCAL refv IS VXCL(aimv, control["refvec"]):NORMALIZED.
-	
-	LOCAL topv IS VXCL(aimv, SHIP:FACING:TOPVECTOR):NORMALIZED.
-	LOCAL cur_roll IS VANG(refv, topv).
-	LOCAL angle_err IS vehicle["roll"] -  cur_roll.
-	
-	IF (ABS(angle_err) > 0.5) {
-		
-		LOCAL delta IS SIGN(angle_err) * MIN(ABS(angle_err), 15).
-		
-		SET control["roll_angle"] TO cur_roll + delta.
-		
-		local tnext is TIME:SECONDS + 0.2.
-		WHEN(TIME:SECONDS > tnext) THEN {
-			roll_heads_up().
-		}
-		
-	} ELSE {
-		SET control["roll_angle"] TO vehicle["roll"].
-		set_steering_low().
-	}
-	
-}
 
 FUNCTION roll_heads_up {
 
@@ -1486,14 +1440,18 @@ FUNCTION close_umbilical {
 
 
 FUNCTION start_oms_dump {
+	parameter fast_dump is false.
 
-	IF ((NOT abort_modes["triggered"]) OR (abort_modes["oms_dump"])) {
+	IF (NOT abort_modes["oms_dump"]) {
 		RETURN.
 	}
 
-	RCS ON.
-	//SET SHIP:CONTROL:FORE TO 1.
-	//SET SHIP:CONTROL:TOP TO 1.
+	
+	if (fast_dump) {
+		RCS ON.
+		SET SHIP:CONTROL:FORE TO 1.
+		SET SHIP:CONTROL:TOP TO 1.
+	}
 	FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
 		oms:ACTIVATE.
 	}
@@ -1503,7 +1461,7 @@ FUNCTION start_oms_dump {
 FUNCTION stop_oms_dump {
 	PARAMETER force IS FALSE.
 	
-	IF (NOT (abort_modes["triggered"] AND abort_modes["oms_dump"])) {
+	IF (NOT abort_modes["oms_dump"]) {
 		RETURN.
 	}
 
@@ -1720,8 +1678,19 @@ FUNCTION measure_update_engines {
 		}
 	}
 	
+	local ssme_out_detected_flag is (SSMEcount < SSMEcount_prev).
+	
+	if (ssme_out_detected_flag) {
+		addGUIMessage("ENGINE OUT DETECTED.").
+		abort_modes["ssmes_out"]:add(
+									lexicon(
+											"time", surfacestate["MET"],
+											"vi", orbitstate["velocity"]:mag
+									)
+		).
+	}
 	//latch flag until reset by the abort initialiser
-	set vehicle["ssme_out_detected"] to (vehicle["ssme_out_detected"] OR (SSMEcount < SSMEcount_prev)).
+	set vehicle["ssme_out_detected"] to (vehicle["ssme_out_detected"] OR ssme_out_detected_flag).
 	
 	SET vehicle["SSME"]["active"] TO SSMEcount.
 	
@@ -1738,6 +1707,10 @@ FUNCTION measure_update_engines {
 	SET cur_stg["engines"] TO build_engines_lex().
 	
 		
+}
+
+function get_engines_out {
+	return 3 - vehicle["SSME"]["active"].
 }
 
 FUNCTION SSME_flameout {

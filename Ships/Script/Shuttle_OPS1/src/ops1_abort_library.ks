@@ -2,13 +2,13 @@
 //abort boundaries are defined with velocity in their own functions
 GLOBAL abort_modes IS LEXICON( 
 					"triggered",FALSE,
-					"t_abort_true",0,
-					"t_abort",0,
-					"abort_v",0,
+					"trigger_t",time:seconds + 10000000000,
+					"ssmes_out", list(),
 					"oms_dump",FALSE,
 					"rtls_site", "",
 					"tal_candidates", "",
-					"ecal_candidates", ""
+					"ecal_candidates", "",
+					"available_modes", list(list(), list(), list(), list()).
 							
 ).
 
@@ -50,10 +50,12 @@ function abort_handler {
 	measure_update_engines().
 	
 	abort_region_determinator().
+	
+	abort_initialiser().
 
 }
 
-
+//determine available abort modes for 1,2,3 eng out cases in order of preference
 function abort_region_determinator {
 
 	clearscreen.
@@ -169,9 +171,65 @@ function abort_region_determinator {
 
 }
 
+//determine if it's time to initialise an abort and them ode to activate
+function abort_initialiser {
+
+	local engines_out is get_engines_out().
+	
+	//exit if first stage and not 3eng out 
+	if (engines_out < 3) and (vehiclestate["major_mode"] < 103) {
+		return.
+	}
+	
+	if (vehicle["ssme_out_detected"]) {
+		//setup the abort trigger in the future
+		set vehicle["ssme_out_detected"] to false.
+		
+		//the time in the future is 1 second by default except if there are multiple modes available
+		//which should only happen for 1eng out , for 0eng out the abort is triggered manually outside
+		//otoh we can only enter this block if we have at least 1 eng out
+		local abort_trigger_t is 1.
+		
+		if (abort_modes["available_modes"][engines_out]:length > 1) {
+			set abort_trigger_t to 10.
+		}
+		
+		set abort_modes["trigger_t"]	TO surfacestate["MET"] + abort_trigger_t.
+		
+	}
+	
+	//exit if we're not past the abort trigger 
+	if (surfacestate["MET"] < abort_modes["trigger_t"]) {
+		return.
+	} else {
+		set abort_modes["triggered"] to true.
+	}
+	
+	//oms dump logic decided on a mode-by-mode basis
+	
+
+}
+
 
 //	RTLS functions
 
+
+//bias first-stage trajectory scale for lofting
+FUNCTION first_stage_engout_lofting_bias {
+	
+	local engines_out is get_engines_out().
+	local abort_t is 1000.
+	
+	if (engines_out > 0) {
+		set abort_t to abort_modes["ssmes_out"][0]["time"].
+	}
+	
+	//decreasing multiplying factor with engines out
+	local engout_fac is (0.375 * engines_out + 0.625) * engines_out.
+	
+	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
+	
+}
 
 //RTLs runway vector in UPFG coordinates
 FUNCTION RTLS_tgt_site_vector {

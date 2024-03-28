@@ -85,6 +85,35 @@ FUNCTION make_main_ascent_gui {
 	dap_b:addoption("CSS").
 	ascent_toggles_box:addspacing(15).
 	
+	GLOBAL abort_mode_box IS ascent_toggles_box:ADDHLAYOUT().
+	SET abort_mode_box:STYLE:WIDTH TO 120.
+	GLOBAL abort_mode_text IS abort_mode_box:ADDLABEL("Mode").
+	set abort_mode_text:style:margin:v to -3.
+	GLOBAL abort_mode_select IS abort_mode_box:addpopupmenu().
+	set abort_mode_select:style:margin:v to -3.
+	SET abort_mode_select:STYLE:WIDTH TO 70.
+	SET abort_mode_select:STYLE:HEIGHT TO 25.
+	SET abort_mode_select:STYLE:ALIGN TO "center".
+
+	ascent_toggles_box:addspacing(15).
+	
+	GLOBAL abort_b is ascent_toggles_box:ADDBUTTON("ABORT").
+	SET abort_b:STYLE:WIDTH TO 55.
+	SET abort_b:STYLE:HEIGHT TO 25.
+	set abort_b:style:margin:v to -3.
+	set abort_b:STYLE:BG to "Shuttle_OPS1/src/gui_images/abort_btn.png".
+	
+	
+	GLOBAL tal_site_box IS ascent_toggles_box:ADDHLAYOUT().
+	SET tal_site_box:STYLE:WIDTH TO 120.
+	GLOBAL tal_site_text IS tal_site_box:ADDLABEL("TAL site").
+	set tal_site_text:style:margin:v to -3.
+	GLOBAL tal_site_select IS tal_site_box:addpopupmenu().
+	set tal_site_select:style:margin:v to -3.
+	SET tal_site_select:STYLE:WIDTH TO 70.
+	SET tal_site_select:STYLE:HEIGHT TO 25.
+	SET tal_site_select:STYLE:ALIGN TO "center".
+	
 	
 	
 	GLOBAL ascent_traj_disp_counter IS 1.				   			   
