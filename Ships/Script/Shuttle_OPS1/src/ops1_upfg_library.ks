@@ -1048,7 +1048,7 @@ FUNCTION upfg {
 	local tgo_terminal_flag IS (internal["tgo"] <= internal["terminal_time"]).
 	
 	local unguided_meco_flag is (NOT internal["s_conv"]) AND tgt_v_close_flag.
-	local guided_meco_flag is (internal["s_conv"] AND tgo_terminal_flag.
+	local guided_meco_flag is internal["s_conv"] AND tgo_terminal_flag.
 	
 	if (s_mode = 5) {
 		set guided_meco_flag to internal["s_flyback"] AND guided_meco_flag.
