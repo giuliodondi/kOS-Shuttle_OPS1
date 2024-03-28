@@ -370,8 +370,8 @@ FUNCTION update_navigation {
 	
 
 	
-	IF (vehiclestate["phase"] > 1) {set progv to SHIP:PROGRADE:VECTOR.}
-	ELSE {set progv to SHIP:SRFPROGRADE:VECTOR.}
+	IF (vehiclestate["major_mode"] = 101) OR (vehiclestate["major_mode"] = 102) {set progv to SHIP:SRFPROGRADE:VECTOR.}
+	ELSE {set progv to SHIP:PROGRADE:VECTOR.}
 	
 	SET surfacestate["hdir"] TO compass_for(progv,SHIP:GEOPOSITION ).
 	SET surfacestate["vdir"] TO 90 - VANG(progv, SHIP:UP:VECTOR).

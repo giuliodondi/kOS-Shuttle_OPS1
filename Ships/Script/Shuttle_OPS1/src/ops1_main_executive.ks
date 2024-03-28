@@ -112,6 +112,8 @@ function ops1_countdown{
 	
 	addGUIMessage(" T MINUS 10").
 	
+	set vehiclestate["major_mode"] TO 101.
+	
 	set dap:thr_max to vehicle["maxThrottle"].
 	set dap:thr_min to vehicle["minThrottle"].
 	SET dap:thr_rpl_tgt TO convert_ssme_throt_rpl(1).
@@ -163,6 +165,8 @@ function ops1_countdown{
 	
 	addGUIMessage("LIFT-OFF CONFIRMED").
 	
+	set vehiclestate["major_mode"] TO 102.
+	
 	RETURN TRUE.
 	
 }
@@ -181,8 +185,6 @@ function ops1_first_stage {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		SET throt_flag TO true.
-		
-		set vehiclestate["phase"] TO 1.
 		
 		//reset throttle to maximum
 		SET dap:thr_rpl_tgt TO vehicle["nominalThrottle"].
@@ -265,7 +267,7 @@ function ops1_second_stage_nominal {
 	
 	SET upfgInternal TO setupUPFG().
 	
-	SET vehiclestate["phase"] TO 2.
+	SET vehiclestate["major_mode"] TO 103.
 	
 	addGUIMessage("RUNNING UPFG ALGORITHM").
 	
@@ -314,8 +316,6 @@ function ops1_second_stage_nominal {
 	}
 	
 	//terminal loop 
-	
-	SET vehiclestate["phase"] TO 3.
  
 	SET upfgInternal["terminal"] TO TRUE.
 	
@@ -339,7 +339,7 @@ function ops1_second_stage_nominal {
 	stop_oms_dump(TRUE).
 	dap:set_rcs(TRUE).
 	
-
+	SET vehiclestate["major_mode"] TO 104.
 }
 
 
@@ -374,7 +374,6 @@ function ops1_et_sep {
 			et_sep().
 			
 			WHEN ( surfacestate["time"] > sequence_start_t + translation_t) THEN {
-				SET vehiclestate["phase"] TO 4.
 				set sequence_exit to true.
 				//to disable RCS separation maneouvre
 				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
@@ -589,7 +588,7 @@ function closed_loop_ascent_bk{
 		
 	}
 	
-	SET vehiclestate["phase"] TO 3.
+	SET vehiclestate["major_mode"] TO 3.
  
 	SET upfgInternal["terminal"] TO TRUE.
 	
@@ -648,7 +647,7 @@ function closed_loop_ascent_bk{
 			STAGE.
 			
 			WHEN ( TIME:SECONDS > etsep_t + 15) THEN {
-				SET vehiclestate["phase"] TO 4.
+				SET vehiclestate["major_mode"] TO 4.
 			}
 		}
 	}
@@ -657,7 +656,7 @@ function closed_loop_ascent_bk{
 	UNTIL FALSE{
 		getState().
 		
-		IF (vehiclestate["phase"] = 4) {
+		IF (vehiclestate["major_mode"] = 4) {
 			BREAK.
 		}
 		WAIT 0.1.

@@ -63,8 +63,10 @@ FUNCTION dataViz {
 	LOCAL pred_simstate IS current_simstate().
 	LOCAL sim_dt IS 15.
 	
-	IF (vehiclestate["phase"] = 1) {
+	IF (vehiclestate["major_mode"] = 102) {
 		SET sim_dt TO 7.5.
+	} else IF (vehiclestate["major_mode"] = 101) {
+		SET sim_dt TO 0.
 	}
 	
 	FROM {local k is 1.} UNTIL k > 2 STEP {set k to k + 1.} DO { 
@@ -82,7 +84,7 @@ FUNCTION dataViz {
 	local vgo is 0.
 	
 	LOCAL converged IS FALSE.
-	if (vehiclestate["phase"] > 1) {
+	if (vehiclestate["major_mode"] > 102) {
 		set tgo to upfgInternal["Tgo"].
 		set vgo to upfgInternal["vgo"]:MAG.
 		SET converged TO (upfgInternal["s_conv"]) AND (NOT upfgInternal["terminal"]).
@@ -90,7 +92,7 @@ FUNCTION dataViz {
 	
 	LOCAL gui_data IS lexicon(
 				"met", TIME:SECONDS - vehicle["ign_t"],
-				"phase", vehiclestate["phase"],
+				"phase", vehiclestate["major_mode"],
 				"hdot", SHIP:VERTICALSPEED,
 				"r_delta", dap:steer_roll_delta,
 				"p_delta", dap:steer_pitch_delta,

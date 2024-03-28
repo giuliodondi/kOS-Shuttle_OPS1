@@ -174,7 +174,7 @@ declare function open_loop_ascent {
 		SET steer_flag TO true.
 		SET throt_flag TO true.
 		
-		set vehiclestate["phase"] TO 1.
+		set vehiclestate["major_mode"] TO 1.
 		
 		//reset throttle to maximum
 		SET dap:thr_rpl_tgt TO vehicle["nominalThrottle"].
@@ -270,7 +270,7 @@ declare function closed_loop_ascent{
 	
 	SET upfgInternal TO setupUPFG().
 	
-	SET vehiclestate["phase"] TO 2.
+	SET vehiclestate["major_mode"] TO 2.
 	
 	addGUIMessage("RUNNING UPFG ALGORITHM").
 
@@ -453,7 +453,7 @@ declare function closed_loop_ascent{
 		
 	}
 	
-	SET vehiclestate["phase"] TO 3.
+	SET vehiclestate["major_mode"] TO 3.
  
 	SET upfgInternal["terminal"] TO TRUE.
 	
@@ -512,7 +512,7 @@ declare function closed_loop_ascent{
 			STAGE.
 			
 			WHEN ( TIME:SECONDS > etsep_t + 15) THEN {
-				SET vehiclestate["phase"] TO 4.
+				SET vehiclestate["major_mode"] TO 4.
 			}
 		}
 	}
@@ -521,7 +521,7 @@ declare function closed_loop_ascent{
 	UNTIL FALSE{
 		getState().
 		
-		IF (vehiclestate["phase"] = 4) {
+		IF (vehiclestate["major_mode"] = 4) {
 			BREAK.
 		}
 		WAIT 0.1.

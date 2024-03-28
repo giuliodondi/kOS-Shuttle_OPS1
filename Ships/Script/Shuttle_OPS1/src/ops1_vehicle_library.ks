@@ -2,7 +2,7 @@ GLOBAL g0 IS 9.80665.
 GLOBAL vehicle_countdown IS 10.
 
 GLOBAL vehiclestate IS LEXICON(
-	"phase",0,
+	"major_mode",0,
 	"cur_stg", 1,
 	"staging_time", 0,
 	"staging_in_progress", FALSE,
