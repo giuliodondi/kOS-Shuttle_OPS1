@@ -35,7 +35,7 @@ FUNCTION cse {
 GLOBAL upfgInternal IS LEXICON(
 							"tgo", 1,
 							"vgo", v(0,0,0),
-							"terminal", FALSE,
+							"s_meco", FALSE,
 							"s_init", FALSE,
 							"s_conv", FALSE
 ).
@@ -61,7 +61,7 @@ FUNCTION setupUPFG {
 		"t_cur", 0,
 		"m_cur", 0,
 		"tb_cur", 0,
-		"terminal", FALSE,
+		"s_meco", FALSE,
 		"s_init", FALSE,
 		"s_conv", FALSE,
 		"iter_conv", 0,
@@ -1042,4 +1042,19 @@ FUNCTION upfg {
 	
 	//throttle command 
 	SET internal["throtset"] TO CLAMP(kk_cmd, 0, 1).
+	
+	//terminal count 	
+	local tgt_v_close_flag is (internal["v_cur"]:MAG >= 0.985*tgt_orb["velocity"]).
+	local tgo_terminal_flag IS (internal["tgo"] <= internal["terminal_time"]).
+	
+	local unguided_meco_flag is (NOT internal["s_conv"]) AND tgt_v_close_flag.
+	local guided_meco_flag is (internal["s_conv"] AND tgo_terminal_flag.
+	
+	if (s_mode = 5) {
+		set guided_meco_flag to internal["s_flyback"] AND guided_meco_flag.
+	    set unguided_meco_flag to internal["s_flyback"] AND unguided_meco_flag. 
+	}
+
+	set internal["s_meco"] TO (guided_meco_flag OR unguided_meco_flag).
+		
 }

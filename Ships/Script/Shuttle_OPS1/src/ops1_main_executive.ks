@@ -291,15 +291,10 @@ function ops1_second_stage_nominal {
 			BREAK.
 		}
 		
-		//check for orbital terminal conditions 
-		
-		local guided_meco_flag is (upfgInternal["s_conv"] AND (upfgInternal["tgo"] < upfgInternal["terminal_time"]) AND (orbitstate["velocity"]:MAG >= 0.9*target_orbit["velocity"])).
-		local unguided_meco_flag is (orbitstate["velocity"]:MAG>= 0.995*target_orbit["velocity"]).
-		
-		IF guided_meco_flag OR unguided_meco_flag {
+		if (upfgInternal["s_meco"]) {
 			addGUIMessage("TERMINAL GUIDANCE").
 			BREAK.
-		}
+		}	
 		
 		upfg_sense_current_state(upfgInternal).
 		
@@ -316,8 +311,6 @@ function ops1_second_stage_nominal {
 	}
 	
 	//terminal loop 
- 
-	SET upfgInternal["terminal"] TO TRUE.
 	
 	set dap:thr_rpl_tgt to dap:thr_min.
 	

@@ -82,7 +82,7 @@ FUNCTION dataViz {
 	
 	local tgo is upfgInternal["Tgo"].
 	local vgo is upfgInternal["vgo"]:MAG.
-	LOCAL converged IS (upfgInternal["s_conv"]) AND (NOT upfgInternal["terminal"]).
+	LOCAL converged IS (upfgInternal["s_conv"]) AND (NOT upfgInternal["s_meco"]).
 	
 	LOCAL gui_data IS lexicon(
 				"met", TIME:SECONDS - vehicle["ign_t"],
