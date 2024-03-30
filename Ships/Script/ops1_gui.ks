@@ -25,9 +25,13 @@ make_main_ascent_gui().
 make_ascent_traj1_disp().
 
 local sample_data is sample_traj_data().
-local sample_data_count is 0.
+local sample_data_count is 250.
 
 local t0 is TIME:SECONDS.
+
+ascent_traj_add_engout(1000).
+ascent_traj_add_engout(2000).
+ascent_traj_add_engout(3000).
 
 until false {
 	if (quit_program) {break.}
@@ -65,6 +69,7 @@ until false {
 				"et_prop", 98,
 				"tgo", tgo,
 				"vgo", vgo,
+				"rtls_tc", -2,
 				"converged", converged
 	).
 	

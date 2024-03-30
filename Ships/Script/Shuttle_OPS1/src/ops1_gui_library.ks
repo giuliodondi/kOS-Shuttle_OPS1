@@ -226,6 +226,20 @@ FUNCTION clear_ascent_traj_data {
 	ascent_traj_disp_overlaiddata:clear().
 }
 
+function enable_box_widgets {
+	parameter containerbox.
+	parameter visible.
+	
+	for w in containerbox:widgets {
+		if (visible) {
+			w:show().
+		} else {
+			w:hide().
+		}
+	}
+
+}
+
 function make_ascent_traj1_disp {
 
 	set ascent_traj_disp_counter to 1.
@@ -240,21 +254,39 @@ function make_ascent_traj1_disp {
 	GLOBAL ascent_traj_disp_upperdatabox IS ascent_traj_disp_overlaiddata:ADDHLAYOUT().
 	
 	SET ascent_traj_disp_upperdatabox:STYLE:WIDTH TO 125.
-    SET ascent_traj_disp_upperdatabox:STYLE:HEIGHT TO 30.
+    SET ascent_traj_disp_upperdatabox:STYLE:HEIGHT TO 50.
 	set ascent_traj_disp_upperdatabox:style:margin:h to 0.
 	set ascent_traj_disp_upperdatabox:style:margin:v to 0.
 	
 	make_ascent_cutv_slider(ascent_traj_disp_upperdatabox).
 	
-	ascent_traj_disp_upperdatabox:HIDE().
+	enable_box_widgets(ascent_traj_disp_upperdatabox, false).
 	
 	
-	GLOBAL ascent_traj_disp_leftdatabox IS ascent_traj_disp_overlaiddata:ADDVLAYOUT().
+	GLOBAL ascent_traj_disp_main_data_box IS ascent_traj_disp_overlaiddata:ADDHLAYOUT().
+	SET ascent_traj_disp_main_data_box:STYLE:WIDTH TO ascent_traj_disp:STYLE:WIDTH.
+    SET ascent_traj_disp_main_data_box:STYLE:HEIGHT TO 350.
+	
+	GLOBAL ascent_traj_disp_leftdatabox IS ascent_traj_disp_main_data_box:ADDVLAYOUT().
 	SET ascent_traj_disp_leftdatabox:STYLE:ALIGN TO "left".
-	SET ascent_traj_disp_leftdatabox:STYLE:WIDTH TO 125.
-    SET ascent_traj_disp_leftdatabox:STYLE:HEIGHT TO 115.
-	set ascent_traj_disp_leftdatabox:style:margin:h to 20.
-	set ascent_traj_disp_leftdatabox:style:margin:v to 12.
+	SET ascent_traj_disp_leftdatabox:STYLE:WIDTH TO 180.
+    SET ascent_traj_disp_leftdatabox:STYLE:HEIGHT TO 300.
+	set ascent_traj_disp_leftdatabox:style:margin:h to 12.
+	set ascent_traj_disp_leftdatabox:style:margin:v to 10.
+	
+	
+	GLOBAL ascent_traj_disp_cont_abort_box IS ascent_traj_disp_leftdatabox:ADDVLAYOUT().
+	SET ascent_traj_disp_cont_abort_box:STYLE:ALIGN TO "right".
+	SET ascent_traj_disp_cont_abort_box:STYLE:WIDTH TO 130.
+    SET ascent_traj_disp_cont_abort_box:STYLE:HEIGHT TO 50.
+	set ascent_traj_disp_cont_abort_box:style:margin:h to 60.
+	
+	GLOBAL ascent_traj_cont_abort1 IS ascent_traj_disp_cont_abort_box:ADDLABEL("CONT ABORT").
+	set ascent_traj_cont_abort1:style:margin:v to -4.
+	GLOBAL ascent_traj_cont_abort2 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 2EO XXXXX").
+	set ascent_traj_cont_abort2:style:margin:v to -4.
+	GLOBAL ascent_traj_cont_abort3 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 3EO XXXXX").
+	set ascent_traj_cont_abort3:style:margin:v to -4.
 	
 	GLOBAL ascent_trajleftdata1 IS ascent_traj_disp_leftdatabox:ADDLABEL("Ḣ   xxxxxx").
 	set ascent_trajleftdata1:style:margin:v to -4.
@@ -269,33 +301,89 @@ function make_ascent_traj1_disp {
 	GLOBAL ascent_trajleftdata6 IS ascent_traj_disp_leftdatabox:ADDLABEL("T xxxxxx").
 	set ascent_trajleftdata6:style:margin:v to -4.
 	
-	GLOBAL ascent_traj_disp_rightdatabox IS ascent_traj_disp_overlaiddata:ADDHLAYOUT().
-	SET ascent_traj_disp_rightdatabox:STYLE:ALIGN TO "left".
-	SET ascent_traj_disp_rightdatabox:STYLE:WIDTH TO 125.
-    SET ascent_traj_disp_rightdatabox:STYLE:HEIGHT TO 115.
-	set ascent_traj_disp_rightdatabox:style:margin:h to 320.
-	set ascent_traj_disp_rightdatabox:style:margin:v to 10.
 	
-	make_g_slider(ascent_traj_disp_rightdatabox).
+	GLOBAL ascent_traj_disp_centredatabox IS ascent_traj_disp_main_data_box:ADDVLAYOUT().
+	SET ascent_traj_disp_centredatabox:STYLE:ALIGN TO "left".
+	SET ascent_traj_disp_centredatabox:STYLE:WIDTH TO 150.
+    SET ascent_traj_disp_centredatabox:STYLE:HEIGHT TO 300.
+	set ascent_traj_disp_centredatabox:style:margin:h to 0.
+	set ascent_traj_disp_centredatabox:style:margin:v to 0.
+	
+	ascent_traj_disp_centredatabox:addspacing(200).
+	
+	GLOBAL ascent_traj_disp_droop_box IS ascent_traj_disp_centredatabox:ADDVLAYOUT().
+	SET ascent_traj_disp_droop_box:STYLE:ALIGN TO "right".
+	SET ascent_traj_disp_droop_box:STYLE:WIDTH TO 125.
+    SET ascent_traj_disp_droop_box:STYLE:HEIGHT TO 115.
+	
+	GLOBAL ascent_traj_disp_centredata1 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ALT XXX").
+	set ascent_traj_disp_centredata1:style:margin:v to -4.
+	GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ENGAGED").
+	set ascent_traj_disp_centredata2:style:margin:v to -4.
+	
+	enable_box_widgets(ascent_traj_disp_droop_box, false).
+	
+	
+	GLOBAL ascent_traj_disp_rightdatabox IS ascent_traj_disp_main_data_box:ADDHLAYOUT().
+	SET ascent_traj_disp_rightdatabox:STYLE:ALIGN TO "left".
+	SET ascent_traj_disp_rightdatabox:STYLE:WIDTH TO 180.
+    SET ascent_traj_disp_rightdatabox:STYLE:HEIGHT TO 300.
+	set ascent_traj_disp_rightdatabox:style:margin:h to 20.
+	set ascent_traj_disp_rightdatabox:style:margin:v to 2.
+	
+	make_g_slider(ascent_traj_disp_rightdatabox, 150).
 	
 	GLOBAL ascent_traj_disp_rightdatabox2 IS ascent_traj_disp_rightdatabox:ADDVLAYOUT().
 	SET ascent_traj_disp_rightdatabox2:STYLE:ALIGN TO "left".
 	SET ascent_traj_disp_rightdatabox2:STYLE:WIDTH TO 125.
     SET ascent_traj_disp_rightdatabox2:STYLE:HEIGHT TO 115.
 	set ascent_traj_disp_rightdatabox2:style:margin:h to 15.
-	set ascent_traj_disp_rightdatabox2:style:margin:v to 20.
+	set ascent_traj_disp_rightdatabox2:style:margin:v to 10.
 	
-	GLOBAL ascent_trajrightdata1 IS ascent_traj_disp_rightdatabox2:ADDLABEL("PROP xxxxxx").
-	set ascent_trajrightdata1:style:margin:v to -4.
-	GLOBAL ascent_trajrightdata2 IS ascent_traj_disp_rightdatabox2:ADDLABEL("THR   xxxxxx").
-	set ascent_trajrightdata2:style:margin:v to -4.
-	GLOBAL ascent_trajrightdata3 IS ascent_traj_disp_rightdatabox2:ADDLABEL("").
-	set ascent_trajrightdata3:style:margin:v to -4.
-	GLOBAL ascent_trajrightdata4 IS ascent_traj_disp_rightdatabox2:ADDLABEL("TGO  xxxxxx").
+	GLOBAL ascent_traj_disp_upfg_box IS ascent_traj_disp_rightdatabox2:ADDVLAYOUT().
+	SET ascent_traj_disp_upfg_box:STYLE:ALIGN TO "right".
+	SET ascent_traj_disp_upfg_box:STYLE:WIDTH TO 125.
+    SET ascent_traj_disp_upfg_box:STYLE:HEIGHT TO 115.
+	
+	GLOBAL ascent_trajupfgdata1 IS ascent_traj_disp_upfg_box:ADDLABEL("TGO  xxxxxx").
+	set ascent_trajupfgdata1:style:margin:v to -4.
+	GLOBAL ascent_trajupfgdata2 IS ascent_traj_disp_upfg_box:ADDLABEL("VGO  xxxxxx").
+	set ascent_trajupfgdata2:style:margin:v to -4.
+	GLOBAL ascent_trajupfgdata3 IS ascent_traj_disp_upfg_box:ADDLABEL("T_C  xxxxxx").
+	set ascent_trajupfgdata3:style:margin:v to -4.
+	
+	enable_box_widgets(ascent_traj_disp_upfg_box, false).
+	
+	ascent_traj_disp_rightdatabox2:addspacing(100).
+	
+	GLOBAL ascent_trajrightdata4 IS ascent_traj_disp_rightdatabox2:ADDLABEL("THROT xxxxxx").
 	set ascent_trajrightdata4:style:margin:v to -4.
-	GLOBAL ascent_trajrightdata5 IS ascent_traj_disp_rightdatabox2:ADDLABEL("VGO  xxxxxx").
+	GLOBAL ascent_trajrightdata5 IS ascent_traj_disp_rightdatabox2:ADDLABEL("PROP xxxxxx").
 	set ascent_trajrightdata5:style:margin:v to -4.
 	
+	GLOBAL ascent_traj_disp_engout_box IS ascent_traj_disp_rightdatabox2:ADDVLAYOUT().
+	SET ascent_traj_disp_engout_box:STYLE:ALIGN TO "right".
+	SET ascent_traj_disp_engout_box:STYLE:WIDTH TO 125.
+    SET ascent_traj_disp_engout_box:STYLE:HEIGHT TO 115.
+	set ascent_traj_disp_engout_box:style:margin:h to 0.
+	set ascent_traj_disp_engout_box:style:margin:v to 50.
+	
+	GLOBAL ascent_traj_engout_data is LIST().
+	
+	
+	
+}
+
+function ascent_traj_add_engout {
+	parameter engout_vi.
+	
+	local eng_out_n is 1 + ascent_traj_engout_data:LENGTH.
+	
+	local new_engout_text is ascent_traj_disp_engout_box:ADDLABEL(eng_out_n + " EO VI " + engout_vi).
+	set new_engout_text:style:margin:v to -4.
+	set new_engout_text:style:margin:h to -4.
+	
+	ascent_traj_engout_data:ADD(new_engout_text).
 	
 }
 
@@ -387,6 +475,7 @@ function rtls_gui_set_cutv_indicator {
 
 function make_g_slider {
 	parameter container_box.
+	parameter v_margin.
 	
 	SET main_ascent_gui:skin:verticalslider:bg TO "Shuttle_OPS1/src/gui_images/g_slider_bg2.png".
 	set main_ascent_gui:skin:verticalsliderthumb:BG to "Shuttle_OPS1/src/gui_images/vslider_thumb.png".
@@ -395,13 +484,14 @@ function make_g_slider {
 	set main_ascent_gui:skin:verticalsliderthumb:margin:h to 22.
 	
 	GLOBAL g_sliderbox IS container_box:ADDHLAYOUT().
+	set g_sliderbox:style:margin:v to v_margin.
 	SET g_sliderbox:STYLe:WIDTH TO 40.
 	GLOBAL g_slider is g_sliderbox:addvslider(1,3.4,0.6).
 	SET g_slider:STYLE:ALIGN TO "Center".
 	SET g_slider:style:vstretch to false.
 	SET g_slider:style:hstretch to false.
 	SET g_slider:STYLE:WIDTH TO 27.
-	SET g_slider:STYLE:HEIGHT TO 130.
+	SET g_slider:STYLE:HEIGHT TO 100.
 	
 }
 
@@ -443,7 +533,9 @@ function make_ascent_traj2_disp {
 	
 	set ascent_traj_disp_mainbox:style:BG to "Shuttle_OPS1/src/gui_images/ascent_traj2_bg.png".
 	
-	ascent_traj_disp_upperdatabox:SHOW().
+	enable_box_widgets(ascent_traj_disp_upperdatabox, true).
+	enable_box_widgets(ascent_traj_disp_droop_box, true).
+	enable_box_widgets(ascent_traj_disp_upfg_box, true).
 	
 	//ADD stuff to ascent_traj_disp_overlaiddata
 }
@@ -601,18 +693,26 @@ function update_ascent_traj_disp {
 					ascent_trajleftdata6
 	).
 	
-	set ascent_trajrightdata1:text to "PROP " + round(gui_data["et_prop"],0). 
-	set ascent_trajrightdata2:text to "THR  " + round(gui_data["ssme_thr"], 0). 
+	
 
 	local upfg_text_color is guitextgreenhex.
 	if (NOT gui_data["converged"]) {
 		set upfg_text_color to guitextyellowhex.
 	}
+	
+	LOCAL tc_sign IS " ".
+	IF (gui_data["rtls_tc"] <= -1) {
+		SET tc_sign TO "-".
+	}
 
-	set ascent_trajrightdata4:text to "<color=#" + upfg_text_color + ">TGO " + sectotime_simple(gui_data["tgo"]) + "</color>". 
-	set ascent_trajrightdata5:text to "<color=#" + upfg_text_color + ">VGO  " + round(gui_data["vgo"], 0) + "</color>". 
+	set ascent_trajupfgdata1:text to "<color=#" + upfg_text_color + ">TGO " + sectotime_simple(gui_data["tgo"]) + "</color>". 
+	set ascent_trajupfgdata2:text to "<color=#" + upfg_text_color + ">VGO  " + round(gui_data["vgo"], 0) + "</color>". 
+	set ascent_trajupfgdata3:text to "<color=#" + upfg_text_color + ">T_C " + tc_sign + sectotime_simple(ABS(gui_data["rtls_tc"])) + "</color>". 
 	
 	update_g_slider(gui_data["twr"]).
+	
+	set ascent_trajrightdata4:text to "PROP " + round(gui_data["et_prop"],0). 
+	set ascent_trajrightdata5:text to "THR  " + round(gui_data["ssme_thr"], 0). 
 	
 	SET cutv_slider:VALUE TO CLAMP(gui_data["vi"]/1000,cutv_slider:MIN,cutv_slider:MAX).
 	
