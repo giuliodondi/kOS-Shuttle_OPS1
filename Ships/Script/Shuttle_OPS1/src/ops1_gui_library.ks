@@ -254,13 +254,13 @@ function make_ascent_traj1_disp {
 	GLOBAL ascent_traj_disp_upperdatabox IS ascent_traj_disp_overlaiddata:ADDHLAYOUT().
 	
 	SET ascent_traj_disp_upperdatabox:STYLE:WIDTH TO 125.
-    SET ascent_traj_disp_upperdatabox:STYLE:HEIGHT TO 50.
+    SET ascent_traj_disp_upperdatabox:STYLE:HEIGHT TO 30.
 	set ascent_traj_disp_upperdatabox:style:margin:h to 0.
 	set ascent_traj_disp_upperdatabox:style:margin:v to 0.
 	
 	make_ascent_cutv_slider(ascent_traj_disp_upperdatabox).
 	
-	enable_box_widgets(ascent_traj_disp_upperdatabox, false).
+	enable_box_widgets(cutv_sliderbox, false).
 	
 	
 	GLOBAL ascent_traj_disp_main_data_box IS ascent_traj_disp_overlaiddata:ADDHLAYOUT().
@@ -328,33 +328,38 @@ function make_ascent_traj1_disp {
 	SET ascent_traj_disp_rightdatabox:STYLE:ALIGN TO "left".
 	SET ascent_traj_disp_rightdatabox:STYLE:WIDTH TO 180.
     SET ascent_traj_disp_rightdatabox:STYLE:HEIGHT TO 300.
-	set ascent_traj_disp_rightdatabox:style:margin:h to 20.
+	set ascent_traj_disp_rightdatabox:style:margin:h to 40.
 	set ascent_traj_disp_rightdatabox:style:margin:v to 2.
 	
-	make_g_slider(ascent_traj_disp_rightdatabox, 150).
+	make_g_slider(ascent_traj_disp_rightdatabox, 160).
 	
 	GLOBAL ascent_traj_disp_rightdatabox2 IS ascent_traj_disp_rightdatabox:ADDVLAYOUT().
 	SET ascent_traj_disp_rightdatabox2:STYLE:ALIGN TO "left".
 	SET ascent_traj_disp_rightdatabox2:STYLE:WIDTH TO 125.
-    SET ascent_traj_disp_rightdatabox2:STYLE:HEIGHT TO 115.
-	set ascent_traj_disp_rightdatabox2:style:margin:h to 15.
+    SET ascent_traj_disp_rightdatabox2:STYLE:HEIGHT TO 300.
+	set ascent_traj_disp_rightdatabox2:style:margin:h to 5.
 	set ascent_traj_disp_rightdatabox2:style:margin:v to 10.
 	
 	GLOBAL ascent_traj_disp_upfg_box IS ascent_traj_disp_rightdatabox2:ADDVLAYOUT().
 	SET ascent_traj_disp_upfg_box:STYLE:ALIGN TO "right".
 	SET ascent_traj_disp_upfg_box:STYLE:WIDTH TO 125.
-    SET ascent_traj_disp_upfg_box:STYLE:HEIGHT TO 115.
+    SET ascent_traj_disp_upfg_box:STYLE:HEIGHT TO 1.
 	
-	GLOBAL ascent_trajupfgdata1 IS ascent_traj_disp_upfg_box:ADDLABEL("TGO  xxxxxx").
+	GLOBAL ascent_traj_disp_upfg_box2 IS ascent_traj_disp_upfg_box:ADDVLAYOUT().
+	SET ascent_traj_disp_upfg_box2:STYLE:ALIGN TO "right".
+	SET ascent_traj_disp_upfg_box2:STYLE:WIDTH TO 125.
+    SET ascent_traj_disp_upfg_box2:STYLE:HEIGHT TO 115.
+	
+	GLOBAL ascent_trajupfgdata1 IS ascent_traj_disp_upfg_box2:ADDLABEL("TGO  xxxxxx").
 	set ascent_trajupfgdata1:style:margin:v to -4.
-	GLOBAL ascent_trajupfgdata2 IS ascent_traj_disp_upfg_box:ADDLABEL("VGO  xxxxxx").
+	GLOBAL ascent_trajupfgdata2 IS ascent_traj_disp_upfg_box2:ADDLABEL("VGO  xxxxxx").
 	set ascent_trajupfgdata2:style:margin:v to -4.
-	GLOBAL ascent_trajupfgdata3 IS ascent_traj_disp_upfg_box:ADDLABEL("T_C  xxxxxx").
+	GLOBAL ascent_trajupfgdata3 IS ascent_traj_disp_upfg_box2:ADDLABEL("T_C  xxxxxx").
 	set ascent_trajupfgdata3:style:margin:v to -4.
 	
-	enable_box_widgets(ascent_traj_disp_upfg_box, false).
+	enable_box_widgets(ascent_traj_disp_upfg_box2, false).
 	
-	ascent_traj_disp_rightdatabox2:addspacing(100).
+	ascent_traj_disp_rightdatabox2:addspacing(150).
 	
 	GLOBAL ascent_trajrightdata4 IS ascent_traj_disp_rightdatabox2:ADDLABEL("THROT xxxxxx").
 	set ascent_trajrightdata4:style:margin:v to -4.
@@ -366,7 +371,7 @@ function make_ascent_traj1_disp {
 	SET ascent_traj_disp_engout_box:STYLE:WIDTH TO 125.
     SET ascent_traj_disp_engout_box:STYLE:HEIGHT TO 115.
 	set ascent_traj_disp_engout_box:style:margin:h to 0.
-	set ascent_traj_disp_engout_box:style:margin:v to 50.
+	set ascent_traj_disp_engout_box:style:margin:v to 45.
 	
 	GLOBAL ascent_traj_engout_data is LIST().
 	
@@ -533,9 +538,9 @@ function make_ascent_traj2_disp {
 	
 	set ascent_traj_disp_mainbox:style:BG to "Shuttle_OPS1/src/gui_images/ascent_traj2_bg.png".
 	
-	enable_box_widgets(ascent_traj_disp_upperdatabox, true).
+	enable_box_widgets(cutv_sliderbox, true).
 	enable_box_widgets(ascent_traj_disp_droop_box, true).
-	enable_box_widgets(ascent_traj_disp_upfg_box, true).
+	enable_box_widgets(ascent_traj_disp_upfg_box2, true).
 	
 	//ADD stuff to ascent_traj_disp_overlaiddata
 }
