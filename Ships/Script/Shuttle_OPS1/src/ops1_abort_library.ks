@@ -8,7 +8,7 @@ GLOBAL abort_modes IS LEXICON(
 					"rtls_site", "",
 					"tal_candidates", "",
 					"ecal_candidates", "",
-					"available_modes", list(list(), list(), list(), list()).
+					"available_modes", list(list(), list(), list(), list())
 							
 ).
 

@@ -103,14 +103,15 @@ FUNCTION make_main_ascent_gui {
 	set abort_b:style:margin:v to -3.
 	set abort_b:STYLE:BG to "Shuttle_OPS1/src/gui_images/abort_btn.png".
 	
+	ascent_toggles_box:addspacing(15).
 	
 	GLOBAL tal_site_box IS ascent_toggles_box:ADDHLAYOUT().
-	SET tal_site_box:STYLE:WIDTH TO 120.
+	SET tal_site_box:STYLE:WIDTH TO 180.
 	GLOBAL tal_site_text IS tal_site_box:ADDLABEL("TAL site").
 	set tal_site_text:style:margin:v to -3.
 	GLOBAL tal_site_select IS tal_site_box:addpopupmenu().
 	set tal_site_select:style:margin:v to -3.
-	SET tal_site_select:STYLE:WIDTH TO 70.
+	SET tal_site_select:STYLE:WIDTH TO 110.
 	SET tal_site_select:STYLE:HEIGHT TO 25.
 	SET tal_site_select:STYLE:ALIGN TO "center".
 	
