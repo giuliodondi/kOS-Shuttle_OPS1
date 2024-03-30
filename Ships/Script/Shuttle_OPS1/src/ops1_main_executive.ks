@@ -84,6 +84,10 @@ function ops1_main_exec {
 	
 	setupUPFG().
 	
+	//so we skip directly to rtls or contingency in case of a first stage abort 
+	abort_handler().
+	getState().
+	
 	// check for abort modes, proceed to nominal, rtls or contingency
 	
 	ops1_second_stage_nominal().
@@ -262,8 +266,6 @@ function ops1_first_stage {
 
 
 function ops1_second_stage_nominal {
-	
-	getState().
 	
 	dap:set_steering_low().
 	

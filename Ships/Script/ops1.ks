@@ -4,9 +4,9 @@
 //Launch Settings
 
 GLOBAL target_orbit IS LEXICON (	
-								"periapsis",70,
+								"periapsis",50,
 								"apoapsis",380,
-								"cutoff alt",115,
+								"cutoff alt",120,
 								"inclination",28
 ).
 
