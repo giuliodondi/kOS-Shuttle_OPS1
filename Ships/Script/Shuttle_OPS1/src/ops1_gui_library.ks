@@ -362,9 +362,9 @@ function make_ascent_traj1_disp {
 	
 	ascent_traj_disp_rightdatabox2:addspacing(150).
 	
-	GLOBAL ascent_trajrightdata4 IS ascent_traj_disp_rightdatabox2:ADDLABEL("THROT xxxxxx").
+	GLOBAL ascent_trajrightdata4 IS ascent_traj_disp_rightdatabox2:ADDLABEL("THROT xxx").
 	set ascent_trajrightdata4:style:margin:v to -4.
-	GLOBAL ascent_trajrightdata5 IS ascent_traj_disp_rightdatabox2:ADDLABEL("PROP xxxxxx").
+	GLOBAL ascent_trajrightdata5 IS ascent_traj_disp_rightdatabox2:ADDLABEL("PROP  xxx").
 	set ascent_trajrightdata5:style:margin:v to -4.
 	
 	GLOBAL ascent_traj_disp_engout_box IS ascent_traj_disp_rightdatabox2:ADDVLAYOUT().
@@ -717,8 +717,8 @@ function update_ascent_traj_disp {
 	
 	update_g_slider(gui_data["twr"]).
 	
-	set ascent_trajrightdata4:text to "PROP " + round(gui_data["et_prop"],0). 
-	set ascent_trajrightdata5:text to "THR  " + round(gui_data["ssme_thr"], 0). 
+	set ascent_trajrightdata4:text to "THROT " + round(gui_data["ssme_thr"],0). 
+	set ascent_trajrightdata5:text to "PROP   " + round(gui_data["et_prop"], 0). 
 	
 	SET cutv_slider:VALUE TO CLAMP(gui_data["vi"]/1000,cutv_slider:MIN,cutv_slider:MAX).
 	
