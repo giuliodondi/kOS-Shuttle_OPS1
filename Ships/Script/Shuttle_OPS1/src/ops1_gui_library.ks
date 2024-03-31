@@ -681,7 +681,7 @@ function update_att_angles {
 function update_ascent_traj_disp {
 	parameter gui_data.
 	
-	if (ascent_traj_disp_counter = 1 AND gui_data["ve"] >= 1200) {
+	if (ascent_traj_disp_counter = 1 AND (gui_data["ve"] >= 1100 OR vehiclestate["major_mode"] > 102)) {
 		make_ascent_traj2_disp().
 	}
 	

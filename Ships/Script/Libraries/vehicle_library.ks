@@ -28,7 +28,7 @@ FUNCTION const_f_t {
 
 
 //calculates when the g limit will be violated and the vehicle mass at that moment
-//returns (0,-1) if the g-lim is never reached
+//returns (-1,-1) if the g-lim is never reached
 FUNCTION glim_t_m {
 	PARAMETER stg.
 	local out is LIST(0,0).
@@ -37,18 +37,21 @@ FUNCTION glim_t_m {
 	LOCAL red_flow IS stg["engines"]["flow"] * stg["throttle"].
 	
 	IF (red_flow <= 0) {
-		SET out[0] TO 0.
+		//no running engines
+		SET out[0] TO -1.
 		SET out[1] TO stg["m_initial"].
 	} else if (mbreak >= stg["m_initial"]) {
-		
-		SET out[0] TO 0.
+		//if the stage is fully beyond the limit 
+		SET out[0] TO -1.
 		SET out[1] TO stg["m_final"].
 		
 	} else if (mbreak > stg["m_final"])  {
+		//g-limit is reached
 		SET out[1] TO mbreak.
 		SET out[0] TO (stg["m_initial"] - mbreak)/red_flow.
 	} else {
-		SET out[0] TO 0.
+		//g-limit is never reached 
+		SET out[0] TO -1.
 		SET out[1] TO -1.
 	}
 	

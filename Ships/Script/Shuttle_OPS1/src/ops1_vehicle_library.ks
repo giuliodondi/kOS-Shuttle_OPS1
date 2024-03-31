@@ -417,9 +417,6 @@ function ascent_dap_factory {
 		local roll_delta is unfixangle(this:cur_steer_roll - this:steer_roll).
 		set roll_delta to sign(roll_delta) * min(abs(roll_delta) ,max_roll_corr).
 		
-		print "max_roll_corr " + max_roll_corr + " " at (0,20).
-		print "roll_delta " + roll_delta + " " at (0,21).
-		
 		set this:steer_cmd_roll to this:cur_steer_roll - roll_delta.
 		
 		set this:steer_tgtdir to aimAndRoll(this:steer_thrvec, this:steer_refv, this:steer_cmd_roll).
@@ -1058,9 +1055,10 @@ FUNCTION increment_stage {
 
 }
 
-//to be called after stage setup in aborts
+//to be called after stage setup when an engine fails 
+//reset back to stage 2 
 FUNCTION reset_stage {
-	set vehiclestate["cur_stg"] to 2.
+	set vehiclestate["cur_stg"] to min(vehiclestate["cur_stg"], 2).
 }
 
 
@@ -1713,6 +1711,19 @@ FUNCTION measure_update_engines {
 	
 	LOCAL cur_stg IS get_stage().
 	SET cur_stg["engines"] TO build_engines_lex().
+	
+	if (ssme_out_detected_flag) {
+		LOCAL current_m IS SHIP:MASS*1000.
+		local res_left IS get_shuttle_res_left().
+		
+		setup_shuttle_stages(
+							current_m,
+							current_m - res_left,
+							cur_stg["engines"],
+							vehicle["maxThrottle"]
+		).
+		reset_stage().
+	}
 	
 		
 }
