@@ -59,7 +59,7 @@ FUNCTION dataViz {
 	local thrvec is vehiclestate["thr_vec"]/1000.
 	
 	local traj_disp_alt_ref is 0.
-	if (ascent_traj_disp_counter = 2) {
+	if (ascent_traj_disp_counter = 1) {
 		set traj_disp_alt_ref to 45.
 	} else if (ascent_traj_disp_counter = 2) {
 		set traj_disp_alt_ref to 115.

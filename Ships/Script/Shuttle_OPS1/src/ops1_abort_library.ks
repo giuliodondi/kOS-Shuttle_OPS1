@@ -51,7 +51,7 @@ function abort_handler {
 	
 	abort_region_determinator().
 	
-	abort_initialiser().
+	//abort_initialiser().
 
 }
 

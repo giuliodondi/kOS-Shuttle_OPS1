@@ -3,7 +3,7 @@
 
 GLOBAL launchpad IS SHIP:GEOPOSITION.
 GLOBAL surfacestate IS  LEXICON("time",0,"MET",0,"az",0,"pitch",0,"alt",0,"vs",0,"hs",0,"vdir",0,"hdir",0,"q",0, "maxq", 0).
-GLOBAL orbitstate IS  LEXICON("radius",0,"velocity",0). 
+GLOBAL orbitstate IS  LEXICON("radius",v(0,0,0),"velocity",v(0,0,0)). 
 
 
 //			VARIOUS TARGETING FUNCTIONS

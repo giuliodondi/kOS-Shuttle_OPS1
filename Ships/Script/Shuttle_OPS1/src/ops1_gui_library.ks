@@ -385,7 +385,7 @@ function ascent_traj_add_engout {
 	
 	local eng_out_n is 1 + ascent_traj_engout_data:LENGTH.
 	
-	local new_engout_text is ascent_traj_disp_engout_box:ADDLABEL(eng_out_n + " EO VI " + engout_vi).
+	local new_engout_text is ascent_traj_disp_engout_box:ADDLABEL(eng_out_n + " EO VI " + round(engout_vi, 0)).
 	set new_engout_text:style:margin:v to -4.
 	set new_engout_text:style:margin:h to -4.
 	
@@ -713,7 +713,7 @@ function update_ascent_traj_disp {
 
 	set ascent_trajupfgdata1:text to "<color=#" + upfg_text_color + ">TGO " + sectotime_simple(gui_data["tgo"]) + "</color>". 
 	set ascent_trajupfgdata2:text to "<color=#" + upfg_text_color + ">VGO  " + round(gui_data["vgo"], 0) + "</color>". 
-	set ascent_trajupfgdata3:text to "<color=#" + upfg_text_color + ">T_C " + tc_sign + sectotime_simple(ABS(gui_data["rtls_tc"])) + "</color>". 
+	//set ascent_trajupfgdata3:text to "<color=#" + upfg_text_color + ">T_C " + tc_sign + sectotime_simple(ABS(gui_data["rtls_tc"])) + "</color>". 
 	
 	update_g_slider(gui_data["twr"]).
 	

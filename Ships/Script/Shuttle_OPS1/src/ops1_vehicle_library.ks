@@ -1678,16 +1678,24 @@ FUNCTION measure_update_engines {
 		}
 	}
 	
-	local ssme_out_detected_flag is (SSMEcount < SSMEcount_prev).
+	local ssmes_out is (SSMEcount_prev - SSMEcount).
+	local ssme_out_detected_flag is (ssmes_out > 0).
 	
 	if (ssme_out_detected_flag) {
 		addGUIMessage("ENGINE OUT DETECTED.").
-		abort_modes["ssmes_out"]:add(
-									lexicon(
-											"time", surfacestate["MET"],
-											"vi", orbitstate["velocity"]:mag
-									)
-		).
+		FROM {local k is 0.} UNTIL k = ssmes_out STEP {set k to k+1.} DO {
+			local engout_vi is orbitstate["velocity"]:mag.
+			
+			ascent_traj_add_engout(engout_vi).
+			abort_modes["ssmes_out"]:add(
+										lexicon(
+												"time", surfacestate["MET"],
+												"vi", engout_vi
+										)
+			).
+			
+		} 
+		
 	}
 	//latch flag until reset by the abort initialiser
 	set vehicle["ssme_out_detected"] to (vehicle["ssme_out_detected"] OR ssme_out_detected_flag).
