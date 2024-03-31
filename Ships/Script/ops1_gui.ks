@@ -44,7 +44,13 @@ until false {
 	}
 	
 	local alt_ is sample_data[sample_data_count][0].
-	local vi is sample_data[sample_data_count][1].
+	local ve is sample_data[sample_data_count][1].
+	local vi is sample_data[sample_data_count][2].
+	
+	local traj_disp_alt_ref is 45.
+	if (ascent_traj_disp_counter > 1) {
+		set traj_disp_alt_ref to 115.
+	}
 	
 	
 	local tgo is upfgInternal["Tgo"].
@@ -59,10 +65,11 @@ until false {
 				"y_delta", 3,
 				"t_delta", 7,
 				"vi", vi,
-				"ve", vi - 400,
+				"ve", ve,
 				"alt", alt_,
+				"alt_ref", traj_disp_alt_ref,
 				"pred_vi", vi + 100,
-				"pred_ve", vi - 200,
+				"pred_ve", ve + 100,
 				"pred_alt", alt_ + 2,
 				"twr", 2,
 				"ssme_thr", 104,

@@ -312,14 +312,15 @@ function make_ascent_traj1_disp {
 	ascent_traj_disp_centredatabox:addspacing(200).
 	
 	GLOBAL ascent_traj_disp_droop_box IS ascent_traj_disp_centredatabox:ADDVLAYOUT().
-	SET ascent_traj_disp_droop_box:STYLE:ALIGN TO "right".
 	SET ascent_traj_disp_droop_box:STYLE:WIDTH TO 125.
     SET ascent_traj_disp_droop_box:STYLE:HEIGHT TO 115.
 	
 	GLOBAL ascent_traj_disp_centredata1 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ALT XXX").
 	set ascent_traj_disp_centredata1:style:margin:v to -4.
-	GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ENGAGED").
+	SET ascent_traj_disp_centredata1:STYLE:ALIGN TO "center".
+	GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("<color=#" + guitextyellowhex + ">DROOP ENGAGED</color>").
 	set ascent_traj_disp_centredata2:style:margin:v to -4.
+	SET ascent_traj_disp_centredata2:STYLE:ALIGN TO "center".
 	
 	enable_box_widgets(ascent_traj_disp_droop_box, false).
 	
@@ -354,8 +355,8 @@ function make_ascent_traj1_disp {
 	set ascent_trajupfgdata1:style:margin:v to -4.
 	GLOBAL ascent_trajupfgdata2 IS ascent_traj_disp_upfg_box2:ADDLABEL("VGO  xxxxxx").
 	set ascent_trajupfgdata2:style:margin:v to -4.
-	GLOBAL ascent_trajupfgdata3 IS ascent_traj_disp_upfg_box2:ADDLABEL("T_C  xxxxxx").
-	set ascent_trajupfgdata3:style:margin:v to -4.
+	//GLOBAL ascent_trajupfgdata3 IS ascent_traj_disp_upfg_box2:ADDLABEL("T_C  xxxxxx").
+	//set ascent_trajupfgdata3:style:margin:v to -4.
 	
 	enable_box_widgets(ascent_traj_disp_upfg_box2, false).
 	
@@ -680,7 +681,7 @@ function update_att_angles {
 function update_ascent_traj_disp {
 	parameter gui_data.
 	
-	if (ascent_traj_disp_counter = 1 AND gui_data["ve"] >= 1000) {
+	if (ascent_traj_disp_counter = 1 AND gui_data["ve"] >= 1200) {
 		make_ascent_traj2_disp().
 	}
 	
@@ -729,12 +730,15 @@ function update_ascent_traj_disp {
 		set xpredval to gui_data["pred_vi"].
 	}
 	
-	local shut_bug_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(xval),ascent_traj_disp_y_convert(gui_data["alt"]), 0), 5).
+	local yval is gui_data["alt"] / gui_data["alt_ref"].
+	local ypredval is gui_data["pred_alt"] / gui_data["alt_ref"].
+	
+	local shut_bug_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(xval),ascent_traj_disp_y_convert(yval), 0), 5).
 	
 	SET ascent_traj_disp_orbiter:STYLE:margin:v to shut_bug_pos[1].
 	SET ascent_traj_disp_orbiter:STYLE:margin:h to shut_bug_pos[0].
 	
-	local shut_pred_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(xpredval),ascent_traj_disp_y_convert(gui_data["pred_alt"]), 0), 5).
+	local shut_pred_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(xpredval),ascent_traj_disp_y_convert(ypredval), 0), 5).
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:v to shut_pred_pos[1] - 3.
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:h to shut_pred_pos[0].
 
@@ -820,31 +824,29 @@ function set_ascent_traj_disp_pos {
 function ascent_traj_disp_x_convert {
 	parameter val.
 	
-	local par is val*3.28084.
 	local out is 0.
 	
 	if (ascent_traj_disp_counter = 1) {
-		set out to (par/5000 * 0.8 + 0.1)*512.
+		set out to val*8e-4  + 0.13 .
 	} else if (ascent_traj_disp_counter = 2) {
-		set out to ((par - 5000)/21000 * 0.8 + 0.1)*512.
+		set out to val^2*1.3e-08 + val*5e-5 + 0.05  .
 	}
 	
-	return out.
+	return out * 380 .
 }
 
 function ascent_traj_disp_y_convert {
 	parameter val.
 	
-	local par is val*3280.84.
 	local out is 0.
 	
 	if (ascent_traj_disp_counter = 1) {
-		set out to 512.0 - (par / 170000.0 * 0.6 + 0.2) * 512.
+		set out to val * 0.729 + 0.13 .
 	} else if (ascent_traj_disp_counter = 2) {
-		set out to 512.0 - ((par - 140000.0) / 385000.0 * 0.6 + 0.2) * 512.
+		set out to val * 0.656168 - 0.05.
 	}
 
-	return (425 - out)*300/275 + 50.
+	return 50 + 300 * out .
 }	
 
 

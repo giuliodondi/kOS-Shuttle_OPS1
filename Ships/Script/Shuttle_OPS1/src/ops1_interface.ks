@@ -58,6 +58,13 @@ FUNCTION dataViz {
 	
 	local thrvec is vehiclestate["thr_vec"]/1000.
 	
+	local traj_disp_alt_ref is 0.
+	if (ascent_traj_disp_counter = 2) {
+		set traj_disp_alt_ref to 45.
+	} else if (ascent_traj_disp_counter = 2) {
+		set traj_disp_alt_ref to 115.
+	}
+	
 	//predict 30 seconds into the future, 2 steps
 	//keep roll and pitch fixed 
 	LOCAL pred_simstate IS current_simstate().
@@ -95,6 +102,7 @@ FUNCTION dataViz {
 				"vi", SHIP:VELOCITY:ORBIT:MAG,
 				"ve", SHIP:VELOCITY:SURFACE:MAG,
 				"alt", SHIP:ALTITUDE/1000,
+				"alt_ref", traj_disp_alt_ref,
 				"pred_vi", pred_vi,
 				"pred_ve", pred_ve,
 				"pred_alt", pred_alt,
@@ -103,6 +111,7 @@ FUNCTION dataViz {
 				"et_prop", 100*get_et_prop_fraction(),
 				"tgo", tgo,
 				"vgo", vgo,
+				"rtls_tc", 0,
 				"converged", converged
 	).
 	
@@ -112,7 +121,7 @@ FUNCTION dataViz {
 		gui_data:ADD("dwnrg_ve", current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE)).
 		gui_data:ADD("dwnrg_pred_ve", current_horiz_dwnrg_speed(pred_simstate["latlong"], pred_simstate["surfvel"])).
 		gui_data:ADD("rtls_cutv", target_orbit["rtls_cutv"]).
-		gui_data:ADD("rtls_tc", RTLSAbort["Tc"]).
+		set gui_data["rtls_tc"] to  RTLSAbort["Tc"].
 		
 		SET gui_data["converged"] TO (gui_data["converged"] OR ((NOT RTLSAbort["pitcharound"]["triggered"]) AND (RTLSAbort["flyback_conv"] = 1))).
 		
