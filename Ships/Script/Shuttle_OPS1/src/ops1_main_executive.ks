@@ -225,7 +225,7 @@ function ops1_first_stage {
 		
 		// q bucket and throttling logic
 		
-		if (abort_modes["triggered"]) {
+		if (vehicle["ssme_out_detected"]) {
 			set dap:thr_rpl_tgt to vehicle["maxThrottle"].
 		} else {
 			if (throt_flag) {

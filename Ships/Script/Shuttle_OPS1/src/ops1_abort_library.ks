@@ -3,6 +3,10 @@
 GLOBAL abort_modes IS LEXICON( 
 					"triggered",FALSE,
 					"trigger_t",time:seconds + 10000000000,
+					"rtls_active", false,
+					"tal_active", false,
+					"ato_active", false,
+					"cont_active", false,
 					"ssmes_out", list(),
 					"oms_dump",FALSE,
 					"rtls_site", "",
@@ -49,7 +53,7 @@ function abort_handler {
 	//and then adjusted to the current fuel mass
 	measure_update_engines().
 	
-	abort_region_determinator().
+	//abort_region_determinator().
 	
 	//abort_initialiser().
 
@@ -59,12 +63,14 @@ function abort_handler {
 function abort_region_determinator {
 
 	clearscreen.
+
+	local 1eo_available_modes is list().
+	local 2eo_available_modes is list().
+	local 3eo_available_modes is list().
 	
-	local three_eng_lex is build_engines_lex(3).
 	local two_eng_lex is build_engines_lex(2).
 	local one_eng_lex is build_engines_lex(1).
 	
-	local three_eng_perf is veh_perf_estimator(three_eng_lex).
 	local two_eng_perf is veh_perf_estimator(two_eng_lex).
 	local one_eng_perf is veh_perf_estimator(one_eng_lex).
 	
@@ -77,6 +83,10 @@ function abort_region_determinator {
 	
 	LOCAL meco_dv IS (meco_vel - orbitstate["velocity"]).
 	
+	local ato_tgt_orbit is get_ato_tgt_orbit().
+	
+	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
+	
 	local two_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
@@ -84,6 +94,20 @@ function abort_region_determinator {
 											two_eng_perf
 	
 	).
+	
+	local two_eng_ato_dv_excess is estimate_excess_deltav(
+											orbitstate["radius"],
+											orbitstate["velocity"],
+											ato_dv,
+											two_eng_perf
+	
+	).
+	
+	if (two_eng_meco_dv_excess > 0) {
+		1eo_available_modes:ADD("MECO").
+	} else if (two_eng_ato_dv_excess > 0) {
+		1eo_available_modes:ADD("ATO").
+	}
 	
 	local one_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
@@ -96,17 +120,7 @@ function abort_region_determinator {
 	print "meco 2e " + two_eng_meco_dv_excess at (0,1).
 	print "meco 1e " + one_eng_meco_dv_excess at (0,2).
 	
-	local ato_tgt_orbit is get_ato_tgt_orbit().
 	
-	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
-		
-	local two_eng_ato_dv_excess is estimate_excess_deltav(
-											orbitstate["radius"],
-											orbitstate["velocity"],
-											ato_dv,
-											two_eng_perf
-	
-	).
 	
 	local one_eng_ato_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
@@ -119,12 +133,19 @@ function abort_region_determinator {
 	print "ato 2e " + two_eng_ato_dv_excess at (0,4).
 	print "ato 1e " + one_eng_ato_dv_excess at (0,5).
 	
-	LOCAL tal_2e_dv is lexicon(). 
 	
+	if (RTLS_boundary()) {
+		1eo_available_modes:ADD("RTLS").
+	}
+	
+	
+	LOCAL tal_2e_dv is list(). 
+	LOCAL tal_1e_dv is list(). 
+	
+	local 2eng_best_tal is lexicon("site", "", "deltav", -10000000000).
+	local 1eng_best_tal is lexicon("site", "", "deltav", -10000000000).
 	
 	LOCAL current_normal IS currentNormal().
-	
-	local line is 7.
 	
 	for s in abort_modes["tal_candidates"] {
 		LOCAL site IS ldgsiteslex[s].
@@ -159,13 +180,51 @@ function abort_region_determinator {
 												orbitstate["velocity"],
 												dv2site,
 												two_eng_perf
-		
 		).
 		
-		print s + " " + two_eng_tal_dv_excess at (0,line).
-		set line to line + 1.
+		local 2eng_tal_dv is lexicon(
+									"site", s, 
+									"deltav", two_eng_tal_dv_excess
+		).
 		
-		tal_2e_dv:add(s, two_eng_tal_dv_excess).
+		if (two_eng_tal_dv_excess > 0) {
+			tal_2e_dv:add(2eng_tal_dv).
+		}
+		
+		if (two_eng_tal_dv_excess > 2eng_best_tal["deltav"]) {
+			set 2eng_best_tal to 2eng_tal_dv.
+		}
+		
+		
+		local one_eng_tal_dv_excess is estimate_excess_deltav(
+												orbitstate["radius"],
+												orbitstate["velocity"],
+												dv2site,
+												one_eng_perf
+		).
+		
+		local 1eng_tal_dv is lexicon(
+									"site", s, 
+									"deltav", one_eng_tal_dv_excess
+		).
+		
+		if (one_eng_tal_dv_excess > 0) {
+			tal_2e_dv:add(1eng_tal_dv).
+		}
+		
+		if (one_eng_tal_dv_excess > 1eng_best_tal["deltav"]) {
+			set 1eng_best_tal to 1eng_tal_dv.
+		}
+	}
+	
+	if (1eo_available_modes:size = 0) {
+		if (tal_2e_dv:size = 0) {
+			tal_2e_dv:add(2eng_best_tal).
+		}
+	}
+	
+	if (tal_2e_dv:size > 0) { 
+		1eo_available_modes:Add("TAL").
 	}
 	
 
@@ -243,6 +302,19 @@ FUNCTION get_RTLS_site {
 	RETURN closest_out[1].
 }
 
+
+FUNCTION RTLS_boundary_vel {
+	RETURN (2880 - 7.8 * ABS(target_orbit["inclination"])).
+}
+
+FUNCTION RTLS_boundary{
+	
+	LOCAL dwnrg_speed IS current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:ORBIT).
+	
+	LOCAL boundary_vel IS RTLS_boundary_vel().
+
+	RETURN (dwnrg_speed > RTLS_boundary_vel()).
+}
 
 
 
