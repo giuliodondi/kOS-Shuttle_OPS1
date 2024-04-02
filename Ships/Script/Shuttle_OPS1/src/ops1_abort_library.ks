@@ -11,6 +11,8 @@ GLOBAL abort_modes IS LEXICON(
 					"oms_dump",FALSE,
 					"rtls_site", "",
 					"tal_candidates", "",
+					"1eo_tal_sites", "",
+					"2eo_tal_sites", "",
 					"ecal_candidates", "",
 					"intact_modes", lexicon(
 												"1eo", lexicon(
@@ -25,7 +27,7 @@ GLOBAL abort_modes IS LEXICON(
 															"ato", false,
 															"meco", false
 													)
-									)
+									),
 					"2eo_cont_mode", "",
 					"3eo_cont_mode", ""
 							
@@ -76,6 +78,12 @@ function abort_handler {
 	
 	contingency_abort_region_determinator().
 	
+	IF EXISTS("0:/abort_modes_dump.txt") {
+		DELETEPATH("0:/abort_modes_dump.txt").
+	}
+	
+	log abort_modes:dump() to "0:/abort_modes_dump.txt".
+	
 	//abort_initialiser().
 
 }
@@ -99,16 +107,121 @@ function intact_abort_region_determinator {
 		}
 	}
 	
-
-	local 1eo_available_modes is list().
-	local 2eo_available_modes is list().
-	local 3eo_available_modes is list().
-	
 	local two_eng_lex is build_engines_lex(2).
 	local one_eng_lex is build_engines_lex(1).
 	
 	local two_eng_perf is veh_perf_estimator(two_eng_lex).
 	local one_eng_perf is veh_perf_estimator(one_eng_lex).
+	
+	if (abort_modes["intact_modes"]["2eo"]["ato"]) or (abort_modes["intact_modes"]["2eo"]["meco"]) {
+		// after single engine p2ato the only cases are at least an ato or a 3 engine out abort, no need for tal beyond this
+		set abort_modes["intact_modes"]["1eo"]["tal"] to false.
+		set abort_modes["intact_modes"]["2eo"]["tal"] to false.
+	} else {
+	
+		LOCAL tal_2e_dv is list(). 
+		LOCAL tal_1e_dv is list(). 
+		
+		local two_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
+		local one_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
+		
+		LOCAL current_normal IS currentNormal().
+		
+		for s in abort_modes["tal_candidates"] {
+			LOCAL site IS ldgsiteslex[s].
+			
+			local rwypos is 0.
+			
+			IF (site:ISTYPE("LEXICON")) {
+				set rwypos to site["position"].
+			} ELSE IF (site:ISTYPE("LIST")) {
+				set rwypos to site[0]["position"].
+			}
+			
+			LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
+			
+			LOCAL site_plane IS VXCL(current_normal,sitepos).
+			
+			//shift ahead by half an hour
+			LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+			
+			//correct shifted site within cossrange
+			LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
+			
+			LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
+			
+			//estimate deltav to curve velocity to point to the target site
+			LOCAL tgtMECOvel IS 7250.
+			LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
+			LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]).
+			
+			local two_eng_tal_dv_excess is estimate_excess_deltav(
+													orbitstate["radius"],
+													orbitstate["velocity"],
+													dv2site,
+													two_eng_perf
+			).
+			
+			local two_eng_tal_dv is lexicon(
+										"site", s, 
+										"deltav", two_eng_tal_dv_excess
+			).
+			
+			if (two_eng_tal_dv_excess > 0) {
+				tal_2e_dv:add(two_eng_tal_dv).
+			}
+			
+			if (two_eng_tal_dv_excess > two_eng_best_tal["deltav"]) {
+				set two_eng_best_tal to two_eng_tal_dv.
+			}
+			
+			
+			local one_eng_tal_dv_excess is estimate_excess_deltav(
+													orbitstate["radius"],
+													orbitstate["velocity"],
+													dv2site,
+													one_eng_perf
+			).
+			
+			local one_eng_tal_dv is lexicon(
+										"site", s, 
+										"deltav", one_eng_tal_dv_excess
+			).
+			
+			if (one_eng_tal_dv_excess > 0) {
+				tal_1e_dv:add(one_eng_tal_dv).
+			}
+			
+			if (one_eng_tal_dv_excess > one_eng_best_tal["deltav"]) {
+				set one_eng_best_tal to one_eng_tal_dv.
+			}
+		}
+		
+		if (not abort_modes["intact_modes"]["1eo"]["tal"]) {
+			if (NOT abort_modes["intact_modes"]["1eo"]["rtls"]) {
+				// if we're not tal by negative return, force tal mode with the least bad site 
+				if (tal_2e_dv:length = 0) {
+					tal_2e_dv:add(two_eng_best_tal).
+				}
+				
+			}
+			
+			if (tal_2e_dv:length > 0) {
+				addGUIMessage("TWO ENGINE TAL").
+				set abort_modes["intact_modes"]["1eo"]["tal"] to true.
+			}
+		}
+		
+		if (not abort_modes["intact_modes"]["2eo"]["tal"]) {
+			if (tal_1e_dv:length > 0) { 
+				addGUIMessage("SINGLE ENGINE TAL").
+				set abort_modes["intact_modes"]["2eo"]["tal"] to true.
+			}
+		}
+		
+		set abort_modes["1eo_tal_sites"] to tal_2e_dv.
+		set abort_modes["2eo_tal_sites"] to tal_1e_dv.
+	}
 	
 	local meco_vel is cutoff_velocity_vector(
 										orbitstate["radius"],
@@ -179,114 +292,6 @@ function intact_abort_region_determinator {
 			addGUIMessage("SINGLE ENGINE PRESS TO ATO").
 			set abort_modes["intact_modes"]["2eo"]["ato"] to true.
 		}
-	}
-	
-	if (abort_modes["intact_modes"]["2eo"]["ato"]) {
-		// after single engine p2ato the only cases are at least an ato or a 3 engine out abort, no need for tal beyond this
-		set abort_modes["intact_modes"]["1eo"]["tal"] to false.
-		set abort_modes["intact_modes"]["2eo"]["tal"] to false.
-	} else {
-	
-		LOCAL tal_2e_dv is list(). 
-		LOCAL tal_1e_dv is list(). 
-		
-		local 2eng_best_tal is lexicon("site", "", "deltav", -10000000000).
-		local 1eng_best_tal is lexicon("site", "", "deltav", -10000000000).
-		
-		LOCAL current_normal IS currentNormal().
-		
-		for s in abort_modes["tal_candidates"] {
-			LOCAL site IS ldgsiteslex[s].
-			
-			local rwypos is 0.
-			
-			IF (site:ISTYPE("LEXICON")) {
-				set rwypos to site["position"].
-			} ELSE IF (site:ISTYPE("LIST")) {
-				set rwypos to site[0]["position"].
-			}
-			
-			LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
-			
-			LOCAL site_plane IS VXCL(current_normal,sitepos).
-			
-			//shift ahead by half an hour
-			LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
-			
-			//correct shifted site within cossrange
-			LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
-			
-			LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
-			
-			//estimate deltav to curve velocity to point to the target site
-			LOCAL tgtMECOvel IS 7250.
-			LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
-			LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]).
-			
-			local two_eng_tal_dv_excess is estimate_excess_deltav(
-													orbitstate["radius"],
-													orbitstate["velocity"],
-													dv2site,
-													two_eng_perf
-			).
-			
-			local 2eng_tal_dv is lexicon(
-										"site", s, 
-										"deltav", two_eng_tal_dv_excess
-			).
-			
-			if (two_eng_tal_dv_excess > 0) {
-				tal_2e_dv:add(2eng_tal_dv).
-			}
-			
-			if (two_eng_tal_dv_excess > 2eng_best_tal["deltav"]) {
-				set 2eng_best_tal to 2eng_tal_dv.
-			}
-			
-			
-			local one_eng_tal_dv_excess is estimate_excess_deltav(
-													orbitstate["radius"],
-													orbitstate["velocity"],
-													dv2site,
-													one_eng_perf
-			).
-			
-			local 1eng_tal_dv is lexicon(
-										"site", s, 
-										"deltav", one_eng_tal_dv_excess
-			).
-			
-			if (one_eng_tal_dv_excess > 0) {
-				tal_1e_dv:add(1eng_tal_dv).
-			}
-			
-			if (one_eng_tal_dv_excess > 1eng_best_tal["deltav"]) {
-				set 1eng_best_tal to 1eng_tal_dv.
-			}
-		}
-		
-		if (not abort_modes["intact_modes"]["1eo"]["tal"]) {
-			if (NOT abort_modes["intact_modes"]["1eo"]["rtls"]) {
-				// if we're not tal by negative return, force tal mode with the least bad site 
-				if (tal_2e_dv:size = 0) {
-					tal_2e_dv:add(2eng_best_tal).
-				}
-				
-			}
-			
-			if (tal_2e_dv:size > 0) {
-				addGUIMessage("TWO ENGINE TAL").
-				set abort_modes["intact_modes"]["1eo"]["tal"] to true.
-			}
-		}
-		
-		if (not abort_modes["intact_modes"]["2eo"]["tal"]) {
-			if (tal_1e_dv:size > 0) { 
-				addGUIMessage("SINGLE ENGINE TAL").
-				set abort_modes["intact_modes"]["2eo"]["tal"] to true.
-			}
-		}
-	
 	}
 	
 }
@@ -517,5 +522,5 @@ function contingency_2eo_blue_boundary {
 	
 	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
 
-	return (SHIP:VERTICALSPEED >= boundary_hdot).
+	return (SHIP:VERTICALSPEED < boundary_hdot).
 }

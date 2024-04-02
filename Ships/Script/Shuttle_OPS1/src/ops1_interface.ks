@@ -115,6 +115,8 @@ FUNCTION dataViz {
 				"converged", converged
 	).
 	
+	update_abort_modes_gui().
+	
 	//do the rtls gui update 
 	IF (DEFINED RTLSAbort) {
 	

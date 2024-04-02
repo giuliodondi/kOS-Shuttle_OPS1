@@ -678,6 +678,25 @@ function update_att_angles {
 	
 }
 
+function update_abort_modes_gui {
+
+	abort_mode_select:clear().
+	
+	if (abort_modes["intact_modes"]["1eo"]["rtls"]) {
+		abort_mode_select:addoption("RTLS").
+	}
+	
+	if (abort_modes["intact_modes"]["1eo"]["ato"]) {
+		abort_mode_select:addoption("ATO").
+	}
+	
+	if (abort_modes["intact_modes"]["1eo"]["tal"]) {
+		abort_mode_select:addoption("TAL").
+	}
+
+
+}
+
 function update_ascent_traj_disp {
 	parameter gui_data.
 	
