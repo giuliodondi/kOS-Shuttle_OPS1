@@ -72,9 +72,9 @@ function abort_handler {
 	//and then adjusted to the current fuel mass
 	measure_update_engines().
 	
-	//intact_abort_region_determinator().
+	intact_abort_region_determinator().
 	
-	//contingency_abort_region_determinator().
+	contingency_abort_region_determinator().
 	
 	//abort_initialiser().
 
@@ -180,13 +180,6 @@ function intact_abort_region_determinator {
 			set abort_modes["intact_modes"]["2eo"]["ato"] to true.
 		}
 	}
-	
-	
-	print "meco 2e " + two_eng_meco_dv_excess at (0,1).
-	print "meco 1e " + one_eng_meco_dv_excess at (0,2).
-	print "ato 2e " + two_eng_ato_dv_excess at (0,4).
-	print "ato 1e " + one_eng_ato_dv_excess at (0,5).
-	
 	
 	if (abort_modes["intact_modes"]["2eo"]["ato"]) {
 		// after single engine p2ato the only cases are at least an ato or a 3 engine out abort, no need for tal beyond this
@@ -299,7 +292,27 @@ function intact_abort_region_determinator {
 }
 
 function contingency_abort_region_determinator {
-
+	
+	if (abort_modes["rtls_active"]) {
+		//rtls contingency modes 
+	} else {
+	
+		//droop boundary missing
+		if (contingency_2eo_blue_boundary()) {
+			set abort_modes["2eo_cont_mode"] to "green".
+		} else {
+			set abort_modes["2eo_cont_mode"] to "blue".
+		}
+		
+		if (orbitstate["velocity"]:MAG >= 6700) {
+			set abort_modes["3eo_cont_mode"] to "blank". 
+		} else if (vehiclestate["major_mode"] < 103) {
+			set abort_modes["3eo_cont_mode"] to "blue". 
+		} else {
+			set abort_modes["3eo_cont_mode"] to "green". 
+		}
+	
+	}
 
 }
 
@@ -495,3 +508,14 @@ function get_ato_tgt_orbit {
 
 }
 
+
+
+
+//		CONTINGENCY functions
+
+function contingency_2eo_blue_boundary {
+	
+	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
+
+	return (SHIP:VERTICALSPEED >= boundary_hdot).
+}
