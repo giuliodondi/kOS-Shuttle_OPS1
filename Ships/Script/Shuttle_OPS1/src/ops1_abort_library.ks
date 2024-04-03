@@ -29,8 +29,8 @@ GLOBAL abort_modes IS LEXICON(
 															"meco", false
 													)
 									),
-					"2eo_cont_mode", "",
-					"3eo_cont_mode", ""
+					"2eo_cont_mode", "XXXXX",
+					"3eo_cont_mode", "XXXXX"
 							
 ).
 
@@ -114,14 +114,14 @@ function intact_abort_region_determinator {
 	local two_eng_perf is veh_perf_estimator(two_eng_lex).
 	local one_eng_perf is veh_perf_estimator(one_eng_lex).
 	
-	if (abort_modes["intact_modes"]["2eo"]["ato"]) {
+	LOCAL tal_2e_dv is list(). 
+	LOCAL tal_1e_dv is list(). 
+	
+	if (abort_modes["intact_modes"]["2eo"]["ato"]) or (abort_modes["intact_modes"]["2eo"]["meco"]) {
 		// after single engine p2ato the only cases are at least an ato or a 3 engine out abort, no need for tal beyond this
 		set abort_modes["intact_modes"]["1eo"]["tal"] to false.
 		set abort_modes["intact_modes"]["2eo"]["tal"] to false.
 	} else {
-	
-		LOCAL tal_2e_dv is list(). 
-		LOCAL tal_1e_dv is list(). 
 		
 		local two_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
 		local one_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
@@ -197,11 +197,10 @@ function intact_abort_region_determinator {
 				set abort_modes["intact_modes"]["2eo"]["tal"] to true.
 			}
 		}
-		
-		set abort_modes["1eo_tal_sites"] to tal_2e_dv.
-		set abort_modes["2eo_tal_sites"] to tal_1e_dv.
-	
 	}
+	
+	set abort_modes["1eo_tal_sites"] to tal_2e_dv.
+	set abort_modes["2eo_tal_sites"] to tal_1e_dv.
 	
 	local meco_vel is cutoff_velocity_vector(
 										orbitstate["radius"],
@@ -288,10 +287,10 @@ function contingency_abort_region_determinator {
 			(abort_modes["intact_modes"]["2eo"]["ato"]) or 
 			(abort_modes["intact_modes"]["2eo"]["meco"]) {
 			set abort_modes["2eo_cont_mode"] to "BLANK".
-		} else if (contingency_2eo_blue_boundary()) {
-			set abort_modes["2eo_cont_mode"] to "GREEN".
-		} else {
+		} else if ((vehiclestate["major_mode"] < 103) or (contingency_2eo_blue_boundary())) {
 			set abort_modes["2eo_cont_mode"] to "BLUE".
+		} else {
+			set abort_modes["2eo_cont_mode"] to "GREEN".
 		}
 		
 		if (orbitstate["velocity"]:MAG >= 6700) {
@@ -539,5 +538,5 @@ function contingency_2eo_blue_boundary {
 	
 	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
 
-	return (SHIP:VERTICALSPEED < boundary_hdot).
+	return (SHIP:VERTICALSPEED >= boundary_hdot).
 }

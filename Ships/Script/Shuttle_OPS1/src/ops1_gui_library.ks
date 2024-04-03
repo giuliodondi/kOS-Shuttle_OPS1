@@ -699,6 +699,19 @@ function update_abort_modes_gui {
 	for sdv in abort_modes["1eo_tal_sites"] {
 		tal_site_select:addoption(sdv["site"]).	
 	}
+	
+	if (abort_modes["2eo_cont_mode"] = "BLANK") {
+		set ascent_traj_cont_abort2:text to "".
+	} else {
+		set ascent_traj_cont_abort2:text to " 2EO " + abort_modes["2eo_cont_mode"].
+	}
+	
+	if (abort_modes["3eo_cont_mode"] = "BLANK") {
+		set ascent_traj_cont_abort3:text to "".
+	} else {
+		set ascent_traj_cont_abort3:text to " 3EO " + abort_modes["3eo_cont_mode"].
+	}
+	
 
 }
 
