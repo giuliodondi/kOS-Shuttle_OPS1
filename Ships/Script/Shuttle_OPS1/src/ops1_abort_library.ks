@@ -3,6 +3,7 @@
 GLOBAL abort_modes IS LEXICON( 
 					"triggered",FALSE,
 					"trigger_t",time:seconds + 10000000000,
+					"manual_abort", false,
 					"rtls_active", false,
 					"tal_active", false,
 					"ato_active", false,
@@ -196,31 +197,9 @@ function intact_abort_region_determinator {
 		LOCAL current_normal IS currentNormal().
 		
 		for s in abort_modes["tal_candidates"] {
-			LOCAL site IS ldgsiteslex[s].
+		
+			local tal_meco_v is tal_site_meco_velocity(s, current_normal).
 			
-			local rwypos is 0.
-			
-			IF (site:ISTYPE("LEXICON")) {
-				set rwypos to site["position"].
-			} ELSE IF (site:ISTYPE("LIST")) {
-				set rwypos to site[0]["position"].
-			}
-			
-			LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
-			
-			LOCAL site_plane IS VXCL(current_normal,sitepos).
-			
-			//shift ahead by half an hour
-			LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
-			
-			//correct shifted site within cossrange
-			LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
-			
-			LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
-			
-			//estimate deltav to curve velocity to point to the target site
-			LOCAL tgtMECOvel IS 7250.
-			LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
 			LOCAL dv2site IS (cutoffVel - orbitstate["velocity"]).
 			
 			local two_eng_tal_dv_excess is estimate_excess_deltav(
@@ -298,18 +277,23 @@ function contingency_abort_region_determinator {
 	} else {
 	
 		//droop boundary missing
-		if (contingency_2eo_blue_boundary()) {
-			set abort_modes["2eo_cont_mode"] to "green".
+		if (abort_modes["intact_modes"]["2eo"]["droop"]) or 
+			(abort_modes["intact_modes"]["2eo"]["tal"]) or 
+			(abort_modes["intact_modes"]["2eo"]["ato"]) or 
+			(abort_modes["intact_modes"]["2eo"]["meco"]) {
+			set abort_modes["2eo_cont_mode"] to "BLANK".
+		} else if (contingency_2eo_blue_boundary()) {
+			set abort_modes["2eo_cont_mode"] to "GREEN".
 		} else {
-			set abort_modes["2eo_cont_mode"] to "blue".
+			set abort_modes["2eo_cont_mode"] to "BLUE".
 		}
 		
 		if (orbitstate["velocity"]:MAG >= 6700) {
-			set abort_modes["3eo_cont_mode"] to "blank". 
+			set abort_modes["3eo_cont_mode"] to "BLANK". 
 		} else if (vehiclestate["major_mode"] < 103) {
-			set abort_modes["3eo_cont_mode"] to "blue". 
+			set abort_modes["3eo_cont_mode"] to "BLUE". 
 		} else {
-			set abort_modes["3eo_cont_mode"] to "green". 
+			set abort_modes["3eo_cont_mode"] to "GREEN". 
 		}
 	
 	}
@@ -451,6 +435,38 @@ FUNCTION TAL_site_xrange_shift {
 	RETURN tgtvec.
 }
 
+function tal_site_meco_velocity {
+	PARAMETER sname.
+	PARAMETER current_normal.
+
+	LOCAL site IS ldgsiteslex[sname].
+			
+	local rwypos is 0.
+	
+	IF (site:ISTYPE("LEXICON")) {
+		set rwypos to site["position"].
+	} ELSE IF (site:ISTYPE("LIST")) {
+		set rwypos to site[0]["position"].
+	}
+	
+	LOCAL sitepos IS vecYZ(pos2vec(rwypos)).
+	
+	LOCAL site_plane IS VXCL(current_normal,sitepos).
+	
+	//shift ahead by half an hour
+	LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+	
+	//correct shifted site within cossrange
+	LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
+	
+	LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
+	
+	//estimate deltav to curve velocity to point to the target site
+	LOCAL tgtMECOvel IS 7250.
+	LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
+	
+	return cutoffVel.
+}
 
 
 
