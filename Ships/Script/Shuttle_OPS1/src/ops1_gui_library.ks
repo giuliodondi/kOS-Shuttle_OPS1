@@ -694,6 +694,11 @@ function update_abort_modes_gui {
 		abort_mode_select:addoption("TAL").
 	}
 
+	tal_site_select:clear().
+	
+	for sdv in abort_modes["1eo_tal_sites"] {
+		tal_site_select:addoption(sdv["site"]).	
+	}
 
 }
 
