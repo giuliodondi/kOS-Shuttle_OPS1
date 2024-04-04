@@ -103,6 +103,8 @@ FUNCTION make_main_ascent_gui {
 	set abort_b:style:margin:v to -3.
 	set abort_b:STYLE:BG to "Shuttle_OPS1/src/gui_images/abort_btn.png".
 	
+	SET abort_b:ONCLICK TO manual_abort_trigger@.
+	
 	ascent_toggles_box:addspacing(15).
 	
 	GLOBAL tal_site_box IS ascent_toggles_box:ADDHLAYOUT().
@@ -189,6 +191,8 @@ FUNCTION make_main_ascent_gui {
 	set msgscroll:valways to true.
 	set msgscroll:style:margin:h to 0.
 	set msgscroll:style:margin:v to 0.
+	
+	freeze_abort_gui(true).
 	
 	main_ascent_gui:SHOW().
 	
@@ -686,12 +690,12 @@ function update_abort_modes_gui {
 		abort_mode_select:addoption("RTLS").
 	}
 	
-	if (abort_modes["intact_modes"]["1eo"]["ato"]) {
-		abort_mode_select:addoption("ATO").
-	}
-	
 	if (abort_modes["intact_modes"]["1eo"]["tal"]) {
 		abort_mode_select:addoption("TAL").
+	}
+	
+	if (abort_modes["intact_modes"]["1eo"]["ato"]) {
+		abort_mode_select:addoption("ATO").
 	}
 
 	tal_site_select:clear().
@@ -712,8 +716,35 @@ function update_abort_modes_gui {
 		set ascent_traj_cont_abort3:text to " 3EO " + abort_modes["3eo_cont_mode"].
 	}
 	
-
 }
+
+function freeze_abort_gui {
+	parameter frozen is true.
+	SET abort_mode_select:ENABLED to frozen.
+	SET tal_site_select:ENABLED to frozen.
+	SET abort_b:ENABLED to frozen.
+}
+
+FUNCTION manual_abort_trigger {
+
+	set abort_modes["manual_abort"] to true.
+	set abort_modes["abort_initialised"] to false.
+	
+	freeze_abort_gui(true).
+}
+
+FUNCTION is_abort_rtls_selected {
+	return (abort_mode_select:VALUE = "RTLS").
+}
+
+FUNCTION is_abort_tal_selected {
+	return (abort_mode_select:VALUE = "TAL").
+}
+
+FUNCTION is_abort_ato_selected {
+	return (abort_mode_select:VALUE = "ATO").
+}
+
 
 function update_ascent_traj_disp {
 	parameter gui_data.

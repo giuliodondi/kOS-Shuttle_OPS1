@@ -266,6 +266,8 @@ function ops1_first_stage {
 
 
 function ops1_second_stage_nominal {
+
+	freeze_abort_gui(false).
 	
 	dap:set_steering_low().
 	

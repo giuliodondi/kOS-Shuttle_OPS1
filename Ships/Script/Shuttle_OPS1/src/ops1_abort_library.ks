@@ -1,13 +1,14 @@
 //main abort lexicon
 //abort boundaries are defined with velocity in their own functions
 GLOBAL abort_modes IS LEXICON( 
-					"triggered",FALSE,
 					"trigger_t",time:seconds + 10000000000,
+					"abort_initialised", false,
 					"manual_abort", false,
 					"rtls_active", false,
 					"tal_active", false,
 					"ato_active", false,
-					"cont_active", false,
+					"cont_2eo_active", false,
+					"cont_3eo_active", false,
 					"ssmes_out", list(),
 					"oms_dump",FALSE,
 					"rtls_site", "",
@@ -35,7 +36,7 @@ GLOBAL abort_modes IS LEXICON(
 ).
 
 function abort_triggered {
-	return abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"] or abort_modes["cont_active"].
+	return abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"] or abort_modes["cont_2eo_active"] or abort_modes["cont_3eo_active"].
 }
 
 
@@ -93,7 +94,7 @@ function abort_handler {
 function intact_abort_region_determinator {
 
 	//intact modes are frozen if a contingency is active 
-	if (abort_modes["cont_active"]) {
+	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) {
 		return.
 	}
 
@@ -305,13 +306,8 @@ function contingency_abort_region_determinator {
 
 }
 
-//determine if it's time to initialise an abort and them ode to activate
+//determine if it's time to initialise an abort and which mode to activate
 function abort_initialiser {
-
-	//may be wrong, I believe there is no case where a contingency abort is downmoded to something else
-	if (abort_modes["cont_active"]) {
-		return.
-	}
 
 	local engines_out is get_engines_out().
 	
@@ -320,42 +316,152 @@ function abort_initialiser {
 	local two_engout is (engines_out = 2).
 	local three_engout is (engines_out = 3).
 	
-	//deal with first stage 
-	if (vehiclestate["major_mode"] < 103) {
-	
-		if (three_engout) {
-			
-		}
-		
+	//if first stage and not 3eo exit, we initialise the abort after srb sep
+	if (vehiclestate["major_mode"] < 103) and (not three_engout) {
 		return.
 	}
+
 	
 	if (vehicle["ssme_out_detected"]) {
-		//setup the abort trigger in the future
+		//setup the abort trigger
+		
 		set vehicle["ssme_out_detected"] to false.
+		//prepare for intitialisation 
+		set abort_modes["abort_initialised"] to false.
 		
-		//the time in the future is 1 second by default except if there are multiple modes available
-		//which should only happen for 1eng out , for 0eng out the abort is triggered manually outside
-		//otoh we can only enter this block if we have at least 1 eng out
-		local abort_trigger_t is 1.
+		//the abort is triggered right now except in a 1eo case, we give 10 seconds for manual abort trigger
+		//but we shouldn't wait if an abort was already triggered
+		local abort_trigger_t is -0.2.
 		
-		if (abort_modes["available_modes"][engines_out]:length > 1) {
+		if (one_engout) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
 			set abort_trigger_t to 10.
 		}
 		
 		set abort_modes["trigger_t"]	TO surfacestate["MET"] + abort_trigger_t.
 		
+	} else if (abort_modes["manual_abort"]) {
+		set abort_modes["trigger_t"]	TO surfacestate["MET"] -0.2.
 	}
 	
-	//exit if we're not past the abort trigger 
-	if (surfacestate["MET"] < abort_modes["trigger_t"]) {
+	//exit if we're not past the abort trigger or if the abort is already initialised
+	if (surfacestate["MET"] <= abort_modes["trigger_t"]) or (abort_modes["abort_initialised"]) {
 		return.
-	} else {
-		set abort_modes["triggered"] to true.
 	}
 	
+	//decide which mode to trigger 
 	//oms dump logic decided on a mode-by-mode basis
 	
+	//intact aborts
+	if (zero_engout) or (one_engout) {
+		
+		local 1eo_ato_abort is false.
+		local 1eo_tal_abort is false.
+		local 1eo_rtls_abort is false.
+		
+		//premature optimisation is the root of all evil
+		
+		//if there's an active mode we triggered a manual abort and hten we had an engine failure, re-initialise the same mode 
+		if (abort_modes["rtls_active"]) {
+			set 1eo_rtls_abort to true.
+			set 1eo_tal_abort to false.
+			set 1eo_ato_abort to false.
+		} else if (abort_modes["tal_active"]) {
+			set 1eo_rtls_abort to false.
+			set 1eo_tal_abort to true.
+			set 1eo_ato_abort to false.
+		} else if (abort_modes["ato_active"]) {
+			set 1eo_rtls_abort to false.
+			set 1eo_tal_abort to false.
+			set 1eo_ato_abort to true.
+		} else if (abort_modes["manual_abort"]) {
+			//in case of a manual abort, read and trigger the selected mode 
+			if (is_abort_rtls_selected()) {
+				set 1eo_rtls_abort to true.
+				set 1eo_tal_abort to false.
+				set 1eo_ato_abort to false.
+			} else if (is_abort_tal_selected()) {
+				set 1eo_rtls_abort to false.
+				set 1eo_tal_abort to true.
+				set 1eo_ato_abort to false.
+			} else if (is_abort_ato_selected()) {
+				set 1eo_rtls_abort to false.
+				set 1eo_tal_abort to false.
+				set 1eo_ato_abort to true.
+			}
+		} else {
+			//in case of an auto abort we choose MECO-ATO-TAL-RTLS in this order of preference
+			
+			if (abort_modes["intact_modes"]["1eo"]["meco"]) {
+				set 1eo_rtls_abort to false.
+				set 1eo_tal_abort to false.
+				set 1eo_ato_abort to false.
+			} else if (abort_modes["intact_modes"]["1eo"]["ato"]) {
+				set 1eo_rtls_abort to false.
+				set 1eo_tal_abort to false.
+				set 1eo_ato_abort to true.
+			} else if (abort_modes["intact_modes"]["1eo"]["tal"]) {
+				set 1eo_rtls_abort to false.
+				set 1eo_tal_abort to true.
+				set 1eo_ato_abort to false.
+			} else if (abort_modes["intact_modes"]["1eo"]["rtls"]) {
+				set 1eo_rtls_abort to true.
+				set 1eo_tal_abort to false.
+				set 1eo_ato_abort to false.
+			}
+			
+		}
+		
+		set abort_modes["rtls_active"] to 1eo_rtls_abort.
+		set abort_modes["tal_active"] to 1eo_tal_abort.
+		set abort_modes["ato_active"] to 1eo_ato_abort.
+		
+		//now initialise the mode 
+		if (abort_modes["rtls_active"]) {
+			//setup rtls	
+		} else if (abort_modes["tal_active"]) {
+			//setup tal 
+		} else if (abort_modes["ato_active"]) {
+			//setup ato 
+		}
+	} else if (two_engout) {
+		//2eo is a contingency unless one of the intact modes is available
+		
+		local 2eo_ato_abort is false.
+		local 2eo_tal_abort is false.
+		local 2eo_cont_abort is false.
+		
+		//droop still missing
+		if (abort_modes["intact_modes"]["2eo"]["ato"]) {
+			set 2eo_cont_abort to false.
+			set 2eo_tal_abort to false.
+			set 2eo_ato_abort to true.
+		} else if (abort_modes["intact_modes"]["2eo"]["tal"]) {
+			set 2eo_cont_abort to false.
+			set 2eo_tal_abort to true.
+			set 2eo_ato_abort to false.
+		} else {
+			set 2eo_cont_abort to true.
+			set 2eo_tal_abort to false.
+			set 2eo_ato_abort to false.
+		}
+		
+		set abort_modes["cont_2eo_active"] to 2eo_cont_abort. 
+		set abort_modes["tal_active"] to 2eo_tal_abort. 
+		set abort_modes["ato_active"] to 2eo_ato_abort. 
+		
+		if (abort_modes["tal_active"]) {
+			//setup tal 
+		} else if (abort_modes["ato_active"]) {
+			//setup ato 
+		}
+		
+		
+	} else if (three_engout) {
+		//3eo is always a contingency even in the blank region 
+		set abort_modes["cont_3eo_active"] to true. 
+	}
+
+	set abort_modes["abort_initialised"] to true.
 
 }
 
