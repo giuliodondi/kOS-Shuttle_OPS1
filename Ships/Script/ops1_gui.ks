@@ -33,8 +33,15 @@ ascent_traj_add_engout(1000).
 ascent_traj_add_engout(2000).
 ascent_traj_add_engout(3000).
 
+abort_mode_select:addoption("RTLS").
+abort_mode_select:addoption("ATO").
+
+freeze_abort_gui(false).
+
 until false {
 	if (quit_program) {break.}
+	
+	CLEARSCREEN.
 	
 	
 	if (ship:control:pilotpitch > 0) {
@@ -82,6 +89,8 @@ until false {
 	
 	
 	update_ascent_traj_disp(gui_data).
+	
+	print abort_mode_select:value.
 	
 	wait (0.1).
 }

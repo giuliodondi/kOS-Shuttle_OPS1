@@ -86,7 +86,7 @@ function abort_handler {
 	
 	log abort_modes:dump() to "0:/abort_modes_dump.txt".
 	
-	//abort_initialiser().
+	abort_initialiser().
 
 }
 

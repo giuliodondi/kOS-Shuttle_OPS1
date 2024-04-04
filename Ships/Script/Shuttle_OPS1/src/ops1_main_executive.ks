@@ -94,6 +94,14 @@ function ops1_main_exec {
 	
 	if (quit_program) {RETURN.}
 	
+	if (abort_modes["rtls_active"]) {
+		ops1_second_stage_rtls().
+	}
+	
+	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) {
+		ops1_second_stage_contingency().
+	}
+	
 	
 	//handle sequence for rtls and contingency 
 	
@@ -292,6 +300,10 @@ function ops1_second_stage_nominal {
 		abort_handler().
 		getState().
 		
+		if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) {
+			return.
+		}
+		
 		if (vehicle["low_level"]) {
 			addGUIMessage("LOW LEVEL").
 			BREAK.
@@ -339,6 +351,34 @@ function ops1_second_stage_nominal {
 	dap:set_rcs(TRUE).
 	
 	SET vehiclestate["major_mode"] TO 104.
+}
+
+
+function ops1_second_stage_rtls {
+	
+	addGUIMessage("RTLS not yet implemented").
+
+	until false {
+		if (quit_program) {
+			RETURN.
+		}
+		
+		if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) {
+			return.
+		}
+	}
+}
+
+
+function ops1_second_stage_contingency {
+
+	addGUIMessage("Contingency not yet implemented").
+
+	until false {
+		if (quit_program) {
+			RETURN.
+		}
+	}
 }
 
 
