@@ -523,14 +523,13 @@ FUNCTION update_traj_disp_title {
 	
 	//based on abort modes
 	LOCAL str is "ASCENT".
-	IF (abort_modes["triggered"]) {
-		IF (abort_modes["ATO"]["triggered"] = TRUE) {
-			SET str TO "   ATO".
-		} ELSE IF (abort_modes["TAL"]["triggered"] = TRUE) {
-			SET str TO "   TAL".
-		} ELSE IF (abort_modes["RTLS"]["triggered"] = TRUE) {
-			SET str TO "  RTLS".
-		}
+
+	IF (abort_modes["ato_active"]) {
+		SET str TO "   ATO".
+	} ELSE IF (abort_modes["tal_active"]) {
+		SET str TO "   TAL".
+	} ELSE IF (abort_modes["rtls_active"]) {
+		SET str TO "  RTLS".
 	}
 	
 	local text_ht is ascent_traj_disp_titlebox:style:height*0.75.
@@ -704,25 +703,36 @@ function update_abort_modes_gui {
 		tal_site_select:addoption(sdv["site"]).	
 	}
 	
+	local two_eo_cont_text_color is guitextgreenhex.
+	if (abort_modes["cont_2eo_active"]) {
+		set two_eo_cont_text_color to guitextyellowhex.
+	}
+	
 	if (abort_modes["2eo_cont_mode"] = "BLANK") {
 		set ascent_traj_cont_abort2:text to "".
 	} else {
-		set ascent_traj_cont_abort2:text to " 2EO " + abort_modes["2eo_cont_mode"].
+		set ascent_traj_cont_abort2:text to "<color=#" + two_eo_cont_text_color + "> 2EO " + abort_modes["2eo_cont_mode"] + "</color>". 
+	}
+	
+	local three_eo_cont_text_color is guitextgreenhex.
+	if (abort_modes["cont_3eo_active"]) {
+		set three_eo_cont_text_color to guitextyellowhex.
 	}
 	
 	if (abort_modes["3eo_cont_mode"] = "BLANK") {
 		set ascent_traj_cont_abort3:text to "".
 	} else {
-		set ascent_traj_cont_abort3:text to " 3EO " + abort_modes["3eo_cont_mode"].
+		set ascent_traj_cont_abort3:text to "<color=#" + three_eo_cont_text_color + "> 3EO " + abort_modes["3eo_cont_mode"] + "</color>". 
 	}
 	
 }
 
 function freeze_abort_gui {
 	parameter frozen is true.
-	SET abort_mode_select:ENABLED to frozen.
-	SET tal_site_select:ENABLED to frozen.
-	SET abort_b:ENABLED to frozen.
+	
+	SET abort_mode_select:ENABLED to (NOT frozen).
+	SET tal_site_select:ENABLED to (NOT frozen).
+	SET abort_b:ENABLED to (NOT frozen).
 }
 
 FUNCTION manual_abort_trigger {

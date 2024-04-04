@@ -203,6 +203,11 @@ function intact_abort_region_determinator {
 	set abort_modes["1eo_tal_sites"] to tal_2e_dv.
 	set abort_modes["2eo_tal_sites"] to tal_1e_dv.
 	
+	//if any of these is active we don't want to activate the other modes
+	if (abort_modes["tal_active"]) or (abort_modes["ato_active"]) {
+		return.
+	}
+	
 	local meco_vel is cutoff_velocity_vector(
 										orbitstate["radius"],
 										-target_orbit["normal"],
@@ -277,31 +282,39 @@ function intact_abort_region_determinator {
 }
 
 function contingency_abort_region_determinator {
-	
-	if (abort_modes["rtls_active"]) {
-		//rtls contingency modes 
-	} else {
-	
-		//droop boundary missing
-		if (abort_modes["intact_modes"]["2eo"]["droop"]) or 
-			(abort_modes["intact_modes"]["2eo"]["tal"]) or 
-			(abort_modes["intact_modes"]["2eo"]["ato"]) or 
-			(abort_modes["intact_modes"]["2eo"]["meco"]) {
-			set abort_modes["2eo_cont_mode"] to "BLANK".
-		} else if ((vehiclestate["major_mode"] < 103) or (contingency_2eo_blue_boundary())) {
-			set abort_modes["2eo_cont_mode"] to "BLUE".
+
+	//if 2eo is not active, update the mode 
+	if (not abort_modes["cont_2eo_active"]) {
+		if (abort_modes["rtls_active"]) {
+			//rtls contingency modes 
 		} else {
-			set abort_modes["2eo_cont_mode"] to "GREEN".
+			//droop boundary missing
+			if (abort_modes["intact_modes"]["2eo"]["droop"]) or 
+				(abort_modes["intact_modes"]["2eo"]["tal"]) or 
+				(abort_modes["intact_modes"]["2eo"]["ato"]) or 
+				(abort_modes["intact_modes"]["2eo"]["meco"]) {
+				set abort_modes["2eo_cont_mode"] to "BLANK".
+			} else if ((vehiclestate["major_mode"] < 103) or (contingency_2eo_blue_boundary())) {
+				set abort_modes["2eo_cont_mode"] to "BLUE".
+			} else {
+				set abort_modes["2eo_cont_mode"] to "GREEN".
+			}
 		}
-		
-		if (orbitstate["velocity"]:MAG >= 6700) {
-			set abort_modes["3eo_cont_mode"] to "BLANK". 
-		} else if (vehiclestate["major_mode"] < 103) {
-			set abort_modes["3eo_cont_mode"] to "BLUE". 
-		} else {
-			set abort_modes["3eo_cont_mode"] to "GREEN". 
-		}
+	}
 	
+	//if 3eo is not active, update the mode 
+	if (not abort_modes["cont_3eo_active"]) {
+		if (abort_modes["rtls_active"]) {
+			//rtls contingency modes 
+		} else {
+			if (orbitstate["velocity"]:MAG >= 6700) {
+				set abort_modes["3eo_cont_mode"] to "BLANK". 
+			} else if (vehiclestate["major_mode"] < 103) {
+				set abort_modes["3eo_cont_mode"] to "BLUE". 
+			} else {
+				set abort_modes["3eo_cont_mode"] to "GREEN". 
+			}
+		}
 	}
 
 }
@@ -354,66 +367,66 @@ function abort_initialiser {
 	//intact aborts
 	if (zero_engout) or (one_engout) {
 		
-		local 1eo_ato_abort is false.
-		local 1eo_tal_abort is false.
-		local 1eo_rtls_abort is false.
+		local one_eo_ato_abort is false.
+		local one_eo_tal_abort is false.
+		local one_eo_rtls_abort is false.
 		
 		//premature optimisation is the root of all evil
 		
 		//if there's an active mode we triggered a manual abort and hten we had an engine failure, re-initialise the same mode 
 		if (abort_modes["rtls_active"]) {
-			set 1eo_rtls_abort to true.
-			set 1eo_tal_abort to false.
-			set 1eo_ato_abort to false.
+			set one_eo_rtls_abort to true.
+			set one_eo_tal_abort to false.
+			set one_eo_ato_abort to false.
 		} else if (abort_modes["tal_active"]) {
-			set 1eo_rtls_abort to false.
-			set 1eo_tal_abort to true.
-			set 1eo_ato_abort to false.
+			set one_eo_rtls_abort to false.
+			set one_eo_tal_abort to true.
+			set one_eo_ato_abort to false.
 		} else if (abort_modes["ato_active"]) {
-			set 1eo_rtls_abort to false.
-			set 1eo_tal_abort to false.
-			set 1eo_ato_abort to true.
+			set one_eo_rtls_abort to false.
+			set one_eo_tal_abort to false.
+			set one_eo_ato_abort to true.
 		} else if (abort_modes["manual_abort"]) {
 			//in case of a manual abort, read and trigger the selected mode 
 			if (is_abort_rtls_selected()) {
-				set 1eo_rtls_abort to true.
-				set 1eo_tal_abort to false.
-				set 1eo_ato_abort to false.
+				set one_eo_rtls_abort to true.
+				set one_eo_tal_abort to false.
+				set one_eo_ato_abort to false.
 			} else if (is_abort_tal_selected()) {
-				set 1eo_rtls_abort to false.
-				set 1eo_tal_abort to true.
-				set 1eo_ato_abort to false.
+				set one_eo_rtls_abort to false.
+				set one_eo_tal_abort to true.
+				set one_eo_ato_abort to false.
 			} else if (is_abort_ato_selected()) {
-				set 1eo_rtls_abort to false.
-				set 1eo_tal_abort to false.
-				set 1eo_ato_abort to true.
+				set one_eo_rtls_abort to false.
+				set one_eo_tal_abort to false.
+				set one_eo_ato_abort to true.
 			}
 		} else {
 			//in case of an auto abort we choose MECO-ATO-TAL-RTLS in this order of preference
 			
 			if (abort_modes["intact_modes"]["1eo"]["meco"]) {
-				set 1eo_rtls_abort to false.
-				set 1eo_tal_abort to false.
-				set 1eo_ato_abort to false.
+				set one_eo_rtls_abort to false.
+				set one_eo_tal_abort to false.
+				set one_eo_ato_abort to false.
 			} else if (abort_modes["intact_modes"]["1eo"]["ato"]) {
-				set 1eo_rtls_abort to false.
-				set 1eo_tal_abort to false.
-				set 1eo_ato_abort to true.
+				set one_eo_rtls_abort to false.
+				set one_eo_tal_abort to false.
+				set one_eo_ato_abort to true.
 			} else if (abort_modes["intact_modes"]["1eo"]["tal"]) {
-				set 1eo_rtls_abort to false.
-				set 1eo_tal_abort to true.
-				set 1eo_ato_abort to false.
+				set one_eo_rtls_abort to false.
+				set one_eo_tal_abort to true.
+				set one_eo_ato_abort to false.
 			} else if (abort_modes["intact_modes"]["1eo"]["rtls"]) {
-				set 1eo_rtls_abort to true.
-				set 1eo_tal_abort to false.
-				set 1eo_ato_abort to false.
+				set one_eo_rtls_abort to true.
+				set one_eo_tal_abort to false.
+				set one_eo_ato_abort to false.
 			}
 			
 		}
 		
-		set abort_modes["rtls_active"] to 1eo_rtls_abort.
-		set abort_modes["tal_active"] to 1eo_tal_abort.
-		set abort_modes["ato_active"] to 1eo_ato_abort.
+		set abort_modes["rtls_active"] to one_eo_rtls_abort.
+		set abort_modes["tal_active"] to one_eo_tal_abort.
+		set abort_modes["ato_active"] to one_eo_ato_abort.
 		
 		//now initialise the mode 
 		if (abort_modes["rtls_active"]) {
@@ -426,28 +439,28 @@ function abort_initialiser {
 	} else if (two_engout) {
 		//2eo is a contingency unless one of the intact modes is available
 		
-		local 2eo_ato_abort is false.
-		local 2eo_tal_abort is false.
-		local 2eo_cont_abort is false.
+		local two_eo_ato_abort is false.
+		local two_eo_tal_abort is false.
+		local two_eo_cont_abort is false.
 		
 		//droop still missing
 		if (abort_modes["intact_modes"]["2eo"]["ato"]) {
-			set 2eo_cont_abort to false.
-			set 2eo_tal_abort to false.
-			set 2eo_ato_abort to true.
+			set two_eo_cont_abort to false.
+			set two_eo_tal_abort to false.
+			set two_eo_ato_abort to true.
 		} else if (abort_modes["intact_modes"]["2eo"]["tal"]) {
-			set 2eo_cont_abort to false.
-			set 2eo_tal_abort to true.
-			set 2eo_ato_abort to false.
+			set two_eo_cont_abort to false.
+			set two_eo_tal_abort to true.
+			set two_eo_ato_abort to false.
 		} else {
-			set 2eo_cont_abort to true.
-			set 2eo_tal_abort to false.
-			set 2eo_ato_abort to false.
+			set two_eo_cont_abort to true.
+			set two_eo_tal_abort to false.
+			set two_eo_ato_abort to false.
 		}
 		
-		set abort_modes["cont_2eo_active"] to 2eo_cont_abort. 
-		set abort_modes["tal_active"] to 2eo_tal_abort. 
-		set abort_modes["ato_active"] to 2eo_ato_abort. 
+		set abort_modes["cont_2eo_active"] to two_eo_cont_abort. 
+		set abort_modes["tal_active"] to two_eo_tal_abort. 
+		set abort_modes["ato_active"] to two_eo_ato_abort. 
 		
 		if (abort_modes["tal_active"]) {
 			//setup tal 
