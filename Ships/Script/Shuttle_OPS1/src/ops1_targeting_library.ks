@@ -29,11 +29,9 @@ FUNCTION current_horiz_dwnrg_speed {
 }
 
 // normal vector of the current instantaneous orbital plane
-//to be compatible with TargetNormal, it's the left-handed cross prod of position and velocity
+//it's opposite of upfg normal vector convention 
 FUNCTION currentNormal{
-	
-	RETURN -VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
-
+	RETURN VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
 }
 
 
@@ -41,7 +39,7 @@ FUNCTION nominal_cutoff_params {
 	PARAMETER tgt_orb.
 	PARAMETER cutoff_r.
 	
-	SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
+	//SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
 	
 	set tgt_orb["radius"] to cutoff_r.
 	
@@ -56,6 +54,7 @@ FUNCTION nominal_cutoff_params {
 }
 
 //upfg-compatible velocity vector
+//expects normal vector as the left-handed product of position and velocity
 function cutoff_velocity_vector {
 	parameter cutoff_r.
 	parameter normvec.

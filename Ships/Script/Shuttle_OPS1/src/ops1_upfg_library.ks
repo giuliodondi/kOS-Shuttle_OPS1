@@ -133,29 +133,31 @@ FUNCTION upfg_standard_initialise {
 	
 	LOCAL rdmag IS tgt_orb["cutoff alt"]*1000 + SHIP:BODY:RADIUS.
 	
-	set tgt_orb["radius"] TO cutvec:NORMALIZED * rdmag.
-
-
-	LOCAL vd IS VCRS(tgt_orb["normal"], tgt_orb["radius"]):NORMALIZED.	
-	SET vd TO rodrigues(vd,tgt_orb["normal"], -tgt_orb["fpa"]):NORMALIZED * tgt_orb["velocity"].	
-	LOCAL tgoV IS vd - curV.
-
+	set tgt_orb["radius"] TO cutvec:NORMALIZED * rdmag.	
 	
 	local rgrav IS -SHIP:ORBIT:BODY:MU * curR / curR:MAG^3.
 	
 	SET internal["time"] tO curT.
 	SET internal["rd"] tO tgt_orb["radius"].
 	SET internal["rdmag"] tO rdmag.
-	SET internal["vd"] tO vd.
 	SET internal["v"] tO curV.
 	SET internal["rgrav"] tO 0.5 * rgrav.
-	SET internal["vgo"] tO tgoV.
+	
 	
 	SET internal["s_plane"] TO TRUE.
 	SET internal["s_alt"] TO TRUE.
 	
 	SET internal["ix"] tO tgt_orb["radius"]:NORMALIZED.
 	SET internal["iy"] tO -tgt_orb["normal"].
+	
+	SET internal["vd"] tO cutoff_velocity_vector(
+		internal["ix"],
+		internal["iy"],
+		tgt_orb["velocity"],
+		tgt_orb["fpa"]
+	).
+	
+	SET internal["vgo"] tO internal["vd"] - internal["v"].
 }
 
 FUNCTION upfg_rtls_initialise {
@@ -973,7 +975,12 @@ FUNCTION upfg {
 		
 		SET internal["iz"] TO VCRS(internal["ix"], internal["iy"]):NORMALIZED.
 		
-		SET internal["vd"] TO rodrigues(internal["iz"], internal["iy"], tgt_orb["fpa"]):NORMALIZED * tgt_orb["velocity"].	
+		SET internal["vd"] TO cutoff_velocity_vector(
+			internal["ix"],
+			internal["iy"],
+			tgt_orb["velocity"],
+			tgt_orb["fpa"]
+		).
 	
 		SET dvgo TO (internal["vd"] - vp).
 	}
