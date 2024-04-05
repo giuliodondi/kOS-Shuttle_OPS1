@@ -626,7 +626,7 @@ function get_ato_tgt_orbit {
 	
 	local velvec is cutoff_velocity_vector(
 										orbitstate["radius"],
-										normvec,
+										- normvec,
 										ato_cutoff_vel,
 										fpa_
 	).
