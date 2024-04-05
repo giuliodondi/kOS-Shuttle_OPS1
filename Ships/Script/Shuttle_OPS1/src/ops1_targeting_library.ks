@@ -334,6 +334,8 @@ FUNCTION prepare_launch {
 	
 	
 	//initialise target normal and velocity for abort calculations - in upfg coords
+	
+	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
 	local cur_r is vecYZ(SHIP:ORBIT:BODY:POSITION)*-1.
 	local cutvec is VXCL(target_orbit["normal"], cur_r):NORMALIZED.
 	set cutvec to rodrigues(cutvec, target_orbit["normal"], 10).
