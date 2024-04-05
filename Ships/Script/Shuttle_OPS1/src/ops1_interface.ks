@@ -62,7 +62,7 @@ FUNCTION dataViz {
 	if (ascent_traj_disp_counter = 1) {
 		set traj_disp_alt_ref to 45.
 	} else if (ascent_traj_disp_counter = 2) {
-		set traj_disp_alt_ref to 115.
+		set traj_disp_alt_ref to target_orbit["cutoff alt"].
 	}
 	
 	//predict 30 seconds into the future, 2 steps
