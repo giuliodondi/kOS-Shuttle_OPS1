@@ -755,6 +755,9 @@ FUNCTION is_abort_ato_selected {
 	return (abort_mode_select:VALUE = "ATO").
 }
 
+function get_gui_tal_site {
+	return (tal_site_select:VALUE).
+}
 
 function update_ascent_traj_disp {
 	parameter gui_data.
@@ -808,8 +811,8 @@ function update_ascent_traj_disp {
 		set xpredval to gui_data["pred_vi"].
 	}
 	
-	local yval is gui_data["alt"] / gui_data["alt_ref"].
-	local ypredval is gui_data["pred_alt"] / gui_data["alt_ref"].
+	local yval is gui_data["alt"].
+	local ypredval is gui_data["pred_alt"].
 	
 	local shut_bug_pos is set_ascent_traj_disp_pos(v(ascent_traj_disp_x_convert(xval),ascent_traj_disp_y_convert(yval), 0), 5).
 	
@@ -915,13 +918,17 @@ function ascent_traj_disp_x_convert {
 
 function ascent_traj_disp_y_convert {
 	parameter val.
-	
+
 	local out is 0.
 	
 	if (ascent_traj_disp_counter = 1) {
-		set out to val * 0.729 + 0.13 .
+		local ref_y is 45.
+		set out to val / ref_y * 0.729 + 0.13 .
 	} else if (ascent_traj_disp_counter = 2) {
-		set out to val * 0.656168 - 0.05.
+		local ref_y is target_orbit["cutoff alt"].
+		local vb is 42.
+        local alp is 0.3995/(ref_y - vb).
+        set out to 0.207 + alp * (val - vb).
 	}
 
 	return 50 + 300 * out .

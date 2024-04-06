@@ -58,13 +58,6 @@ FUNCTION dataViz {
 	
 	local thrvec is vehiclestate["thr_vec"]/1000.
 	
-	local traj_disp_alt_ref is 0.
-	if (ascent_traj_disp_counter = 1) {
-		set traj_disp_alt_ref to 45.
-	} else if (ascent_traj_disp_counter = 2) {
-		set traj_disp_alt_ref to target_orbit["cutoff alt"].
-	}
-	
 	//predict 30 seconds into the future, 2 steps
 	//keep roll and pitch fixed 
 	LOCAL pred_simstate IS current_simstate().
@@ -102,7 +95,6 @@ FUNCTION dataViz {
 				"vi", SHIP:VELOCITY:ORBIT:MAG,
 				"ve", SHIP:VELOCITY:SURFACE:MAG,
 				"alt", SHIP:ALTITUDE/1000,
-				"alt_ref", traj_disp_alt_ref,
 				"pred_vi", pred_vi,
 				"pred_ve", pred_ve,
 				"pred_alt", pred_alt,
