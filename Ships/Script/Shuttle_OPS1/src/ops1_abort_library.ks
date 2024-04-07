@@ -435,6 +435,8 @@ function abort_initialiser {
 			//setup rtls	
 		} else if (abort_modes["tal_active"]) {
 			//setup tal 
+			addGUIMessage("ABORT TAL").
+			setup_TAL().
 		} else if (abort_modes["ato_active"]) {
 			//setup ato 
 			addGUIMessage("ABORT ATO/AOA").
@@ -566,9 +568,9 @@ FUNCTION TAL_site_xrange_shift {
 	LOCAL tgtvec IS rodrigues(tal_site_vec,abeam_norm,abeam_angle):NORMALIZED*BODY:RADIUS.
 	
 	//clearvecdraws().
-	//arrow_body(vecYZ(tal_site_vec),"tal_site_vec").
-	//arrow_body(vecYZ(tal_site_proj),"tal_site_proj").
-	//arrow_body(vecYZ(tgtvec),"tgtvec").
+	//arrow_body(vecYZ(tal_site_vec * 2),"tal_site_vec").
+	//arrow_body(vecYZ(tal_site_proj * 2),"tal_site_proj").
+	//arrow_body(vecYZ(tgtvec * 2),"tgtvec").
 
 	RETURN tgtvec.
 }
@@ -608,34 +610,21 @@ function tal_site_meco_velocity {
 
 
 
-//TAL target site vector in UPFG coordinates
-FUNCTION TAL_tgt_site_vector {
-	RETURN vecYZ(pos2vec(abort_modes["tal_tgt_site"]["position"])).
-}
-
 //find new normal vector for TAL targeting
 //find the plane containing the current pos vector ( in UPFG coords!!) and
 //the target vector
 FUNCTION TAL_normal {
-
-	LOCAL cur_pos IS -vecYZ(SHIP:ORBIT:BODY:POSITION).
-		
-	//find the position vector of the target site
+	parameter cur_pos.
 	
-	//construct the plane of rtls
-	LOCAL dr IS TALAbort["tgt_vec"] - cur_pos.
-	LOCAL tgtnorm IS VCRS(TALAbort["tgt_vec"],dr):NORMALIZED.
-	
-	//clearvecdraws().
-	//arrow_body(vecYZ(cur_pos),"cur_pos").
-	//arrow_body(vecYZ(TALAbort["tgt_vec"]),"tgt_vec").
-	//arrow_body(vecYZ(tgtnorm*BODY:RADIUS),"tgtnorm").
+	//construct the plane of tal
+	LOCAL tgtnorm IS VCRS(cur_pos, abort_modes["tal_tgt_site"]["position"]):NORMALIZED.
 	
 	RETURN tgtnorm.
 }
 
 
 FUNCTION TAL_tgt_vec {
+	parameter tal_site.
 	PARAMETER posvec.
 	
 	//to calculate the target vector, find the landing site abeam position along the orbit
@@ -652,7 +641,19 @@ FUNCTION TAL_tgt_vec {
 	
 	LOCAL current_normal IS currentNormal().
 	
-	LOCAL sitevec IS TAL_tgt_site_vector().
+	
+	LOCAL site IS ldgsiteslex[tal_site].
+			
+	local rwypos is 0.
+	
+	IF (site:ISTYPE("LEXICON")) {
+		set rwypos to site["position"].
+	} ELSE IF (site:ISTYPE("LIST")) {
+		set rwypos to site[0]["position"].
+	}
+	
+	LOCAL sitevec IS pos2vec(rwypos).
+
 	//find the ttue anomaly of the current position based on the current orbital params
 	LOCAL eta_cur IS (target_orbit["SMA"]*(1-target_orbit["ecc"]^2)/posvec:MAG - 1)/target_orbit["ecc"].
 	SET eta_cur TO ARCCOS(limitarg(eta_cur)).
@@ -667,13 +668,13 @@ FUNCTION TAL_tgt_vec {
 		
 		LOCAL abeam_dt IS eta_to_dt(eta_guess,target_orbit["SMA"],target_orbit["ecc"]).
 		SET abeam_dt TO abeam_dt - eta_to_dt(eta_cur,target_orbit["SMA"],target_orbit["ecc"]).
-		LOCAL abeam_pos IS rodrigues(posvec,-current_normal,d_eta).
+		LOCAL abeam_pos IS rodrigues(posvec,current_normal,d_eta).
 		
-		SET shifted_site TO vecYZ(pos2vec(shift_pos(vecYZ(sitevec),-abeam_dt))).
+		SET shifted_site TO vecYZ(pos2vec(shift_pos(sitevec,-abeam_dt))).
 		
 		SET shifted_site_proj TO VXCL(current_normal,shifted_site).
 		
-		LOCAL eta_error IS signed_angle(abeam_pos,shifted_site_proj,-current_normal,0).
+		LOCAL eta_error IS signed_angle(abeam_pos,shifted_site_proj,current_normal,0).
 		
 		IF (ABS(eta_error) < 0.01) {
 			BREAK.
@@ -681,17 +682,26 @@ FUNCTION TAL_tgt_vec {
 		
 		SET d_eta TO d_eta + eta_error.
 	}
+	
+	local tal_xrange_tgtvec is TAL_site_xrange_shift(shifted_site,current_normal).
+	
+	//clearvecdraws().
+	//arrow_body(vecYZ(tal_xrange_tgtvec * 2),"tal_tgt_vec").
+	//arrow_body(sitevec * 2,"sitevec").
+	//arrow_body(vecYZ(shifted_site * 2),"shifted_site").
+	//arrow_body(vecYZ(current_normal*BODY:RADIUS * 2),"current_normal").
 
-	RETURN TAL_site_xrange_shift(shifted_site,current_normal).
+	RETURN tal_xrange_tgtvec.
 }
 
 //cutoff altitude is set as the apoapsis
 //cutoff velocity is calculated so that the ballistic trajectory intersects the surface at the target vector
 FUNCTION TAL_cutoff_params {
 	PARAMETER tgt_orb.
+	parameter cur_r.
 	PARAMETER cutoff_r.
 
-	SET tgt_orb["normal"] TO TAL_normal().
+	SET tgt_orb["normal"] TO TAL_normal(cur_r).
 	SET tgt_orb["Inclination"] TO VANG(-tgt_orb["normal"],v(0,0,1)).
 	
 	set tgt_orb["radius"] to cutoff_r.
@@ -705,7 +715,7 @@ FUNCTION TAL_cutoff_params {
 	SET tgt_orb["fpa"] TO 0.
 	SET tgt_orb["eta"] TO 180.
 	
-	LOCAL tgt_eta IS 180 + signed_angle(tgt_orb["radius"], TALAbort["tgt_vec"], tgt_orb["normal"], 0).
+	LOCAL tgt_eta IS 180 + signed_angle(tgt_orb["radius"], abort_modes["tal_tgt_site"]["position"], tgt_orb["normal"], 0).
 	
 	SET tgt_orb["ecc"] TO (AP - tgt_vec_radius)/(AP + tgt_vec_radius*COS(tgt_eta)).
 	SET tgt_orb["SMA"] TO AP/(1 + tgt_orb["ecc"] ).
@@ -713,11 +723,11 @@ FUNCTION TAL_cutoff_params {
 	SET tgt_orb["apoapsis"] TO (AP - BODY:RADIUS)/1000.
 	SET tgt_orb["periapsis"] TO (2*tgt_orb["SMA"] - AP - BODY:RADIUS)/1000.
 	
-	//clearscreen.
-	//print target_orbit.
-	//print tgt_eta at (0,40).
-	//print greatcircledist(vecYZ(cutoff_r),vecYZ(TALAbort["tgt_vec"])).
-	//until false{}
+	clearvecdraws().
+	arrow_body(vecYZ(cur_r * 2),"cur_r").
+	arrow_body(vecYZ(cutoff_r * 2),"cutoff_r").
+	arrow_body(vecYZ(abort_modes["tal_tgt_site"]["position"] * 2),"tgt_vec").
+	arrow_body(vecYZ(tgt_orb["normal"]*BODY:RADIUS * 2),"normal").
 	
 	RETURN tgt_orb.
 }
@@ -729,13 +739,10 @@ FUNCTION setup_TAL{
 	local engines_out is get_engines_out().
 	
 	local selected_tal_site is "".
-	local tal_tgt_vec is v(0,0,0).
+	local tal_tgt_pos is 0.
 	
-	//if we were already in a tal, preserve the site 
-	if (abort_modes["tal_active"]) {
-		set selected_tal_site to abort_modes["tal_tgt_site"]["site"].
-		set tal_tgt_vec to abort_modes["tal_tgt_site"]["position"].
-	} else {
+	//detect if we alreay initialised the site 
+	if (abort_modes["tal_tgt_site"] = "") {
 	
 		if (engines_out <2) {
 			//if manual abort use the gui selection 
@@ -744,7 +751,7 @@ FUNCTION setup_TAL{
 			if (abort_modes["manual_abort"]) {
 				set selected_tal_site to get_gui_tal_site().
 			} else {
-				set selected_tal_site to select_rand(abort_modes["1eo_tal_sites"]).
+				set selected_tal_site to select_rand(abort_modes["1eo_tal_sites"])["site"].
 			}
 			
 		} else {
@@ -763,23 +770,33 @@ FUNCTION setup_TAL{
 			set selected_tal_site to tal_best_sdv["site"].
 		}
 		
+		local tal_tgtvec_ is TAL_tgt_vec(selected_tal_site, orbitstate["radius"]).
 		
-	
+		set abort_modes["tal_tgt_site"] to lexicon(
+												"site", selected_tal_site,
+												"position", tal_tgtvec_
+		
+		).	
 	}
 	
 	
-	addGUIMessage("SELECTED TAL SITE IS " + selected_tal_site).
+	addGUIMessage("SELECTED TAL SITE IS " + abort_modes["tal_tgt_site"]["site"]).
 	
-	//site selection logic:
-	//if 1eo and manual abort use the gui selection 
-	//if 1eo auto choose at random between the 1eo sites
-	//if 2eo choose the best site of the 2eo sites
+	SET target_orbit["mode"] TO 6.
+	SET target_orbit["cutoff alt"] TO CLAMP(0.83 * target_orbit["cutoff alt"], 110, 140).		//force cutoff alt 
+	SET target_orbit["apoapsis"] TO target_orbit["cutoff alt"].
 	
-
-	GLOBAL TALAbort IS LEXICON (
-		"t_abort",TIME:SECONDS,
-		"tgt_vec", TAL_tgt_vec(orbitstate["radius"])
-	).
+	SET target_orbit TO TAL_cutoff_params(target_orbit, orbitstate["radius"], target_orbit["radius"]).
+	
+	SET upfgInternal["s_init"] TO FALSE.
+	
+	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
+	
+	if (engines_out > 0) {
+		set upfgInternal["throtset"] to vehicle["maxThrottle"].
+	}
+	
+	start_oms_dump(true).
 
 }
 
@@ -870,6 +887,14 @@ FUNCTION setup_ATO {
 	SET upfgInternal["s_init"] TO FALSE.
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
+	
+	local engines_out is get_engines_out().
+	
+	if (engines_out > 0) {
+		set upfgInternal["throtset"] to vehicle["maxThrottle"].
+	}
+	
+	start_oms_dump(true).
 }
 
 

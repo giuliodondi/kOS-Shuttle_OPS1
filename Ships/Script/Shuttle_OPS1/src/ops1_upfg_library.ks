@@ -679,6 +679,10 @@ FUNCTION upfg {
 		}
 		
 		SET internal["s_init"] tO TRUE.
+		
+		//modification - reset convergence 
+		SET internal["iter_conv"] TO 0.
+		SET internal["s_conv"] tO FALSE.
 	}
 	
 	
@@ -961,7 +965,7 @@ FUNCTION upfg {
 		//desired velocity
 	
 		IF (s_mode=6) {
-			SET tgt_orb TO TAL_cutoff_params(tgt_orb, internal["rd"]).
+			SET tgt_orb TO TAL_cutoff_params(tgt_orb, internal["r_cur"], internal["rd"]).
 		} ELSE {
 			SET tgt_orb TO nominal_cutoff_params(tgt_orb, internal["rd"]).
 		}

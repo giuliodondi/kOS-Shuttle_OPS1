@@ -44,8 +44,6 @@ function ops1_main_exec {
 	GLOBAL dap_gui_executor IS loop_executor_factory(
 												0.15,
 												{
-													//clearscreen.
-													clearvecdraws().
 													
 													if (is_dap_auto()) {
 														dap:steer_auto_thrvec().
@@ -58,6 +56,8 @@ function ops1_main_exec {
 													set get_stage()["Throttle"] to dap:thr_rpl_tgt.
 													
 													if (debug_mode) {
+														//clearscreen.
+														clearvecdraws().
 														
 														dap:print_debug(2).
 														
