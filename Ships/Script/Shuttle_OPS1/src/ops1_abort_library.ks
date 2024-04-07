@@ -200,15 +200,61 @@ function intact_abort_region_determinator {
 				set abort_modes["intact_modes"]["2eo"]["tal"] to true.
 			}
 		}
+		
 	}
 	
 	set abort_modes["1eo_tal_sites"] to tal_2e_dv.
 	set abort_modes["2eo_tal_sites"] to tal_1e_dv.
 	
-	//if any of these is active we don't want to activate the other modes
-	if (abort_modes["tal_active"]) or (abort_modes["ato_active"]) {
+	//if tal we don't want to calculate ato or meco boundaries
+	if (abort_modes["tal_active"]){
 		return.
 	}
+	
+	local ato_tgt_orbit is get_ato_tgt_orbit().
+	
+	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
+	
+	if (NOT abort_modes["intact_modes"]["1eo"]["meco"]) {
+		local two_eng_ato_dv_excess is estimate_excess_deltav(
+												orbitstate["radius"],
+												orbitstate["velocity"],
+												ato_dv,
+												two_eng_perf
+		
+		).
+		
+		if (two_eng_ato_dv_excess > 0) {
+			if (not abort_modes["intact_modes"]["1eo"]["ato"]) {
+				addGUIMessage("PRESS TO ATO").
+				set abort_modes["intact_modes"]["1eo"]["ato"] to true.
+			}
+		}
+	}
+	
+	if (not abort_modes["intact_modes"]["2eo"]["meco"]) {
+	
+		local one_eng_ato_dv_excess is estimate_excess_deltav(
+												orbitstate["radius"],
+												orbitstate["velocity"],
+												ato_dv,
+												one_eng_perf
+		
+		).
+		
+		if (one_eng_ato_dv_excess > 0) {
+			if (not abort_modes["intact_modes"]["2eo"]["ato"]) {
+				addGUIMessage("SINGLE ENGINE PRESS TO ATO").
+				set abort_modes["intact_modes"]["2eo"]["ato"] to true.
+			}
+		}
+	}
+	
+	//if ato we don't want to calculate meco boundaries
+	if (abort_modes["ato_active"]) {
+		return.
+	}
+	
 	
 	local meco_vel is cutoff_velocity_vector(
 										orbitstate["radius"],
@@ -219,22 +265,11 @@ function intact_abort_region_determinator {
 	
 	LOCAL meco_dv IS (meco_vel - orbitstate["velocity"]).
 	
-	local ato_tgt_orbit is get_ato_tgt_orbit().
-	
-	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
 	
 	local two_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
 											meco_dv,
-											two_eng_perf
-	
-	).
-	
-	local two_eng_ato_dv_excess is estimate_excess_deltav(
-											orbitstate["radius"],
-											orbitstate["velocity"],
-											ato_dv,
 											two_eng_perf
 	
 	).
@@ -245,25 +280,12 @@ function intact_abort_region_determinator {
 			set abort_modes["intact_modes"]["1eo"]["meco"] to true.
 			set abort_modes["intact_modes"]["1eo"]["ato"] to false.
 		}
-	} else if (two_eng_ato_dv_excess > 0) {
-		if (not abort_modes["intact_modes"]["1eo"]["ato"]) {
-			addGUIMessage("PRESS TO ATO").
-			set abort_modes["intact_modes"]["1eo"]["ato"] to true.
-		}
-	}
+	} 
 	
 	local one_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
 											meco_dv,
-											one_eng_perf
-	
-	).
-	
-	local one_eng_ato_dv_excess is estimate_excess_deltav(
-											orbitstate["radius"],
-											orbitstate["velocity"],
-											ato_dv,
 											one_eng_perf
 	
 	).
@@ -274,12 +296,7 @@ function intact_abort_region_determinator {
 			set abort_modes["intact_modes"]["2eo"]["meco"] to true.
 			set abort_modes["intact_modes"]["2eo"]["ato"] to false.
 		}
-	} else if (one_eng_ato_dv_excess > 0) {
-		if (not abort_modes["intact_modes"]["2eo"]["ato"]) {
-			addGUIMessage("SINGLE ENGINE PRESS TO ATO").
-			set abort_modes["intact_modes"]["2eo"]["ato"] to true.
-		}
-	}
+	} 
 	
 }
 
@@ -480,8 +497,12 @@ function abort_initialiser {
 		
 		if (abort_modes["tal_active"]) {
 			//setup tal 
+			addGUIMessage("ABORT 2EO TAL").
+			setup_TAL().
 		} else if (abort_modes["ato_active"]) {
 			//setup ato 
+			addGUIMessage("ABORT 2EO ATO/AOA").
+			setup_ATO().
 		}
 		
 		
@@ -783,7 +804,7 @@ FUNCTION setup_TAL{
 	addGUIMessage("SELECTED TAL SITE IS " + abort_modes["tal_tgt_site"]["site"]).
 	
 	SET target_orbit["mode"] TO 6.
-	SET target_orbit["cutoff alt"] TO CLAMP(0.83 * target_orbit["cutoff alt"], 110, 140).		//force cutoff alt 
+	SET target_orbit["cutoff alt"] TO CLAMP(0.98 * target_orbit["cutoff alt"], 110, 130).		//force cutoff alt 
 	SET target_orbit["apoapsis"] TO target_orbit["cutoff alt"].
 	
 	SET target_orbit TO TAL_cutoff_params(target_orbit, orbitstate["radius"], target_orbit["radius"]).
@@ -792,11 +813,14 @@ FUNCTION setup_TAL{
 	
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
-	if (engines_out > 0) {
-		set upfgInternal["throtset"] to vehicle["maxThrottle"].
-	}
+	set upfgInternal["throtset"] to get_stage()["Throttle"].
 	
-	start_oms_dump(true).
+	start_oms_dump((engines_out > 1)).
+	
+	//trigger the roll to heads-up if it hasn't already, important for reentry 
+	WHEN ( surfacestate["MET"] > (abort_modes["trigger_t"] + 40) ) THEN {
+		roll_heads_up().
+	}
 
 }
 
@@ -858,7 +882,7 @@ function get_ato_tgt_orbit {
 
 FUNCTION setup_ATO {
 	
-	local ato_tgt_orbit is ato_tgt_orbit().
+	local ato_tgt_orbit is get_ato_tgt_orbit().
 	
 	//UPFG mode is the nominal one, only change MECO targets
 	//lower apoapsis (not too low)
@@ -890,11 +914,17 @@ FUNCTION setup_ATO {
 	
 	local engines_out is get_engines_out().
 	
-	if (engines_out > 0) {
-		set upfgInternal["throtset"] to vehicle["maxThrottle"].
+	set upfgInternal["throtset"] to get_stage()["Throttle"].
+	
+	local two_engout is (engines_out > 1).
+	local fast_dump is false.
+	
+	if (two_engout) {
+		set fast_dump to true.
+		dap:set_steering_med().
 	}
 	
-	start_oms_dump(true).
+	start_oms_dump(fast_dump).
 }
 
 

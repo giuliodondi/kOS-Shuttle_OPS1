@@ -1440,10 +1440,6 @@ FUNCTION close_umbilical {
 FUNCTION start_oms_dump {
 	parameter fast_dump is false.
 
-	IF (NOT abort_modes["oms_dump"]) {
-		RETURN.
-	}
-
 	
 	if (fast_dump) {
 		RCS ON.
@@ -1463,7 +1459,7 @@ FUNCTION stop_oms_dump {
 		RETURN.
 	}
 
-	IF (get_oms_prop_fraction() <= 0.2 OR force) {
+	IF (get_oms_prop_fraction() <= 0.4 OR force) {
 
 		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 		FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
