@@ -541,6 +541,89 @@ FUNCTION RTLS_tgt_site_vector {
 	RETURN vecYZ(pos2vec(abort_modes["rtls_tgt_site"])).
 }
 
+//taken from the paper on rtls trajectory shaping
+//reference theta + corrections for off-nominal conditions at staging
+//all velocities are surface, v_i is velocity at abort or staging
+FUNCTION RTLS_dissip_theta_pert {
+	PARAMETER v_r.
+	PARAMETER v_stg.
+	PARAMETER alt_stg.
+	PARAMETER thr.
+	
+	LOCAL vr2 IS v_r^2.
+	
+	//rs-25 nominal staging
+	//LOCAL dv IS v_stg - 1498.12.
+	//LOCAL dalt IS alt_stg - 47219.
+	
+	//rs-25D nominal staging 
+	LOCAL dv IS v_stg - 1297.
+	LOCAL dalt IS alt_stg - 49222.8.
+	LOCAL thr_corr IS 4300000/thr.
+	
+	LOCAL theta_nom IS  (77.628302208 - 0.0346624*v_r + 7.86842e-6*vr2).
+    
+    LOCAL dalt_corr IS (2.649396 -1.91421084e-3*v_r + 4.693065e-7*vr2)*dalt.
+    
+    LOCAL dv_corr IS (349.344 - 0.2934698*v_r + 6.58751e-5*vr2)*dv.
+    
+    LOCAL dtheta_dv IS (21740.8 -15.1078*v_r + 3.281949e-3*vr2)*0.3048.
+    
+    LOCAL theta_pert IS  theta_nom - ( dalt_corr + dv_corr )/dtheta_dv.
+	
+	SET theta_pert TO ARCSIN(limitarg(thr_corr*SIN(theta_pert))).
+	
+	RETURN CLAMP(theta_pert, 30, 88).
+
+}
+
+//c1 vector in upfg coordinates
+//meant to be repeatedly so the vector is always in the plane of current surface velocity
+FUNCTION RTLS_C1 {
+	PARAMETER theta.
+
+	LOCAL pos IS vecYZ(-SHIP:ORBIT:BODy:POSITION).
+	LOCAL ve IS vecYZ(SHIP:VELOCITY:SURFACE).
+
+	LOCAL normvec IS -VCRS(pos, ve):NORMALIZED.
+	
+	LOCAL horiz IS VCRS(pos,normvec):NORMALIZED.
+	LOCAL C1 IS rodrigues(horiz, normvec, theta).
+	
+	RETURN C1.
+}
+
+FUNCTION RTLS_pitchover_t {
+	PARAMETER c1_vec.
+	PARAMETER pitcharound_vec.
+	
+	LOCAL pitchover_rate IS 10.		//degrees per second 
+	
+	RETURN VANG(pitcharound_vec, c1_vec)/pitchover_rate.
+}
+
+//RV-line, return the coefficients, 0 is linear (DISTANCE IN METRES) and 1 is constant
+FUNCTION RTLS_rvline_coefs {
+	//RETURN LIST(0.00242, 768.72).		//this is the original from the rtls traj-shaping paper 
+	//RETURN LIST(0.0031, 559.49).		//this was lifted from the sts-1 abort analysis paper 
+	//RETURN LIST(0.004, 234).			//this worked before ops3
+	RETURN LIST(0.0035, 370).
+}
+
+//calculate the desired RV-line velocity  (DISTANCE IN METRES)
+FUNCTION RTLS_rvline {
+	PARAMETER rng.
+	LOCAL coefs IS RTLS_rvline_coefs().
+	RETURN coefs[0] * rng + coefs[1].
+}
+
+FUNCTION RTLS_burnout_mass {
+
+	//add 1% of ssme fuel and 20% of oms fuel
+	//this NEEDs to be called after we update the final mass with the right value
+	SET vehicle["mbod"] TO vehicle["stages"][vehicle["stages"]:LENGTH - 1]["m_final"] + 0.01 * vehicle["SSME_prop_0"] + 0.2 * vehicle["OMS_prop_0"].
+}
+
 //to be called before launch, will fin the closest landing site 
 //to the launchpad
 FUNCTION get_RTLS_site {
@@ -562,6 +645,144 @@ FUNCTION RTLS_boundary{
 	RETURN (dwnrg_speed > RTLS_boundary_vel()).
 }
 
+//compare current velocity with negative return boundary to see if we should flyback immediately
+FUNCTION RTLS_immediate_flyback {
+	
+	LOCAL dwnrg_speed IS current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:ORBIT).
+
+	RETURN dwnrg_speed > RTLS_boundary_vel() - 80.
+}
+
+FUNCTION setup_RTLS {
+
+	IF (DEFINED RTLSAbort) {
+		RETURN.
+	}
+	
+	
+	//do it immediately so it's ready when the gui first wants to update it 
+	make_rtls_traj2_disp().
+	
+	
+	start_oms_dump().
+	
+	// so g-limiting is skipped
+	set vehicle["glim"] to 10.
+	
+	local engines_out is get_engines_out().
+	
+	local throt_val is vehicle["maxThrottle"].
+	
+	if (get_engines_out() < 1) {
+		set throt_val to 0.67 * vehicle["maxThrottle"].
+	}
+	
+	//redefine vehicle 
+	measure_update_engines().
+	local engines_lex is build_engines_lex().
+	
+	LOCAL current_m IS SHIP:MASS*1000.
+	local res_left IS get_shuttle_res_left().
+	
+	setup_shuttle_stages(
+						current_m,
+						current_m - res_left,
+						engines_lex,
+						throt_val
+	).
+	reset_stage().
+
+	vehicle:ADD("mbod",0).
+	
+	RTLS_burnout_mass().		
+	
+	LOCAL cur_stg IS get_stage().
+
+	//time to desired burnout mass
+	LOCAL dmbo_t IS (cur_stg["m_initial"] - vehicle["mbod"]) * cur_stg["Tstage"]/cur_stg["m_burn"].
+	
+	//so that downrange distance calculations are correct
+	SET launchpad TO abort_modes["RTLS"]["tgt_site"].
+	
+	LOCAL flyback_immediate IS RTLS_immediate_flyback().
+
+	
+	//target orbit with cutoff conditions
+	LOCAL cutoff_alt IS 72.
+	LOCAL cutoff_fpa IS 8.
+	
+	LOCAL curR IS orbitstate["radius"].
+	
+	LOCAL cut_r IS (curR:NORMALIZED)*(cutoff_alt*1000 + SHIP:BODY:RADIUS).
+	
+	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
+	
+	//plane defined as containing current and target position
+	//LOCAL normvec IS VCRS(cut_r, tgtsitevec):NORMALIZED.
+	
+	//plane defined from current position and velocity, must point to the launch site though
+	LOCAL normvec IS -VCRS(vecYZ(-SHIP:ORBIT:BODy:POSITION), vecYZ(SHIP:VELOCITY:SURFACE)):NORMALIZED.
+	
+	LOCAL rng IS greatcircledist(tgtsitevec, cut_r) * 1000.
+	
+	//target site position at desired meco
+	LOCAL shifted_tgtsitevec IS RTLS_shifted_tgt_site_vector(dmbo_t).
+	
+	SET target_orbit TO LEXICON(
+							"mode", 5,
+							"normal", normvec,
+							"radius", cut_r,
+							"velocity", 2200,
+							"fpa", cutoff_fpa,
+							"rtls_cutv", 2200,
+							"cutoff alt", cutoff_alt,
+							"rtheta", rng,
+							"rtls_tgt", shifted_tgtsitevec
+	).
+	
+	//abort control lexicon
+	
+	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["alt"], get_stage()["engines"]["thrust"] ).
+	
+	LOCAL rtlsC1v IS  RTLS_C1(theta).	
+	LOCAL rtls_pitcharound_tgtv IS rodrigues(
+											rtlsC1v,
+											normvec,
+											2*VANG(rtlsC1v, curR)
+											).
+	LOCAL lexx IS  LEXICON (
+								"t_abort", surfacestate["MET"],
+								"theta_C1", theta,
+								"C1",rtlsC1v,
+								"Tc",0,
+								"pitcharound",LEXICON(
+													"refvec",normvec,
+													"dt", RTLS_pitchover_t(rtlsC1v, rtls_pitcharound_tgtv),
+													"triggered",flyback_immediate,
+													"complete",FALSE,
+													"target", rtls_pitcharound_tgtv
+													
+												),
+								"flyback_range_lockout", 100,
+								"flyback_iter",-2,
+								"flyback_conv",-2,
+								"flyback_flag", FALSE
+	).
+	
+	//prepare upfg
+	SET upfgInternal TO resetUPFG().
+	
+	SET upfgInternal["terminal_time"] TO 15.
+	SET upfgInternal["tgo_conv"] TO 2.
+	SET upfgInternal["throtset"] TO 0.96.
+	
+	IF (flyback_immediate) {
+		addGUIMessage("IMMEDIATE POWERED PITCH-AROUND").
+	}
+	
+	//signal to the rest of the program that rtls is in progress
+	GLOBAL RTLSAbort IS lexx.
+}
 
 
 

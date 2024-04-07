@@ -356,17 +356,144 @@ function ops1_second_stage_nominal {
 
 function ops1_second_stage_rtls {
 	
-	addGUIMessage("RTLS not yet implemented").
+	dap:set_steering_low().
+	
+	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	
+	SET vehiclestate["major_mode"] TO 601.
 
 	until false {
 		if (quit_program) {
 			RETURN.
 		}
 		
+		IF (upfgInternal["itercount"] = 0) { //detects first pass or convergence lost
+			WHEN (upfgInternal["s_conv"]) THEN {
+				addGUIMessage("GUIDANCE CONVERGED IN " + upfgInternal["itercount"] + " ITERATIONS").
+			}
+		}	
+
+		abort_handler().
+		getState().
+		
 		if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) {
 			return.
 		}
+		
+		if (vehicle["low_level"]) {
+			addGUIMessage("LOW LEVEL").
+			BREAK.
+		}
+		
+		if (upfgInternal["s_meco"]) {
+			addGUIMessage("TERMINAL GUIDANCE").
+			BREAK.
+		}
+		
+		upfg_sense_current_state(upfgInternal).
+		
+		RTLS_burnout_mass().
+		SET upfgInternal["mbod"] TO vehicle["mbod"].
+		
+		IF (NOT RTLSAbort["flyback_flag"]) {
+		
+			LOCAL stg IS get_stage().
+		
+			//extrapolate state to the end of ppa
+			SET upfgInternal["t_cur"] TO upfgInternal["t_cur"] - RTLSAbort["pitcharound"]["dt"].
+			SET upfgInternal["r_cur"] TO upfgInternal["r_cur"] + upfgInternal["v_cur"] * RTLSAbort["pitcharound"]["dt"].
+			SET upfgInternal["m_cur"] TO upfgInternal["m_cur"] - stg["engines"]["flow"] * RTLSAbort["pitcharound"]["dt"].
+			SET upfgInternal["tb_cur"] TO upfgInternal["tb_cur"] - RTLSAbort["pitcharound"]["dt"].
+		
+		}
+		
+		upfg(
+			vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]),
+			target_orbit,
+			upfgInternal
+		).
+		
+		LOCAL PEG_Tc IS (upfgInternal["mbo_T"] - upfgInternal["tgo"]).
+		
+		IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
+		
+			dap:set_steering_low().
+		
+			//force unconverged until flyback
+			SET upfgInternal["s_conv"] TO FALSE.
+			SET upfgInternal["iter_conv"] TO 0.
+			//itercount must be reset so we don't end up with a huge iterations count at PPA
+			//BUT DON'T RESET IT TO ZERO BC AT EVERY LOOP A WHEN CHECK WILL BE ADDED!
+			SET upfgInternal["itercount"] TO 1.
+		
+			LOCAL RTLS_steering IS V(0,0,0).
+			
+			IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
+				//dissipation 
+				SET RTLSAbort["C1"] TO RTLS_C1(RTLSAbort["theta_C1"]).
+				SET RTLS_steering TO RTLSAbort["C1"]:NORMALIZED.
+				
+				//range lockout bc lose to the site guidance is unreliable 
+				LOCAL range_now IS greatcircledist(RTLS_tgt_site_vector(), orbitstate["radius"]).
+				
+				IF (PEG_Tc > RTLSAbort["Tc"]) OR (range_now < RTLSAbort["flyback_range_lockout"]) {
+					SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
+				} ELSE {
+					SET RTLSAbort["flyback_conv"] TO MIN( 1, RTLSAbort["flyback_conv"] + 1).
+				}
+				
+				IF (RTLSAbort["flyback_conv"] = 1) {
+					SET RTLSAbort["pitcharound"]["target"] TO upfgInternal["steering"]. 
+				}
+				
+				SET RTLSAbort["pitcharound"]["dt"] TO RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
+				
+				IF (RTLSAbort["flyback_conv"] = 1) {
+					LOCAL pitchover_bias IS 0.5 * RTLSAbort["pitcharound"]["dt"].
+					
+					IF (PEG_Tc <= (1 + pitchover_bias)) {
+						addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
+						SET RTLSAbort["pitcharound"]["refvec"] TO - VCRS(orbitstate["radius"], RTLSAbort["C1"]).
+						SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"], RTLSAbort["pitcharound"]["target"]).
+						SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
+						SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
+						//precaution for convergence display
+						SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
+					} 
+				}
+				
+			} ELSE {
+				//powered pitcharound					
+				//get the current thrust vector, project in the plane containing the peg vector (flyback guidance command) and C1,
+				//rotate ahead by a few degrees
+				
+				dap:set_steering_high().
+				
+				set vehicle["roll"] to 0.
+				set dap:steer_roll to 0.
+				set dap:max_steervec_corr to 8.
+				
+				set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
+				LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
+				SET RTLS_steering TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], 45). 
+				IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 20) {
+					SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
+					SET RTLSAbort["flyback_flag"] TO TRUE.
+					SET upfgInternal["s_flyback"] TO TRUE.
+					SET upfgInternal["s_throt"] TO TRUE.
+					set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+					
+				}	
+			
+			}
+			
+			dap:set_steer_tgt(vecYZ(RTLS_steering)).
+		}
+	
+		SET RTLSAbort["Tc"] TO PEG_Tc.
 	}
+	
+	//powered pitchdown
 }
 
 
