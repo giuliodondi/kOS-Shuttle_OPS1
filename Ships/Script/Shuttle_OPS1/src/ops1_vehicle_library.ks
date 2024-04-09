@@ -72,6 +72,7 @@ function initialise_shuttle {
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
 						"OMS_prop", 0,
+						"OMS_prop_dump_frac", 0.4,
 						"SSME",0,
 						"OMS",0,
 						"stack_full_mass", 0,
@@ -1079,6 +1080,7 @@ FUNCTION srb_staging {
 			//measure conditions at staging 
 			LOCAL v_stg IS SHIP:VELOCITY:SURFACE:MAG.
 
+			SET vehiclestate["srb_sep"]["time"] TO surfacestate["MET"].
 			SET vehiclestate["srb_sep"]["v"] TO v_stg.
 			SET vehiclestate["srb_sep"]["alt"] TO SHIP:ALTITUDE.
 			
@@ -1454,7 +1456,7 @@ FUNCTION stop_oms_dump {
 		RETURN.
 	}
 
-	IF (get_oms_prop_fraction() <= 0.4 OR force) {
+	IF (get_oms_prop_fraction() <= vehicle["OMS_prop_dump_frac"]) OR (force) {
 
 		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 		FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
@@ -1673,6 +1675,11 @@ FUNCTION measure_update_engines {
 	if (ssme_out_detected_flag) {
 		addGUIMessage("ENGINE OUT DETECTED").
 		ssme_out_safing().
+		if (SSMEcount = 1) {
+			addGUIMessage("SINGLE ENGINE ROLL CONTROL").
+			single_engine_roll_control().
+		}
+		
 		FROM {local k is 0.} UNTIL k = ssmes_out STEP {set k to k+1.} DO {
 			local engout_vi is orbitstate["velocity"]:mag.
 			
@@ -1749,8 +1756,6 @@ function ssme_out_safing {
 }
 
 function single_engine_roll_control {
-
-	addGUIMessage("SERC ENABLED").
 
 	dap:set_rcs(TRUE).
 	

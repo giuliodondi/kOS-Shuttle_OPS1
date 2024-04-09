@@ -112,7 +112,7 @@ FUNCTION dataViz {
 	//do the rtls gui update 
 	IF (DEFINED RTLSAbort) {
 	
-		gui_data:ADD("dwnrg_ve", current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE)).
+		gui_data:ADD("dwnrg_ve", surfacestate["horiz_dwnrg_v"].
 		gui_data:ADD("dwnrg_pred_ve", current_horiz_dwnrg_speed(pred_simstate["latlong"], pred_simstate["surfvel"])).
 		gui_data:ADD("rtls_cutv", target_orbit["rtls_cutv"]).
 		set gui_data["rtls_tc"] to  RTLSAbort["Tc"].
