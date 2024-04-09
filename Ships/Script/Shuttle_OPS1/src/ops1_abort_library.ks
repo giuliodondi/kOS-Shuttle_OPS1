@@ -450,6 +450,8 @@ function abort_initialiser {
 		//now initialise the mode 
 		if (abort_modes["rtls_active"]) {
 			//setup rtls	
+			addGUIMessage("ABORT RTLS").
+			setup_RTLS().
 		} else if (abort_modes["tal_active"]) {
 			//setup tal 
 			addGUIMessage("ABORT TAL").
@@ -587,8 +589,8 @@ FUNCTION RTLS_dissip_theta_pert {
 FUNCTION RTLS_C1 {
 	PARAMETER theta.
 
-	LOCAL pos IS vecYZ(-SHIP:ORBIT:BODy:POSITION).
-	LOCAL ve IS vecYZ(SHIP:VELOCITY:SURFACE).
+	LOCAL pos IS orbitstate["radius"].
+	LOCAL ve IS vecYZ(surfacestate["surfv"]).
 
 	LOCAL normvec IS -VCRS(pos, ve):NORMALIZED.
 	
@@ -623,10 +625,11 @@ FUNCTION RTLS_rvline {
 }
 
 FUNCTION RTLS_burnout_mass {
+	parameter m_final.
 
-	//add 1% of ssme fuel and 20% of oms fuel
+	//add 2% of ssme fuel and 20% of oms fuel
 	//this NEEDs to be called after we update the final mass with the right value
-	SET vehicle["mbod"] TO vehicle["stages"][vehicle["stages"]:LENGTH - 1]["m_final"] + 0.01 * vehicle["SSME_prop_0"] + 0.2 * vehicle["OMS_prop_0"].
+	SET vehicle["mbod"] TO m_final + 0.02 * vehicle["SSME_prop_0"] + vehicle["OMS_prop_dump_frac"] * vehicle["OMS_prop_0"].
 }
 
 //to be called before launch, will fin the closest landing site 
@@ -638,7 +641,7 @@ FUNCTION get_RTLS_site {
 
 
 FUNCTION RTLS_boundary_vel {
-	RETURN (2880 - 7.8 * ABS(target_orbit["inclination"])).
+	RETURN (2930 - 7.8 * ABS(target_orbit["inclination"])).
 }
 
 FUNCTION RTLS_boundary{
@@ -659,11 +662,6 @@ FUNCTION RTLS_immediate_flyback {
 }
 
 FUNCTION setup_RTLS {
-
-	IF (DEFINED RTLSAbort) {
-		RETURN.
-	}
-	
 	
 	//do it immediately so it's ready when the gui first wants to update it 
 	make_rtls_traj2_disp().
@@ -679,7 +677,7 @@ FUNCTION setup_RTLS {
 	local throt_val is vehicle["maxThrottle"].
 	
 	if (get_engines_out() < 1) {
-		set throt_val to 0.67 * vehicle["maxThrottle"].
+		set throt_val to 0.69 * vehicle["maxThrottle"].
 	}
 	
 	//redefine vehicle 
@@ -688,10 +686,11 @@ FUNCTION setup_RTLS {
 	
 	LOCAL current_m IS SHIP:MASS*1000.
 	local res_left IS get_shuttle_res_left().
+	local m_final is current_m - res_left.
 	
 	setup_shuttle_stages(
 						current_m,
-						current_m - res_left,
+						m_final,
 						engines_lex,
 						throt_val
 	).
@@ -699,7 +698,7 @@ FUNCTION setup_RTLS {
 
 	vehicle:ADD("mbod",0).
 	
-	RTLS_burnout_mass().		
+	RTLS_burnout_mass(m_final).		
 	
 	LOCAL cur_stg IS get_stage().
 
@@ -726,7 +725,7 @@ FUNCTION setup_RTLS {
 	//LOCAL normvec IS VCRS(cut_r, tgtsitevec):NORMALIZED.
 	
 	//plane defined from current position and velocity, must point to the launch site though
-	LOCAL normvec IS -VCRS(vecYZ(-SHIP:ORBIT:BODy:POSITION), vecYZ(SHIP:VELOCITY:SURFACE)):NORMALIZED.
+	LOCAL normvec IS -VCRS(curR, vecYZ(surfacestate["surfv"])):NORMALIZED.
 	
 	LOCAL rng IS greatcircledist(tgtsitevec, cut_r) * 1000.
 	
@@ -747,15 +746,7 @@ FUNCTION setup_RTLS {
 	
 	//abort control lexicon
 	
-	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], abort_modes["staging"]["v"], abort_modes["staging"]["alt"], get_stage()["engines"]["thrust"] ).
-	
-	LOCAL rtlsC1v IS  RTLS_C1(theta).	
-	LOCAL rtls_pitcharound_tgtv IS rodrigues(
-											rtlsC1v,
-											normvec,
-											2*VANG(rtlsC1v, curR)
-											).
-	LOCAL lexx IS  LEXICON (
+	GLOBAL RTLSAbort IS LEXICON (
 								"t_abort", surfacestate["MET"],
 								"theta_C1", theta,
 								"C1",rtlsC1v,
@@ -774,19 +765,33 @@ FUNCTION setup_RTLS {
 								"flyback_flag", FALSE
 	).
 	
+	//the theta angle requires the velocity at abort init 
+	//if one engine out use the greater of the failure time or the srb staging time
+	//if zero engine out use the srb time 
+	
+	
+	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], vehiclestate["srb_sep"]["v"], vehiclestate["srb_sep"]["alt"], get_stage()["engines"]["thrust"] ).
+	
+	LOCAL rtlsC1v IS  RTLS_C1(theta).	
+	LOCAL rtls_pitcharound_tgtv IS rodrigues(
+											rtlsC1v,
+											normvec,
+											2*VANG(rtlsC1v, curR)
+											).
+	
 	//prepare upfg
 	SET upfgInternal TO resetUPFG().
 	
 	SET upfgInternal["terminal_time"] TO 15.
 	SET upfgInternal["tgo_conv"] TO 2.
-	SET upfgInternal["throtset"] TO 0.96.
+	SET upfgInternal["throtset"] TO 0.96 * throt_val.
 	
 	IF (flyback_immediate) {
 		addGUIMessage("IMMEDIATE POWERED PITCH-AROUND").
 	}
 	
 	//signal to the rest of the program that rtls is in progress
-	GLOBAL RTLSAbort IS lexx.
+	lexx.
 }
 
 
@@ -1042,15 +1047,9 @@ FUNCTION setup_TAL{
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
 	
 	local two_engout is (engines_out > 1).
-	local fast_dump is false.
 	
-	if (two_engout) {
-		start_oms_dump(two_engout).
-		single_engine_roll_control().
-	}
-	
-	
-	
+	start_oms_dump(two_engout).
+
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
 	WHEN ( surfacestate["MET"] > (abort_modes["trigger_t"] + 40) ) THEN {
 		roll_heads_up().
@@ -1149,14 +1148,6 @@ FUNCTION setup_ATO {
 	local engines_out is get_engines_out().
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
-	
-	local two_engout is (engines_out > 1).
-	local fast_dump is false.
-	
-	if (two_engout) {
-		single_engine_roll_control().
-		dap:set_steering_med().
-	}
 	
 	//no oms dump for ato/aoa
 }
