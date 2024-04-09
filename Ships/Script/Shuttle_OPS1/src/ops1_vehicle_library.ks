@@ -1755,9 +1755,7 @@ function single_engine_roll_control {
 	dap:set_rcs(TRUE).
 	
 	FOR ssme IN get_ssme_parts() {
-		IF ssme:FLAMEOUT {
-			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
-		} else {
+		IF (not ssme:FLAMEOUT) {
 			set ssme:GIMBAL:roll to false.
 		}
 	}
