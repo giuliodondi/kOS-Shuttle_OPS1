@@ -1743,3 +1743,40 @@ FUNCTION shutdown_ssmes {
 		e:shutdown.
 	}	
 }
+
+function single_engine_roll_control {
+
+	RCS ON.
+	
+	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
+		IF ssme:FLAMEOUT {
+			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
+		} else {
+			set ssme:GIMBAL:roll to false.
+		}
+	}
+	
+
+}
+
+function toggle_roll_rcs {
+	parameter full_rcs is false.
+	
+	LIST RCS IN rcslist.
+	
+	local rcsmoduleslist is list().
+	
+	for rcs_ in rcslist {
+		for rcsm_ in rcs_:modulesnamed("ModuleRCSFX") {
+			if (rcsm_:hasevent("show actuation toggles")) {
+				rcsm_:doevent("show actuation toggles").
+				wait 0.
+			}
+			
+			rcsm_:SETFIELD("pitch",full_rcs).
+			rcsm_:SETFIELD("yaw",full_rcs).
+			rcsm_:SETFIELD("roll",true).
+		}
+	}
+
+}

@@ -1036,7 +1036,15 @@ FUNCTION setup_TAL{
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
 	
-	start_oms_dump((engines_out > 1)).
+	local two_engout is (engines_out > 1).
+	local fast_dump is false.
+	
+	if (two_engout) {
+		start_oms_dump(two_engout).
+		single_engine_roll_control().
+	}
+	
+	
 	
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
 	WHEN ( surfacestate["MET"] > (abort_modes["trigger_t"] + 40) ) THEN {
@@ -1051,13 +1059,13 @@ FUNCTION setup_TAL{
 
 function get_ato_tgt_orbit {
 	
-	local ato_apoapsis is MIN(160, 0.8*target_orbit["apoapsis"]).
+	local ato_apoapsis is MIN(200, 0.8*target_orbit["apoapsis"]).
 	
-	local ato_cutoff_alt is 0.95 * target_orbit["cutoff alt"].
+	local ato_cutoff_alt is 0.98 * target_orbit["cutoff alt"].
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
 	
-	//300 m/s burn to circularise at apoapsis
-	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - 300.
+	//230 m/s burn to circularise at apoapsis
+	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - 180.
 	
 	local ato_sma is 2/ato_cutoff_radius - ato_ap_v^2/BODY:MU.
 	set ato_sma to 1/ato_sma.
@@ -1141,11 +1149,11 @@ FUNCTION setup_ATO {
 	local fast_dump is false.
 	
 	if (two_engout) {
-		set fast_dump to true.
+		single_engine_roll_control().
 		dap:set_steering_med().
 	}
 	
-	start_oms_dump(fast_dump).
+	//no oms dump for ato/aoa
 }
 
 

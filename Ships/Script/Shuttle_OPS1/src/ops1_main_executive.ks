@@ -119,6 +119,7 @@ function ops1_countdown{
 	wait 0.
 
 	SAS OFF.
+	toggle_roll_rcs().
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	LOCK THROTTLE to dap:thr_cmd.
@@ -348,7 +349,6 @@ function ops1_second_stage_nominal {
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 	shutdown_ssmes().
 	stop_oms_dump(TRUE).
-	dap:set_rcs(TRUE).
 	
 	SET vehiclestate["major_mode"] TO 104.
 }
@@ -511,6 +511,9 @@ function ops1_second_stage_contingency {
 
 function ops1_et_sep {
 	parameter fast_sep is false.
+	
+	dap:set_rcs(TRUE).
+	toggle_roll_rcs(true).
 	
 	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
