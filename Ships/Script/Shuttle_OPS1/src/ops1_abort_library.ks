@@ -472,7 +472,12 @@ function abort_initialiser {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to true.
 			set two_eo_tal_abort to false.
-			set two_eo_ato_abort to true.
+			set two_eo_ato_abort to false.
+		} else if (abort_modes["intact_modes"]["2eo"]["meco"]) {
+			set two_eo_cont_abort to false.
+			set two_eo_rtls_abort to false.
+			set two_eo_tal_abort to false.
+			set two_eo_ato_abort to false.
 		} else if (abort_modes["intact_modes"]["2eo"]["ato"]) {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to false.
