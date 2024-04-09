@@ -1285,7 +1285,7 @@ FUNCTION setup_engine_failure {
 					"time",engine_failure_time,
 					"type", "action",
 					"action",{
-								LOCAL englist IS SHIP:PARTSDUBBED("ShuttleSSME").
+								LOCAL englist IS get_ssme_parts().
 								LOCAL zpos IS 0.
 								LOCAL ze_ IS 0.
 								FROM {local e_ is 0.} UNTIL e_ >= englist:LENGTH STEP {set e_ to e_+1.} DO { 
@@ -1326,6 +1326,10 @@ FUNCTION get_shuttle_res_left {
 	}
 		
 	return total_prop.
+}
+
+function get_ssme_parts {
+	return SHIP:PARTSDUBBED("ShuttleSSME").
 }
 
 function get_srb_parts {
@@ -1404,15 +1408,6 @@ function et_sep {
 	dm:doaction("Decouple", true).
 }
 
-FUNCTION disable_TVC {
-	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
-		IF ssme:ISTYPE("engine") {
-			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
-		}
-	}
-}
-
-
 
 //close umbilical doors
 FUNCTION close_umbilical {
@@ -1442,7 +1437,7 @@ FUNCTION start_oms_dump {
 
 	
 	if (fast_dump) {
-		RCS ON.
+		dap:set_rcs(TRUE).
 		SET SHIP:CONTROL:FORE TO 1.
 		SET SHIP:CONTROL:TOP TO 1.
 	}
@@ -1487,11 +1482,11 @@ FUNCTION parse_ssme {
 	
 	//count SSMEs, not necessary per se but a useful check to see if we're flying a DECQ shuttle
 	LOCAL ssme_count IS 0. 
-	SET ssmelex["type"] TO SHIP:PARTSDUBBED("ShuttleSSME")[0]:CONFIG.
+	SET ssmelex["type"] TO get_ssme_parts()[0]:CONFIG.
 	
 	LOCAL ssme_reslex IS LEXICON().
 	
-	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
+	FOR ssme IN get_ssme_parts() {
 		IF ssme:ISTYPE("engine") {
 			SET ssme_count TO ssme_count + 1.
 			
@@ -1666,7 +1661,7 @@ FUNCTION measure_update_engines {
 	
 	//measure engines 
 	LOCAL SSMEcount IS 0.
-	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
+	FOR e IN get_ssme_parts() {
 		IF e:IGNITION {
 			SET SSMEcount TO SSMEcount + 1.
 		}
@@ -1676,7 +1671,8 @@ FUNCTION measure_update_engines {
 	local ssme_out_detected_flag is (ssmes_out > 0).
 	
 	if (ssme_out_detected_flag) {
-		addGUIMessage("ENGINE OUT DETECTED.").
+		addGUIMessage("ENGINE OUT DETECTED").
+		ssme_out_safing().
 		FROM {local k is 0.} UNTIL k = ssmes_out STEP {set k to k+1.} DO {
 			local engout_vi is orbitstate["velocity"]:mag.
 			
@@ -1729,26 +1725,36 @@ function get_engines_out {
 }
 
 FUNCTION SSME_flameout {
-	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
-		IF e:FLAMEOUT {
-			RETURN true.
-		}
+
+	local all_ssme_flameout is true.
+	FOR ssme IN get_ssme_parts() {
+		set all_ssme_flameout to (all_ssme_flameout and (ssme:FLAMEOUT)).
 	}
-	RETURN FALSE.
+	RETURN all_ssme_flameout.
 }
 
 
 FUNCTION shutdown_ssmes {
-	FOR e IN SHIP:PARTSDUBBED("ShuttleSSME") {
+	FOR e IN get_ssme_parts() {
 		e:shutdown.
 	}	
 }
 
+function ssme_out_safing {
+	FOR ssme IN get_ssme_parts() {
+		IF ssme:FLAMEOUT {
+			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
+		}
+	}
+}
+
 function single_engine_roll_control {
 
-	RCS ON.
+	addGUIMessage("SERC ENABLED").
+
+	dap:set_rcs(TRUE).
 	
-	FOR ssme IN SHIP:PARTSDUBBED("ShuttleSSME") {
+	FOR ssme IN get_ssme_parts() {
 		IF ssme:FLAMEOUT {
 			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
 		} else {

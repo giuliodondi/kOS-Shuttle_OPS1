@@ -514,6 +514,7 @@ function ops1_et_sep {
 	
 	dap:set_rcs(TRUE).
 	toggle_roll_rcs(true).
+	ssme_out_safing().
 	
 	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
@@ -561,7 +562,6 @@ function ops1_et_sep {
 	}
 	
 	close_umbilical().
-	disable_TVC().
 	
 	//this is presumably where we add logic for atttude control in contingency
 	
