@@ -94,17 +94,19 @@ function ops1_main_exec {
 	
 	if (quit_program) {RETURN.}
 	
+	//handle sequence for rtls and contingency 
+	
 	if (abort_modes["rtls_active"]) {
 		ops1_second_stage_rtls().
 	}
 	
-	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) {
+	if (quit_program) {RETURN.}
+	
+	if (abort_modes["cont_2eo_active"]) {		//probably won't handle 3eo in this block
 		ops1_second_stage_contingency().
 	}
 	
 	if (quit_program) {RETURN.}
-	
-	//handle sequence for rtls and contingency 
 	
 	ops1_et_sep().
 	
@@ -285,19 +287,11 @@ function ops1_second_stage_nominal {
 	
 	SET vehiclestate["major_mode"] TO 103.
 	
-	addGUIMessage("RUNNING UPFG ALGORITHM").
-	
 	//upfg loop
 	UNTIL FALSE{
 		if (quit_program) {
 			RETURN.
 		}
-	
-		IF (upfgInternal["itercount"] = 0) { //detects first pass or convergence lost
-			WHEN (upfgInternal["s_conv"]) THEN {
-				addGUIMessage("GUIDANCE CONVERGED IN " + upfgInternal["itercount"] + " ITERATIONS").
-			}
-		}	
 
 		abort_handler().
 		getState().
@@ -331,6 +325,8 @@ function ops1_second_stage_nominal {
 	}
 	
 	//terminal loop 
+	
+	SET upfgInternal["terminal"] TO TRUE.
 	
 	set dap:thr_rpl_tgt to dap:thr_min.
 	
@@ -455,7 +451,7 @@ function ops1_second_stage_rtls {
 					LOCAL pitchover_bias IS 0.5 * RTLSAbort["pitcharound"]["dt"].
 					
 					IF (PEG_Tc <= (1 + pitchover_bias)) {
-						addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
+						addGUIMessage("POWERED PITCH-AROUND").
 						SET RTLSAbort["pitcharound"]["refvec"] TO - VCRS(orbitstate["radius"], RTLSAbort["C1"]).
 						SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"], RTLSAbort["pitcharound"]["target"]).
 						SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
@@ -497,6 +493,41 @@ function ops1_second_stage_rtls {
 	}
 	
 	//powered pitchdown
+	
+	SET upfgInternal["terminal"] TO TRUE.
+	
+	addGUIMessage("POWERED PITCH-DOWN").
+	
+	dap:set_steering_high().
+		
+	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	
+	UNTIL FALSE{
+		getState().
+		
+		LOCAL steervec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
+		LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+		
+		set dap:steer_tgtdir to LOOKDIRUP(steervec, upvec).
+
+		LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
+		LOCAL tgtsurfvel IS RTLS_rvline(rng).
+		
+		IF (SHIP:VELOCITY:SURFACE:MAG >= tgtsurfvel OR SSME_flameout()) {
+			BREAK.
+		}
+		
+	}
+	
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
+	
+	//stop oms dump for intact aborts
+	LOCK THROTTLE to 0.
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+	shutdown_ssmes().
+	stop_oms_dump(TRUE).
+	
+	SET vehiclestate["major_mode"] TO 602.		//?????
 }
 
 
@@ -507,6 +538,10 @@ function ops1_second_stage_contingency {
 	until false {
 		if (quit_program) {
 			RETURN.
+		}
+		
+		if  (abort_modes["cont_3eo_active"]) {
+			return.
 		}
 	}
 }
@@ -586,290 +621,6 @@ function ops1_termination {
 	}
 
 }
-
-
-function closed_loop_ascent_bk{
-	
-
-
-	UNTIL FALSE{
-		if (quit_program) {
-			RETURN FALSE.
-		}
-	
-		IF (upfgInternal["itercount"] = 0) { //detects first pass or convergence lost
-			WHEN (upfgInternal["s_conv"]) THEN {
-				addGUIMessage("GUIDANCE CONVERGED IN " + upfgInternal["itercount"] + " ITERATIONS").
-			}
-		}				
-
-		//abort must be set up before getstate so the stage is reconfigured 
-		//and then adjusted to the current fuel mass
-		measure_update_engines().
-		//monitor_abort().	//disabled
-		abort_region_determinator().
-		//move it here so that we have the most accurate time figure for staging checks
-		getState().
-		
-		
-		//detect terminal conditions
-		
-		//see if we're at the last stage and close to flameout 
-		//this also takes care of staging during ssme phase
-		IF ssme_staging_flameout() {
-			addGUIMessage("LOW LEVEL").
-			BREAK.
-		}
-		
-		//check for orbital terminal conditions 
-		IF (DEFINED RTLSAbort) {
-			
-			LOCAL tgtsurfvel IS RTLS_rvline(downrangedist(launchpad,SHIP:GEOPOSITION )*1000).
-		
-			IF ( RTLSAbort["flyback_flag"] AND (upfgInternal["tgo"] < 60) AND ( (upfgInternal["s_conv"] AND upfgInternal["tgo"] < upfgInternal["terminal_time"]) OR SHIP:VELOCITY:SURFACE:MAG >= 0.9*tgtsurfvel ) ) {
-				addGUIMessage("POWERED PITCH-DOWN").
-				BREAK.
-			}
-		} ELSE {
-			IF (upfgInternal["s_conv"] AND (upfgInternal["tgo"] < upfgInternal["terminal_time"] AND SHIP:VELOCITY:ORBIT:MAG>= 0.9*target_orbit["velocity"])) OR (SHIP:VELOCITY:ORBIT:MAG>= 0.995*target_orbit["velocity"]) {
-				addGUIMessage("TERMINAL GUIDANCE").
-				BREAK.
-			}
-		}
-		
-		//changed this to read the abort triggered flag so it works for all kinds of aborts														 
-		IF NOT (abort_modes["triggered"]) {
-			IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
-				SET target_orbit TO tgt_j2_timefor(target_orbit,upfgInternal["tgo"]).
-			}	
-		}
-		
-		upfg_sense_current_state(upfgInternal).
-		
-		IF (DEFINED RTLSAbort) {
-			RTLS_burnout_mass().
-			SET upfgInternal["mbod"] TO vehicle["mbod"].
-			
-			IF (NOT RTLSAbort["flyback_flag"]) {
-			
-				LOCAL stg IS get_stage().
-			
-				//extrapolate state to the end of ppa
-				SET upfgInternal["t_cur"] TO upfgInternal["t_cur"] - RTLSAbort["pitcharound"]["dt"].
-				SET upfgInternal["r_cur"] TO upfgInternal["r_cur"] + upfgInternal["v_cur"] * RTLSAbort["pitcharound"]["dt"].
-				SET upfgInternal["m_cur"] TO upfgInternal["m_cur"] - stg["engines"]["flow"] * RTLSAbort["pitcharound"]["dt"].
-				SET upfgInternal["tb_cur"] TO upfgInternal["tb_cur"] - RTLSAbort["pitcharound"]["dt"].
-			
-			}
-		}
-			
-			
-		upfg(
-			vehicle["stages"]:SUBLIST(vehiclestate["cur_stg"],vehicle:LENGTH-vehiclestate["cur_stg"]),
-			target_orbit,
-			upfgInternal
-		).
-
-		//for debugging
-		//clearvecdraws().
-		//arrow_ship(vecyz(upfgInternal["steering"]),"steer").
-		//arrow_ship(vecyz(upfgInternal["ix"]),"ix").
-		//arrow_ship(vecyz(upfgInternal["iy"]),"iy").
-		//arrow_ship(vecyz(upfgInternal["iz"]),"iz").
-		//arrow_body(vecyz(upfgInternal["rd"]),"rd").
-		
-		//fuel dissipation and flyback trigger logic
-		IF (DEFINED RTLSAbort) {
-		
-
-			LOCAL PEG_Tc IS (upfgInternal["mbo_T"] - upfgInternal["tgo"]).
-		
-			IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
-			
-				dap:set_steering_low().
-			
-				//force unconverged until flyback
-				SET upfgInternal["s_conv"] TO FALSE.
-				SET upfgInternal["iter_conv"] TO 0.
-				//itercount must be reset so we don't end up with a huge iterations count at PPA
-				//BUT DON'T RESET IT TO ZERO BC AT EVERY LOOP A WHEN CHECK WILL BE ADDED!
-				SET upfgInternal["itercount"] TO 1.
-			
-				LOCAL RTLS_steering IS V(0,0,0).
-				
-				IF ( NOT RTLSAbort["pitcharound"]["triggered"] ) {
-					//dissipation 
-					SET RTLSAbort["C1"] TO RTLS_C1(RTLSAbort["theta_C1"]).
-					SET RTLS_steering TO RTLSAbort["C1"]:NORMALIZED.
-					
-					//range lockout bc lose to the site guidance is unreliable 
-					LOCAL range_now IS greatcircledist(RTLS_tgt_site_vector(), orbitstate["radius"]).
-					
-					IF (PEG_Tc > RTLSAbort["Tc"]) OR (range_now < RTLSAbort["flyback_range_lockout"]) {
-						SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
-					} ELSE {
-						SET RTLSAbort["flyback_conv"] TO MIN( 1, RTLSAbort["flyback_conv"] + 1).
-					}
-					
-					IF (RTLSAbort["flyback_conv"] = 1) {
-						SET RTLSAbort["pitcharound"]["target"] TO upfgInternal["steering"]. 
-					}
-					
-					SET RTLSAbort["pitcharound"]["dt"] TO RTLS_pitchover_t(RTLSAbort["C1"], RTLSAbort["pitcharound"]["target"]).
-					
-					IF (RTLSAbort["flyback_conv"] = 1) {
-						LOCAL pitchover_bias IS 0.5 * RTLSAbort["pitcharound"]["dt"].
-						
-						IF (PEG_Tc <= (1 + pitchover_bias)) {
-							addGUIMessage("POWERED PITCH-AROUND TRIGGERED").
-							SET RTLSAbort["pitcharound"]["refvec"] TO - VCRS(orbitstate["radius"], RTLSAbort["C1"]).
-							SET RTLSAbort["pitcharound"]["target"] TO VXCL(RTLSAbort["pitcharound"]["refvec"], RTLSAbort["pitcharound"]["target"]).
-							SET RTLSAbort["pitcharound"]["triggered"] TO TRUE.
-							SET RTLSAbort["pitcharound"]["complete"] TO FALSE.
-							//precaution for convergence display
-							SET RTLSAbort["flyback_conv"] TO RTLSAbort["flyback_iter"].
-						} 
-					}
-					
-				} ELSE {
-					//powered pitcharound					
-					//get the current thrust vector, project in the plane containing the peg vector (flyback guidance command) and C1,
-					//rotate ahead by a few degrees
-					
-					dap:set_steering_high().
-					
-					set vehicle["roll"] to 0.
-					set dap:steer_roll to 0.
-					set dap:max_steervec_corr to 8.
-					
-					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
-					LOCAL thrust_facing IS VXCL(RTLSAbort["pitcharound"]["refvec"],vecYZ(thrust_vec()):NORMALIZED).
-					SET RTLS_steering TO rodrigues(thrust_facing, RTLSAbort["pitcharound"]["refvec"], 45). 
-					IF (VANG(thrust_facing, RTLSAbort["pitcharound"]["target"]) < 20) {
-						SET RTLSAbort["pitcharound"]["complete"] TO TRUE.
-						SET RTLSAbort["flyback_flag"] TO TRUE.
-						SET upfgInternal["s_flyback"] TO TRUE.
-						SET upfgInternal["s_throt"] TO TRUE.
-						set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-						
-					}	
-				
-				}
-				
-				dap:set_steer_tgt(vecYZ(RTLS_steering)).
-			}
-		
-			SET RTLSAbort["Tc"] TO PEG_Tc.
-		}
-		
-		
-		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
-			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
-		
-			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
-		} 
-		
-	}
-	
-	SET vehiclestate["major_mode"] TO 3.
- 
-	SET upfgInternal["terminal"] TO TRUE.
-	
-	set dap:thr_rpl_tgt to dap:thr_min.
-	
-	//put RTLS terminal logic in its own block
-	IF (DEFINED RTLSAbort) {
-
-		dap:set_steering_high().
-		
-		set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-		
-		UNTIL FALSE{
-			getState().
-			
-			LOCAL steervec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
-			LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-			
-			set dap:steer_tgtdir to LOOKDIRUP(steervec, upvec).
-
-			LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
-			LOCAL tgtsurfvel IS RTLS_rvline(rng).
-			
-			IF (SHIP:VELOCITY:SURFACE:MAG >= tgtsurfvel OR SSME_flameout()) {
-				BREAK.
-			}
-			
-		}
-	} ELSE {
-		
-		addGUIMessage("WAITING FOR MECO").
-	
-		UNTIL FALSE {
-			getState().
-			IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
-				BREAK.
-			}
-		}
-	
-	}
-	
-	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
-	
-	LOCK THROTTLE to 0.
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-	shutdown_all_engines().
-	stop_oms_dump(TRUE).
-	dap:set_rcs(TRUE).
-	
-	//ET sep loop
-	LOCAL etsep_t IS TIME:SECONDS.
-	WHEN ( TIME:SECONDS > etsep_t + 1.5) THEN {
-		SET SHIP:CONTROL:TOP TO 1.
-		
-		WHEN ( TIME:SECONDS > etsep_t + 2.5) THEN {
-			STAGE.
-			
-			WHEN ( TIME:SECONDS > etsep_t + 15) THEN {
-				SET vehiclestate["major_mode"] TO 4.
-			}
-		}
-	}
-	addGUIMessage("STAND-BY FOR ET SEP").
-	
-	UNTIL FALSE{
-		getState().
-		
-		IF (vehiclestate["major_mode"] = 4) {
-			BREAK.
-		}
-		WAIT 0.1.
-	}
-	
-	//to disable RCS separation maneouvre
-	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-	
-	close_umbilical().
-	disable_TVC().
-	
-	UNLOCK THROTTLE.
-	UNLOCK STEERING.
-	SAS ON.
-	
-	// IF RTLS enter GRTLS loop and exit
-	IF (DEFINED RTLSAbort) {
-		RETURN TRUE.
-	}
-	
-	print_ascent_report().
-	
-	UNTIL (AG9 or quit_program). {
-		getState().
-		WAIT 0.2.
-	}
-		
-	RETURN TRUE.
-}
-
 
 ops1_main_exec().
 

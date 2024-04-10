@@ -502,7 +502,11 @@ function abort_initialiser {
 		set abort_modes["tal_active"] to two_eo_tal_abort. 
 		set abort_modes["ato_active"] to two_eo_ato_abort. 
 		
-		if (abort_modes["tal_active"]) {
+		if (abort_modes["rtls_active"]) {
+			//setup rtls 
+			addGUIMessage("ABORT 2EO RTLS").
+			setup_RTLS().
+		} if (abort_modes["tal_active"]) {
 			//setup tal 
 			addGUIMessage("ABORT 2EO TAL").
 			setup_TAL().
@@ -663,12 +667,6 @@ FUNCTION RTLS_immediate_flyback {
 
 FUNCTION setup_RTLS {
 	
-	//do it immediately so it's ready when the gui first wants to update it 
-	make_rtls_traj2_disp().
-	
-	
-	start_oms_dump().
-	
 	// so g-limiting is skipped
 	set vehicle["glim"] to 10.
 	
@@ -676,7 +674,7 @@ FUNCTION setup_RTLS {
 	
 	local throt_val is vehicle["maxThrottle"].
 	
-	if (get_engines_out() < 1) {
+	if (engines_out < 1) {
 		set throt_val to 0.69 * vehicle["maxThrottle"].
 	}
 	
@@ -695,103 +693,137 @@ FUNCTION setup_RTLS {
 						throt_val
 	).
 	reset_stage().
+	
+	LOCAL flyback_immediate IS FALSE.
+	
+	// only do this on the first rtls initialisation
+	if (NOT DEFINED RTLSAbort) {
 
-	vehicle:ADD("mbod",0).
-	
-	RTLS_burnout_mass(m_final).		
-	
-	LOCAL cur_stg IS get_stage().
+		vehicle:ADD("mbod",0).
+		
+		RTLS_burnout_mass(m_final).		
+		
+		LOCAL cur_stg IS get_stage().
 
-	//time to desired burnout mass
-	LOCAL dmbo_t IS (cur_stg["m_initial"] - vehicle["mbod"]) * cur_stg["Tstage"]/cur_stg["m_burn"].
+		//time to desired burnout mass
+		LOCAL dmbo_t IS (cur_stg["m_initial"] - vehicle["mbod"]) * cur_stg["Tstage"]/cur_stg["m_burn"].
+		
+		//so that downrange distance calculations are correct
+		SET launchpad TO abort_modes["RTLS"]["tgt_site"].
+		
+		set flyback_immediate to RTLS_immediate_flyback().
+		
+		//target orbit with cutoff conditions
+		LOCAL cutoff_alt IS 72.
+		LOCAL cutoff_fpa IS 8.
+		
+		LOCAL curR IS orbitstate["radius"].
+		
+		LOCAL cut_r IS (curR:NORMALIZED)*(cutoff_alt*1000 + SHIP:BODY:RADIUS).
+		
+		LOCAL tgtsitevec IS RTLS_tgt_site_vector().
+		
+		//plane defined as containing current and target position
+		//LOCAL normvec IS VCRS(cut_r, tgtsitevec):NORMALIZED.
+		
+		//plane defined from current position and velocity, must point to the launch site though
+		LOCAL normvec IS -VCRS(curR, vecYZ(surfacestate["surfv"])):NORMALIZED.
+		
+		LOCAL rng IS greatcircledist(tgtsitevec, cut_r) * 1000.
+		
+		//target site position at desired meco
+		LOCAL shifted_tgtsitevec IS RTLS_shifted_tgt_site_vector(dmbo_t).
+		
+		SET target_orbit TO LEXICON(
+								"mode", 5,
+								"normal", normvec,
+								"radius", cut_r,
+								"velocity", 2200,
+								"fpa", cutoff_fpa,
+								"rtls_cutv", 2200,
+								"cutoff alt", cutoff_alt,
+								"rtheta", rng,
+								"rtls_tgt", shifted_tgtsitevec
+		).
+												
+		//abort control lexicon
+		
+		GLOBAL RTLSAbort IS LEXICON (
+									"t_abort", 0,
+									"theta_C1", 0,
+									"C1", v(0,0,0),
+									"Tc", 0,
+									"pitcharound",LEXICON(
+														"refvec", v(0,0,0),
+														"dt", 10,
+														"triggered",FALSE,
+														"complete",FALSE,
+														"target", v(0,0,0)
+														
+													),
+									"flyback_range_lockout", 100,
+									"flyback_iter", -2,
+									"flyback_conv", -2,
+									"flyback_flag", FALSE
+		).
+		
+		//prepare upfg
+		resetUPFG().
+		
+		SET upfgInternal["terminal_time"] TO 15.
+		SET upfgInternal["tgo_conv"] TO 2.
+		
+	}
 	
-	//so that downrange distance calculations are correct
-	SET launchpad TO abort_modes["RTLS"]["tgt_site"].
+	set RTLSAbort["t_abort"] to surfacestate["MET"],
 	
-	LOCAL flyback_immediate IS RTLS_immediate_flyback().
-
-	
-	//target orbit with cutoff conditions
-	LOCAL cutoff_alt IS 72.
-	LOCAL cutoff_fpa IS 8.
-	
-	LOCAL curR IS orbitstate["radius"].
-	
-	LOCAL cut_r IS (curR:NORMALIZED)*(cutoff_alt*1000 + SHIP:BODY:RADIUS).
-	
-	LOCAL tgtsitevec IS RTLS_tgt_site_vector().
-	
-	//plane defined as containing current and target position
-	//LOCAL normvec IS VCRS(cut_r, tgtsitevec):NORMALIZED.
-	
-	//plane defined from current position and velocity, must point to the launch site though
-	LOCAL normvec IS -VCRS(curR, vecYZ(surfacestate["surfv"])):NORMALIZED.
-	
-	LOCAL rng IS greatcircledist(tgtsitevec, cut_r) * 1000.
-	
-	//target site position at desired meco
-	LOCAL shifted_tgtsitevec IS RTLS_shifted_tgt_site_vector(dmbo_t).
-	
-	SET target_orbit TO LEXICON(
-							"mode", 5,
-							"normal", normvec,
-							"radius", cut_r,
-							"velocity", 2200,
-							"fpa", cutoff_fpa,
-							"rtls_cutv", 2200,
-							"cutoff alt", cutoff_alt,
-							"rtheta", rng,
-							"rtls_tgt", shifted_tgtsitevec
-	).
-	
-	//abort control lexicon
-	
-	GLOBAL RTLSAbort IS LEXICON (
-								"t_abort", surfacestate["MET"],
-								"theta_C1", theta,
-								"C1",rtlsC1v,
-								"Tc",0,
-								"pitcharound",LEXICON(
-													"refvec",normvec,
-													"dt", RTLS_pitchover_t(rtlsC1v, rtls_pitcharound_tgtv),
-													"triggered",flyback_immediate,
-													"complete",FALSE,
-													"target", rtls_pitcharound_tgtv
-													
-												),
-								"flyback_range_lockout", 100,
-								"flyback_iter",-2,
-								"flyback_conv",-2,
-								"flyback_flag", FALSE
-	).
-	
-	//the theta angle requires the velocity at abort init 
-	//if one engine out use the greater of the failure time or the srb staging time
-	//if zero engine out use the srb time 
-	
-	
-	LOCAL theta IS RTLS_dissip_theta_pert(abort_modes["abort_v"], vehiclestate["srb_sep"]["v"], vehiclestate["srb_sep"]["alt"], get_stage()["engines"]["thrust"] ).
-	
-	LOCAL rtlsC1v IS  RTLS_C1(theta).	
-	LOCAL rtls_pitcharound_tgtv IS rodrigues(
-											rtlsC1v,
-											normvec,
-											2*VANG(rtlsC1v, curR)
-											).
-	
-	//prepare upfg
-	SET upfgInternal TO resetUPFG().
-	
-	SET upfgInternal["terminal_time"] TO 15.
-	SET upfgInternal["tgo_conv"] TO 2.
-	SET upfgInternal["throtset"] TO 0.96 * throt_val.
+	//want to execute this block at every rtls initialisation BEFORE PPA, not after!
+	if (NOT RTLSAbort["pitcharound"]["triggered"]) {
+		
+		//the theta angle requires the surface velocity at abort init 
+		//if one engine out use the greater of the failure vel or the srb staging vel
+		//if zero engine out use the srb vel 
+		
+		local abort_ve_theta is vehiclestate["srb_sep"]["ve"].
+		
+		if (engines_out >=1) and (abort_modes["ssmes_out"][0]["ve"] > abort_ve_theta) {
+			set abort_ve_theta to abort_modes["ssmes_out"][0]["ve"].
+		}
+		
+		LOCAL theta IS RTLS_dissip_theta_pert(
+											abort_ve_theta, 
+											vehiclestate["srb_sep"]["ve"], 
+											vehiclestate["srb_sep"]["alt"], 
+											get_stage()["engines"]["thrust"] 
+		).
+		
+		LOCAL rtlsC1v IS  RTLS_C1(theta).	
+		LOCAL rtls_pitcharound_tgtv IS rodrigues(
+												rtlsC1v,
+												target_orbit["normal"],
+												2*VANG(rtlsC1v, curR)
+		).
+												
+		
+		set RTLSAbort["theta_C1"] to theta.
+		set RTLSAbort["C1"] to rtlsC1v.
+		
+		set RTLSAbort["pitcharound"]["refvec"] to target_orbit["normal"].
+		set RTLSAbort["pitcharound"]["target"] to rtls_pitcharound_tgtv.
+		set RTLSAbort["pitcharound"]["dt"] to RTLS_pitchover_t(rtlsC1v, rtls_pitcharound_tgtv).
+	}
 	
 	IF (flyback_immediate) {
+		set RTLSAbort["pitcharound"]["triggered"] to TRUE
 		addGUIMessage("IMMEDIATE POWERED PITCH-AROUND").
 	}
 	
-	//signal to the rest of the program that rtls is in progress
-	lexx.
+	//default percentage of full throttle for rtls upfg convergence
+	SET upfgInternal["throtset"] TO 0.96 * throt_val.
+	
+	
+	start_oms_dump(flyback_immediate).
+	
 }
 
 
