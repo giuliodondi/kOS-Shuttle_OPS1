@@ -620,7 +620,11 @@ FUNCTION upfg {
 			IF (internal["iter_conv"] < 3) {
 				SET internal["iter_conv"] TO internal["iter_conv"] + 1.
 			} ELSE {
-				SET internal["s_conv"] tO TRUE.
+				if (NOT internal["s_conv"]) {
+					//moved here from main executive
+					addGUIMessage("GUIDANCE CONVERGED IN " + internal["itercount"] + " ITERATIONS").
+					SET internal["s_conv"] tO TRUE.
+				}
 			}
 		} ELSE { //something is wrong, reset
 			resetUPFG().
