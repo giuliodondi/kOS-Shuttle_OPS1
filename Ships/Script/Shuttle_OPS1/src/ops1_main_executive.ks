@@ -102,6 +102,7 @@ function ops1_main_exec {
 		ops1_second_stage_contingency().
 	}
 	
+	if (quit_program) {RETURN.}
 	
 	//handle sequence for rtls and contingency 
 	
@@ -355,12 +356,14 @@ function ops1_second_stage_nominal {
 
 
 function ops1_second_stage_rtls {
+
+	SET vehiclestate["major_mode"] TO 601.
+
+	make_rtls_traj2_disp().
 	
 	dap:set_steering_low().
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	
-	SET vehiclestate["major_mode"] TO 601.
 
 	until false {
 		if (quit_program) {
@@ -499,7 +502,7 @@ function ops1_second_stage_rtls {
 
 function ops1_second_stage_contingency {
 
-	addGUIMessage("Contingency not yet implemented").
+	addGUIMessage("Contingency not yet implemented, please quit program").
 
 	until false {
 		if (quit_program) {
