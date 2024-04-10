@@ -1078,10 +1078,10 @@ FUNCTION srb_staging {
 			STAGE.
 			
 			//measure conditions at staging 
-			LOCAL v_stg IS SHIP:VELOCITY:SURFACE:MAG.
+			LOCAL ve_stg IS SHIP:VELOCITY:SURFACE:MAG.
 
 			SET vehiclestate["srb_sep"]["time"] TO surfacestate["MET"].
-			SET vehiclestate["srb_sep"]["v"] TO v_stg.
+			SET vehiclestate["srb_sep"]["ve"] TO ve_stg.
 			SET vehiclestate["srb_sep"]["alt"] TO SHIP:ALTITUDE.
 			
 			increment_stage().
@@ -1687,7 +1687,8 @@ FUNCTION measure_update_engines {
 			abort_modes["ssmes_out"]:add(
 										lexicon(
 												"time", surfacestate["MET"],
-												"vi", engout_vi
+												"vi", engout_vi,
+												"ve", surfacestate["surfv"]:mag
 										)
 			).
 			
