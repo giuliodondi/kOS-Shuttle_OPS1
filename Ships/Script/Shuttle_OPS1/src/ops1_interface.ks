@@ -84,6 +84,14 @@ FUNCTION dataViz {
 	local vgo is upfgInternal["vgo"]:MAG.
 	LOCAL converged IS (upfgInternal["s_conv"]) AND (NOT upfgInternal["s_meco"]).
 	
+	local gui_ref_alt is 0.
+	if ( vehiclestate["major_mode"] < 103) {
+		set gui_ref_alt to 45.
+	} else {
+		set gui_ref_alt to target_orbit["cutoff alt"].
+	}
+	
+	
 	LOCAL gui_data IS lexicon(
 				"met", TIME:SECONDS - vehicle["ign_t"],
 				"major_mode", vehiclestate["major_mode"],
@@ -98,6 +106,7 @@ FUNCTION dataViz {
 				"pred_vi", pred_vi,
 				"pred_ve", pred_ve,
 				"pred_alt", pred_alt,
+				"ref_alt", gui_ref_alt,
 				"twr", get_TWR(),
 				"ssme_thr", 100 * dap:thr_cmd_rpl * vehicle["SSME"]["thrust"] / get_rpl_thrust(),
 				"et_prop", 100*get_et_prop_fraction(),
@@ -112,7 +121,7 @@ FUNCTION dataViz {
 	//do the rtls gui update 
 	IF (DEFINED RTLSAbort) {
 	
-		gui_data:ADD("dwnrg_ve", surfacestate["horiz_dwnrg_v"].
+		gui_data:ADD("dwnrg_ve", surfacestate["horiz_dwnrg_v"]).
 		gui_data:ADD("dwnrg_pred_ve", current_horiz_dwnrg_speed(pred_simstate["latlong"], pred_simstate["surfvel"])).
 		gui_data:ADD("rtls_cutv", target_orbit["rtls_cutv"]).
 		set gui_data["rtls_tc"] to  RTLSAbort["Tc"].
