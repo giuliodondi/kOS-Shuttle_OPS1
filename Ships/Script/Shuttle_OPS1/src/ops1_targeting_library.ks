@@ -393,7 +393,7 @@ FUNCTION update_navigation {
 	ELSE {set progv to SHIP:PROGRADE:VECTOR.}
 	
 	SET surfacestate["surfv"] TO SHIP:VELOCITY:SURFACE.
-	SET surfacestate["horiz_dwnrg_v"] TO current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE)).
+	SET surfacestate["horiz_dwnrg_v"] TO current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE).
 	SET surfacestate["hdir"] TO compass_for(progv,SHIP:GEOPOSITION ).
 	SET surfacestate["vdir"] TO 90 - VANG(progv, SHIP:UP:VECTOR).
 	SET surfacestate["pitch"] TO 90 - VANG(SHIP:FACING:VECTOR, SHIP:UP:VECTOR).	

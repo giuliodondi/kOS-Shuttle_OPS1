@@ -391,9 +391,6 @@ function ops1_second_stage_rtls {
 		
 		upfg_sense_current_state(upfgInternal).
 		
-		RTLS_burnout_mass().
-		SET upfgInternal["mbod"] TO vehicle["mbod"].
-		
 		IF (NOT RTLSAbort["flyback_flag"]) {
 		
 			LOCAL stg IS get_stage().

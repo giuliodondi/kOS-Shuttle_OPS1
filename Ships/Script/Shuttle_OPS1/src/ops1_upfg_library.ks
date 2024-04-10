@@ -175,7 +175,6 @@ FUNCTION upfg_rtls_initialise {
 	SET internal["ix"] tO tgt_orb["radius"]:NORMALIZED.
 	SET internal["iy"] tO -tgt_orb["normal"].
 	
-	
 	LOCAL rgravmag IS (SHIP:ORBIT:BODY:MU / curR:MAG^2).
 	//vel gain due to gravity alone until mbo_T
 	LOCAL vgor IS rgravmag * internal["mbo_T"] - VDOT(curV, internal["ix"]).
@@ -198,6 +197,9 @@ FUNCTION upfg_sense_current_state {
 	SET internal["m_cur"] TO stg["m_initial"].
 	SET internal["tb_cur"] TO stg["Tstage"].
 
+	IF (target_orbit["mode"] = 5) {
+		SET internal["mbod"] tO vehicle["rtls_mbod"].
+	}
 }
 
 
