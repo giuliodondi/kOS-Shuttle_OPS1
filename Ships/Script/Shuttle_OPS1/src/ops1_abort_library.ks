@@ -555,13 +555,14 @@ FUNCTION RTLS_tgt_site_vector {
 	RETURN vecYZ(pos2vec(abort_modes["rtls_tgt_site"])).
 }
 
-//takes in a dt parameter, positive values shift the target EAST
+//shifted RTLS target site in UPFG coordinates
+//takes in a dt parameter, positive values shift the target EAST bc it's right handed
 FUNCTION RTLS_shifted_tgt_site_vector {
 	PARAMETER dt.
 
 	LOCAL pos_earth_fixed IS RTLS_tgt_site_vector().
 	
-	LOCAL shifted_pos IS R(0, 0, BODY:angularvel:mag * (-dt)* constant:RadToDeg)*pos_earth_fixed.
+	LOCAL shifted_pos IS R(0, 0, BODY:angularvel:mag * (dt)* constant:RadToDeg)*pos_earth_fixed.
 	
 	RETURN shifted_pos.
 }
@@ -691,6 +692,8 @@ FUNCTION setup_RTLS {
 	if (engines_out < 1) {
 		set throt_val to 0.7 * vehicle["maxThrottle"].
 	}
+	
+	set dap:thr_rpl_tgt to throt_val.
 	
 	//redefine vehicle 
 	measure_update_engines().
@@ -1087,9 +1090,7 @@ FUNCTION setup_TAL{
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
 	
-	local two_engout is (engines_out > 1).
-	
-	start_oms_dump(two_engout).
+	start_oms_dump(true).
 
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
 	WHEN ( surfacestate["MET"] > (abort_modes["trigger_t"] + 40) ) THEN {

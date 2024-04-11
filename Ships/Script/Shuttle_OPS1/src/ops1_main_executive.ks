@@ -487,6 +487,11 @@ function ops1_second_stage_rtls {
 		}
 	
 		SET RTLSAbort["Tc"] TO PEG_Tc.
+		
+		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
+			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
+			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
+		}
 	}
 	
 	//powered pitchdown

@@ -58,6 +58,7 @@ FUNCTION setupUPFG {
 	SET upfgInternal TO  LEXICON(
 		"r_cur", V(0, 0, 0),
 		"v_cur", V(0, 0, 0),
+		"ve_cur", V(0, 0, 0),
 		"t_cur", 0,
 		"m_cur", 0,
 		"tb_cur", 0,
@@ -194,6 +195,7 @@ FUNCTION upfg_sense_current_state {
 	SET internal["t_cur"] TO surfacestate["time"].
 	SET internal["r_cur"] TO orbitstate["radius"].
 	SET internal["v_cur"] TO orbitstate["velocity"].
+	SET internal["ve_cur"] TO vecYZ(surfacestate["surfv"]).
 	SET internal["m_cur"] TO stg["m_initial"].
 	SET internal["tb_cur"] TO stg["Tstage"].
 
@@ -668,20 +670,29 @@ FUNCTION upfg {
 	//throttle command 
 	SET internal["throtset"] TO CLAMP(kk_cmd, 0, 1).
 	
-	//terminal count 	
-	local tgt_v_close_flag is (internal["v_cur"]:MAG >= 0.985*tgt_orb["velocity"]).
+	//terminal count 		
 	local tgo_terminal_flag IS (internal["tgo"] <= internal["terminal_time"]).
 	
-	local unguided_meco_flag is (NOT internal["s_conv"]) AND tgt_v_close_flag.
 	local guided_meco_flag is internal["s_conv"] AND tgo_terminal_flag.
 	
+	local delta_vd is (internal["vd"] - internal["v_cur"]):mag.
+	
+	local unguided_meco_flag is false.
+	
 	if (s_mode = 5) {
-		set guided_meco_flag to internal["s_flyback"] AND guided_meco_flag.
-	    set unguided_meco_flag to internal["s_flyback"] AND unguided_meco_flag. 
+		local rtls_fb_tgo_flag is internal["s_flyback"] and  (internal["tgo"] <= 60).
+		
+		set guided_meco_flag to rtls_fb_tgo_flag AND guided_meco_flag.
+		
+	    set unguided_meco_flag to (NOT internal["s_conv"]) and rtls_fb_tgo_flag and (0.1 * internal["vd"]:mag >= delta_vd). 
+		
+	} else {	
+		local tgt_v_close_flag is (0.015 * internal["vd"]:mag >= delta_vd).
+		set unguided_meco_flag to (NOT internal["s_conv"]) AND tgt_v_close_flag.
 	}
 
 	set internal["s_meco"] TO (guided_meco_flag OR unguided_meco_flag).
-		
+	
 }
 
 
