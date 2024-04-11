@@ -85,7 +85,7 @@ FUNCTION dataViz {
 	LOCAL converged IS (upfgInternal["s_conv"]) AND (NOT upfgInternal["s_meco"]).
 	
 	local gui_ref_alt is 0.
-	if ( vehiclestate["major_mode"] < 103) {
+	if (ascent_traj_disp_counter = 1) {
 		set gui_ref_alt to 45.
 	} else {
 		set gui_ref_alt to target_orbit["cutoff alt"].
