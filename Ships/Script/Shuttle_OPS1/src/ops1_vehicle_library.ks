@@ -72,7 +72,7 @@ function initialise_shuttle {
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
 						"OMS_prop", 0,
-						"OMS_prop_dump_frac", 0.4,
+						"OMS_prop_dump_frac", 0.5,
 						"SSME",0,
 						"OMS",0,
 						"stack_full_mass", 0,
@@ -587,7 +587,14 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_med", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.75.
+	
+		local steer_val is 0.75.
+		
+		if (get_engines_out() = 0) {
+			set steer_val to 0.5.
+		}
+	
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO steer_val.
 	}).
 	
 	this:add("set_steering_low", {
@@ -1750,7 +1757,7 @@ FUNCTION shutdown_ssmes {
 
 function ssme_out_safing {
 	FOR ssme IN get_ssme_parts() {
-		IF ssme:FLAMEOUT {
+		IF (NOT ssme:IGNITION) {
 			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
 		}
 	}
@@ -1761,7 +1768,7 @@ function single_engine_roll_control {
 	dap:set_rcs(TRUE).
 	
 	FOR ssme IN get_ssme_parts() {
-		IF (not ssme:FLAMEOUT) {
+		IF (ssme:IGNITION) {
 			set ssme:GIMBAL:roll to false.
 		}
 	}
