@@ -814,13 +814,14 @@ function update_rtls_traj_disp {
 	local xpredval is gui_data["dwnrg_pred_ve"].
 	local yval is gui_data["alt"].
 	local ypredval is gui_data["pred_alt"].
+	local y_ref is gui_data["ref_alt"].
 	
-	local shut_bug_pos is set_ascent_traj_disp_pos(v(rtls_traj_disp_x_convert(xval),rtls_traj_disp_y_convert(yval), 0), 5).
+	local shut_bug_pos is set_ascent_traj_disp_pos(v(rtls_traj_disp_x_convert(xval),rtls_traj_disp_y_convert(yval, y_ref), 0), 5).
 	
 	SET ascent_traj_disp_orbiter:STYLE:margin:v to shut_bug_pos[1].
 	SET ascent_traj_disp_orbiter:STYLE:margin:h to shut_bug_pos[0].
 	
-	local shut_pred_pos is set_ascent_traj_disp_pos(v(rtls_traj_disp_x_convert(xpredval),rtls_traj_disp_y_convert(ypredval), 0), 5).
+	local shut_pred_pos is set_ascent_traj_disp_pos(v(rtls_traj_disp_x_convert(xpredval),rtls_traj_disp_y_convert(ypredval, y_ref), 0), 5).
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:v to shut_pred_pos[1] - 3.
 	SET ascent_traj_disp_pred_bug_:STYLE:margin:h to shut_pred_pos[0].
 
@@ -898,7 +899,7 @@ function rtls_traj_disp_y_convert {
 	
 	local par is val/ref_y.
 	
-	local out is par * 0.579 - 0.32
+	local out is par * 0.579 - 0.32.
 
 	return 50 + 300 * out.
 }	
