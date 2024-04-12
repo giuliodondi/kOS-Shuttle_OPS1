@@ -538,21 +538,33 @@ FUNCTION get_RTLS_site {
 
 	LOCAL closest_out IS get_closest_site(ldgsiteslex).
 	
-	local rtls_site is closest_out[1].
+	LOCAL min_dist IS 0.
+	local rtls_site is "".
+	local rtls_pos is latlng(0,0).
 	
-	LOCAL sitelex IS ldgsiteslex[rtls_site].
+	FOR s in ldgsiteslex:KEYS {
+		LOCAL site IS ldgsiteslex[s].
 			
-	local rwypos is 0.
-	
-	IF (sitelex:ISTYPE("LEXICON")) {
-		set rwypos to sitelex["position"].
-	} ELSE IF (sitelex:ISTYPE("LIST")) {
-		set rwypos to sitelex[0]["position"].
+		local sitepos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set sitepos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set sitepos to site[0]["position"].
+		}
+		
+		LOCAL sitedist IS downrangedist(SHIP:GEOPOSITION,sitepos).
+		
+		IF (min_dist = 0) or (min_dist > sitedist) {
+			SET min_dist TO sitedist.
+			SET rtls_site TO s.
+			set rtls_pos to sitepos.
+		} 
 	}
 	
 	return lexicon(
 					"site", rtls_site,
-					"position", rwypos
+					"position", rtls_pos
 	).	
 
 }
