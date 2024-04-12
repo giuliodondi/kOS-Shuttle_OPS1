@@ -615,23 +615,24 @@ function ops1_et_sep {
 
 //figure out what to do based on mode and abort modes 
 function ops1_termination {
-	
-	if (vehiclestate["major_mode"] = 104) {
+
+	local nominal_flag is (not abort_triggered()).
+
+	if (nominal_flag or abort_modes["ato_active"]) {
 		print_ascent_report().
-	
 		WAIT 5.
+	}
+	
+	CLEARSCREEN.
+	dap_gui_executor["stop_execution"]().
+	close_all_GUIs().
+	
+	if (abort_modes["tal_active"]) {
+		RUN "0:/ops3"("tal", abort_modes["tal_tgt_site"]["site"]).
+	} else if (abort_modes["rtls_active"]) {
+		RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
 	}
 
 }
 
 ops1_main_exec().
-
-CLEARSCREEN.
-dap_gui_executor["stop_execution"]().
-close_all_GUIs().
-
-
-
-//IF (DEFINED RTLSAbort) {
-//	RUN "0:/ops3".
-//}
