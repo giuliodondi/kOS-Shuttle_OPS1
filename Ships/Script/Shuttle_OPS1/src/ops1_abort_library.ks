@@ -532,27 +532,34 @@ function abort_initialiser {
 
 //	RTLS functions
 
+//to be called before launch, will fin the closest landing site 
+//to the launchpad
+FUNCTION get_RTLS_site {
 
-//bias first-stage trajectory scale for lofting
-FUNCTION first_stage_engout_lofting_bias {
+	LOCAL closest_out IS get_closest_site(ldgsiteslex).
 	
-	local engines_out is get_engines_out().
-	local abort_t is 1000.
+	local rtls_site is closest_out[1].
 	
-	if (engines_out > 0) {
-		set abort_t to abort_modes["ssmes_out"][0]["time"].
+	LOCAL sitelex IS ldgsiteslex[rtls_site].
+			
+	local rwypos is 0.
+	
+	IF (sitelex:ISTYPE("LEXICON")) {
+		set rwypos to sitelex["position"].
+	} ELSE IF (sitelex:ISTYPE("LIST")) {
+		set rwypos to sitelex[0]["position"].
 	}
 	
-	//decreasing multiplying factor with engines out
-	local engout_fac is (0.375 * engines_out + 0.625) * engines_out.
-	
-	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
-	
+	return lexicon(
+					"site", rtls_site,
+					"position", rwypos
+	).	
+
 }
 
 //RTLs runway vector in UPFG coordinates
 FUNCTION RTLS_tgt_site_vector {
-	RETURN vecYZ(pos2vec(abort_modes["rtls_tgt_site"])).
+	RETURN vecYZ(pos2vec(abort_modes["rtls_tgt_site"]["position"])).
 }
 
 //shifted RTLS target site in UPFG coordinates
@@ -651,14 +658,6 @@ FUNCTION RTLS_burnout_mass {
 	SET vehicle["rtls_mbod"] TO m_final + 0.02 * vehicle["SSME_prop_0"] + vehicle["OMS_prop_dump_frac"] * vehicle["OMS_prop_0"].
 }
 
-//to be called before launch, will fin the closest landing site 
-//to the launchpad
-FUNCTION get_RTLS_site {
-	LOCAL closest_out IS get_closest_site(ldgsiteslex).
-	RETURN closest_out[1].
-}
-
-
 FUNCTION RTLS_boundary_vel {
 	RETURN (2930 - 7.8 * ABS(target_orbit["inclination"])).
 }
@@ -728,7 +727,7 @@ FUNCTION setup_RTLS {
 		LOCAL dmbo_t IS (cur_stg["m_initial"] - vehicle["rtls_mbod"]) * cur_stg["Tstage"]/cur_stg["m_burn"].
 		
 		//so that downrange distance calculations are correct
-		SET launchpad TO abort_modes["rtls_tgt_site"].
+		SET launchpad TO abort_modes["rtls_tgt_site"]["position"].
 		
 		set flyback_immediate to RTLS_immediate_flyback().
 		

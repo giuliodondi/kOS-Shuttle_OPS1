@@ -230,6 +230,23 @@ fUNCTION nominal_pitch_profile {
 
 }
 
+//bias first-stage trajectory scale for lofting
+FUNCTION first_stage_engout_lofting_bias {
+	
+	local engines_out is get_engines_out().
+	local abort_t is 1000.
+	
+	if (engines_out > 0) {
+		set abort_t to abort_modes["ssmes_out"][0]["time"].
+	}
+	
+	//decreasing multiplying factor with engines out
+	local engout_fac is (0.375 * engines_out + 0.625) * engines_out.
+	
+	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
+	
+}
+
 //open-loop pitch profile for first stage ascent
 FUNCTION open_loop_pitch {
 	PARAMETER curv.	 
