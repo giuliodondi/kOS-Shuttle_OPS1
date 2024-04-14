@@ -306,6 +306,18 @@ function contingency_abort_region_determinator {
 	if (not abort_modes["cont_2eo_active"]) {
 		if (abort_modes["rtls_active"]) {
 			//rtls contingency modes 
+			
+			//if we trigger an intact rtls the 2eo mode is blue
+			if (abort_modes["2eo_cont_mode"] = "BLUE") and (NOT contingency_2eo_blue_boundary()) {
+				set abort_modes["2eo_cont_mode"] to "YELLOW".
+			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 200) {	//value needs verification
+				set abort_modes["2eo_cont_mode"] to "ORANGE".
+			} else if (abort_modes["2eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
+				set abort_modes["2eo_cont_mode"] to "GREEN".
+			} else if (abort_modes["2eo_cont_mode"] = "GREEN") and (SHIP:VERTICALSPEED >= 30) {
+				set abort_modes["2eo_cont_mode"] to "RED".
+			}
+			
 		} else {
 			//droop boundary missing
 			if (abort_modes["intact_modes"]["2eo"]["droop"]) or 
@@ -325,6 +337,15 @@ function contingency_abort_region_determinator {
 	if (not abort_modes["cont_3eo_active"]) {
 		if (abort_modes["rtls_active"]) {
 			//rtls contingency modes 
+			
+			if (abort_modes["3eo_cont_mode"] = "BLUE") and (RTLSAbort["pitcharound"]["triggered"]) {
+				set abort_modes["3eo_cont_mode"] to "YELLOW".
+			} else if (abort_modes["3eo_cont_mode"] = "YELLOW") and (RTLSAbort["pitcharound"]["triggered"]) {
+				set abort_modes["3eo_cont_mode"] to "ORANGE".
+			} else if (abort_modes["3eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
+				set abort_modes["3eo_cont_mode"] to "GREEN".
+			}
+			
 		} else {
 			if (orbitstate["velocity"]:MAG >= 6700) {
 				set abort_modes["3eo_cont_mode"] to "BLANK". 
@@ -760,6 +781,7 @@ FUNCTION setup_RTLS {
 		SET target_orbit TO LEXICON(
 								"mode", 5,
 								"normal", cur_norm,
+								"Inclination", VANG(-cur_norm,v(0,0,1)),
 								"radius", cut_r,
 								"velocity", 2200,
 								"fpa", cutoff_fpa,

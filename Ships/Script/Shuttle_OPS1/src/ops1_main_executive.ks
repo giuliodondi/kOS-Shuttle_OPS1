@@ -2,7 +2,7 @@
 CLEARSCREEN.
 SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
-global debug_mode is true.
+global debug_mode is false.
 
 
 //	Load libraries
@@ -75,6 +75,9 @@ function ops1_main_exec {
 		if (NOT quit_program) {
 			WAIT 5.
 		}
+		CLEARSCREEN.
+		dap_gui_executor["stop_execution"]().
+		close_all_GUIs().
 		RETURN.
 	}
 	
@@ -243,7 +246,7 @@ function ops1_first_stage {
 			if (throt_flag) {
 				if (vehicle["qbucket"]) {
 				
-					IF (surfacestate["q"] >=  surfacestate["maxq"] ) {
+					IF (surfacestate["vs"] <= 50 ) or (surfacestate["q"] >=  surfacestate["maxq"] ) {
 						SET surfacestate["maxq"] TO surfacestate["q"].
 						set vehicle["max_q_reached"] to FALSE.
 					} else {
