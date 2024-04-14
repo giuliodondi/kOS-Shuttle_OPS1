@@ -357,8 +357,6 @@ function ops1_second_stage_nominal {
 function ops1_second_stage_rtls {
 
 	SET vehiclestate["major_mode"] TO 601.
-
-	make_rtls_traj2_disp().
 	
 	dap:set_steering_low().
 	

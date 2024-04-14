@@ -310,12 +310,14 @@ function contingency_abort_region_determinator {
 			//if we trigger an intact rtls the 2eo mode is blue
 			if (abort_modes["2eo_cont_mode"] = "BLUE") and (NOT contingency_2eo_blue_boundary()) {
 				set abort_modes["2eo_cont_mode"] to "YELLOW".
-			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 200) {	//value needs verification
+			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {	//value needs verification
 				set abort_modes["2eo_cont_mode"] to "ORANGE".
 			} else if (abort_modes["2eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
 				set abort_modes["2eo_cont_mode"] to "GREEN".
 			} else if (abort_modes["2eo_cont_mode"] = "GREEN") and (SHIP:VERTICALSPEED >= 30) {
 				set abort_modes["2eo_cont_mode"] to "RED".
+			} else if (contingency_2eo_blue_boundary()) {
+				set abort_modes["2eo_cont_mode"] to "BLUE".
 			}
 			
 		} else {
@@ -340,10 +342,12 @@ function contingency_abort_region_determinator {
 			
 			if (abort_modes["3eo_cont_mode"] = "BLUE") and (RTLSAbort["pitcharound"]["triggered"]) {
 				set abort_modes["3eo_cont_mode"] to "YELLOW".
-			} else if (abort_modes["3eo_cont_mode"] = "YELLOW") and (RTLSAbort["pitcharound"]["triggered"]) {
+			} else if (abort_modes["3eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {
 				set abort_modes["3eo_cont_mode"] to "ORANGE".
 			} else if (abort_modes["3eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
 				set abort_modes["3eo_cont_mode"] to "GREEN".
+			} else if (not RTLSAbort["pitcharound"]["triggered"]){
+				set abort_modes["3eo_cont_mode"] to "BLUE".
 			}
 			
 		} else {
@@ -751,6 +755,8 @@ FUNCTION setup_RTLS {
 	
 	// only do this on the first rtls initialisation
 	if (NOT (DEFINED RTLSAbort)) {
+	
+		make_rtls_traj2_disp().
 		
 		RTLS_burnout_mass(m_final).		
 		
