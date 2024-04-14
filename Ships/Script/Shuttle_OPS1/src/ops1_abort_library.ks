@@ -1058,11 +1058,11 @@ FUNCTION TAL_cutoff_params {
 	SET tgt_orb["apoapsis"] TO (AP - BODY:RADIUS)/1000.
 	SET tgt_orb["periapsis"] TO (2*tgt_orb["SMA"] - AP - BODY:RADIUS)/1000.
 	
-	clearvecdraws().
-	arrow_body(vecYZ(cur_r * 2),"cur_r").
-	arrow_body(vecYZ(cutoff_r * 2),"cutoff_r").
-	arrow_body(vecYZ(abort_modes["tal_tgt_site"]["position"] * 2),"tgt_vec").
-	arrow_body(vecYZ(tgt_orb["normal"]*BODY:RADIUS * 2),"normal").
+	//clearvecdraws().
+	//arrow_body(vecYZ(cur_r * 2),"cur_r").
+	//arrow_body(vecYZ(cutoff_r * 2),"cutoff_r").
+	//arrow_body(vecYZ(abort_modes["tal_tgt_site"]["position"] * 2),"tgt_vec").
+	//arrow_body(vecYZ(tgt_orb["normal"]*BODY:RADIUS * 2),"normal").
 	
 	RETURN tgt_orb.
 }

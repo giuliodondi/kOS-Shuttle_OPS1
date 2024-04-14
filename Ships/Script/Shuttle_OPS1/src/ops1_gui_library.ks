@@ -319,12 +319,13 @@ function make_ascent_traj1_disp {
 	SET ascent_traj_disp_droop_box:STYLE:WIDTH TO 125.
     SET ascent_traj_disp_droop_box:STYLE:HEIGHT TO 115.
 	
-	GLOBAL ascent_traj_disp_centredata1 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ALT XXX").
-	set ascent_traj_disp_centredata1:style:margin:v to -4.
-	SET ascent_traj_disp_centredata1:STYLE:ALIGN TO "center".
-	GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("<color=#" + guitextyellowhex + ">DROOP ENGAGED</color>").
-	set ascent_traj_disp_centredata2:style:margin:v to -4.
-	SET ascent_traj_disp_centredata2:STYLE:ALIGN TO "center".
+	//re-enable these when droop is implemented
+	//GLOBAL ascent_traj_disp_centredata1 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ALT XXX").
+	//set ascent_traj_disp_centredata1:style:margin:v to -4.
+	//SET ascent_traj_disp_centredata1:STYLE:ALIGN TO "center".
+	//GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("<color=#" + guitextyellowhex + ">DROOP ENGAGED</color>").
+	//set ascent_traj_disp_centredata2:style:margin:v to -4.
+	//SET ascent_traj_disp_centredata2:STYLE:ALIGN TO "center".
 	
 	enable_box_widgets(ascent_traj_disp_droop_box, false).
 	
