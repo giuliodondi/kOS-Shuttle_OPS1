@@ -15,7 +15,8 @@ GLOBAL surfacestate IS  LEXICON(
 								"vdir",0,
 								"hdir",0,
 								"q",0, 
-								"maxq", 0
+								"maxq", 0,
+								"eas", 0
 ).
 
 GLOBAL orbitstate IS  LEXICON(
@@ -401,6 +402,9 @@ FUNCTION update_navigation {
 	SET surfacestate["alt"] TO SHIP:ALTITUDE.
 	SET surfacestate["vs"] TO SHIP:VERTICALSPEED.
 	SET surfacestate["hs"] TO SHIP:VELOCITY:SURFACE:MAG.
+	set surfacestate["q"] to SHIP:Q.
+	
+	set surfacestate["eas"] to 17.1865 * sqrt(SHIP:Q * 2116.217).
 	
 	SET orbitstate["velocity"] TO vecYZ(SHIP:ORBIT:VELOCITY:ORBIT).
 	SET orbitstate["radius"] TO vecYZ(SHIP:ORBIT:BODY:POSITION)*-1.

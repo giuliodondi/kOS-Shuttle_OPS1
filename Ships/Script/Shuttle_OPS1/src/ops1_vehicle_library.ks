@@ -916,11 +916,6 @@ FUNCTION getState {
 		
 		IF (vehiclestate["cur_stg"]=1) {
 		
-			//do it here so we bypass the check during later stages
-			IF (surfacestate["vs"] > 50 ) {
-				set surfacestate["q"] to SHIP:Q.
-			}
-		
 			SET cur_stg["Tstage"] TO cur_stg["Tstage"] - deltat.
 			
 			srb_staging().

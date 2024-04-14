@@ -186,7 +186,9 @@ FUNCTION prepare_telemetry {
 										"Vspeed",0,
 										"Dwnrg surfvel",0,
 										"Incl",0,
-										"Ecctr",0
+										"Ecctr",0,
+										"q", 0,
+										"eas", 0
 		).
 		log_data(loglex,"./Shuttle_OPS1/LOGS/" + vehicle["name"] + "_log", TRUE).
 	}
@@ -218,6 +220,8 @@ FUNCTION log_telemetry {
 		SET loglex["Dwnrg surfvel"] TO current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE).
 		SET loglex["Incl"] TO ORBIT:INCLINATION.
 		SET loglex["Ecctr"] TO ORBIT:ECCENTRICITY.
+		SET loglex["q"] TO surfacestate["q"].
+		SET loglex["eas"] TO surfacestate["eas"].
 
 		log_data(loglex, "./Shuttle_OPS1/LOGS/" + vehicle["name"] + "_log").
 	}
