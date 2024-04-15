@@ -137,45 +137,50 @@ function intact_abort_region_determinator {
 			
 			LOCAL dv2site IS (tal_meco_v - orbitstate["velocity"]).
 			
-			local two_eng_tal_dv_excess is estimate_excess_deltav(
-													orbitstate["radius"],
-													orbitstate["velocity"],
-													dv2site,
-													two_eng_perf
-			).
+			//test maximum az error 
+			if (abs(vang(vxcl(orbitstate["radius"], orbitstate["velocity"]), vxcl(orbitstate["radius"], dv2site))) < 35) {
 			
-			local two_eng_tal_dv is lexicon(
-										"site", s, 
-										"deltav", two_eng_tal_dv_excess
-			).
+				local two_eng_tal_dv_excess is estimate_excess_deltav(
+														orbitstate["radius"],
+														orbitstate["velocity"],
+														dv2site,
+														two_eng_perf
+				).
+				
+				local two_eng_tal_dv is lexicon(
+											"site", s, 
+											"deltav", two_eng_tal_dv_excess
+				).
+				
+				if (two_eng_tal_dv_excess > 0) {
+					tal_2e_dv:add(two_eng_tal_dv).
+				}
+				
+				if (two_eng_tal_dv_excess > two_eng_best_tal["deltav"]) {
+					set two_eng_best_tal to two_eng_tal_dv.
+				}
+				
+				
+				local one_eng_tal_dv_excess is estimate_excess_deltav(
+														orbitstate["radius"],
+														orbitstate["velocity"],
+														dv2site,
+														one_eng_perf
+				).
+				
+				local one_eng_tal_dv is lexicon(
+											"site", s, 
+											"deltav", one_eng_tal_dv_excess
+				).
+				
+				if (one_eng_tal_dv_excess > 0) {
+					tal_1e_dv:add(one_eng_tal_dv).
+				}
+				
+				if (one_eng_tal_dv_excess > one_eng_best_tal["deltav"]) {
+					set one_eng_best_tal to one_eng_tal_dv.
+				}
 			
-			if (two_eng_tal_dv_excess > 0) {
-				tal_2e_dv:add(two_eng_tal_dv).
-			}
-			
-			if (two_eng_tal_dv_excess > two_eng_best_tal["deltav"]) {
-				set two_eng_best_tal to two_eng_tal_dv.
-			}
-			
-			
-			local one_eng_tal_dv_excess is estimate_excess_deltav(
-													orbitstate["radius"],
-													orbitstate["velocity"],
-													dv2site,
-													one_eng_perf
-			).
-			
-			local one_eng_tal_dv is lexicon(
-										"site", s, 
-										"deltav", one_eng_tal_dv_excess
-			).
-			
-			if (one_eng_tal_dv_excess > 0) {
-				tal_1e_dv:add(one_eng_tal_dv).
-			}
-			
-			if (one_eng_tal_dv_excess > one_eng_best_tal["deltav"]) {
-				set one_eng_best_tal to one_eng_tal_dv.
 			}
 		}
 		
@@ -307,7 +312,6 @@ function contingency_abort_region_determinator {
 		if (abort_modes["rtls_active"]) {
 			//rtls contingency modes 
 			
-			//if we trigger an intact rtls the 2eo mode is blue
 			if (abort_modes["2eo_cont_mode"] = "BLUE") and (NOT contingency_2eo_blue_boundary()) {
 				set abort_modes["2eo_cont_mode"] to "YELLOW".
 			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {	//value needs verification
@@ -316,9 +320,7 @@ function contingency_abort_region_determinator {
 				set abort_modes["2eo_cont_mode"] to "GREEN".
 			} else if (abort_modes["2eo_cont_mode"] = "GREEN") and (SHIP:VERTICALSPEED >= 30) {
 				set abort_modes["2eo_cont_mode"] to "RED".
-			} else if (contingency_2eo_blue_boundary()) {
-				set abort_modes["2eo_cont_mode"] to "BLUE".
-			}
+			} 
 			
 		} else {
 			//droop boundary missing
@@ -346,8 +348,6 @@ function contingency_abort_region_determinator {
 				set abort_modes["3eo_cont_mode"] to "ORANGE".
 			} else if (abort_modes["3eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
 				set abort_modes["3eo_cont_mode"] to "GREEN".
-			} else if (not RTLSAbort["pitcharound"]["triggered"]){
-				set abort_modes["3eo_cont_mode"] to "BLUE".
 			}
 			
 		} else {
@@ -755,6 +755,8 @@ FUNCTION setup_RTLS {
 	
 	// only do this on the first rtls initialisation
 	if (NOT (DEFINED RTLSAbort)) {
+	
+		rtls_initialise_cont_modes().
 	
 		make_rtls_traj2_disp().
 		
@@ -1244,4 +1246,16 @@ function contingency_2eo_blue_boundary {
 	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
 
 	return (SHIP:VERTICALSPEED >= boundary_hdot).
+}
+
+//because some modes have the same name as non-rtls contingency modes 
+function rtls_initialise_cont_modes {
+
+	if (contingency_2eo_blue_boundary()) {
+		set abort_modes["2eo_cont_mode"] to "BLUE".
+	} else {
+		set abort_modes["2eo_cont_mode"] to "YELLOW".
+	}
+	
+	set abort_modes["3eo_cont_mode"] to "BLUE".
 }

@@ -649,7 +649,7 @@ function update_abort_modes_gui {
 	
 	tal_site_select:clear().
 	
-	if (abort_modes["tal_active"]) {
+	if (abort_modes["tal_active"]) and (abort_modes["abort_initialised"]) {
 		tal_site_select:addoption(abort_modes["tal_tgt_site"]["site"]).
 	} else {
 
