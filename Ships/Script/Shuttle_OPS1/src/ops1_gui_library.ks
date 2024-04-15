@@ -646,11 +646,17 @@ function update_abort_modes_gui {
 	if (abort_modes["intact_modes"]["1eo"]["ato"]) {
 		abort_mode_select:addoption("ATO").
 	}
-
+	
 	tal_site_select:clear().
 	
-	for sdv in abort_modes["1eo_tal_sites"] {
-		tal_site_select:addoption(sdv["site"]).	
+	if (abort_modes["tal_active"]) {
+		tal_site_select:addoption(abort_modes["tal_tgt_site"]["site"]).
+	} else {
+
+		for sdv in abort_modes["1eo_tal_sites"] {
+			tal_site_select:addoption(sdv["site"]).	
+		}
+		
 	}
 	
 	local two_eo_cont_text_color is guitextgreenhex.
