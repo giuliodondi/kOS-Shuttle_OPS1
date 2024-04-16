@@ -1,12 +1,13 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
-## Updated February 2024
+## Updated April 2024 - please go through the README
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
-Uses Powered Explicit Guidance (also called UPFG) for vacum guidance, adapted and modified to perform intact aborts.
+Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted and modified to perform aborts.
 
-# Remarks
+# References
 
-This script was last tested in 1.12.3 with a full RO install. The algorithms are adapted from the real-life Space Shuttle GN&C document [OI-34 SPACE SHUTTLE ORBITER OPERATIONAL LEVEL C FUNCTIONAL SUBSYSTEM SOFTWARE REQUIREMENTS GUIDANCE, NAVIGATION AND CONTROL PART A](https://www.ibiblio.org/apollo/Shuttle/STS83-0002-34%20-%20Guidance%20Ascent-RTLS.pdf). In real life the alghorithms would probably be tailored to the specific mission by means of I-loaded constants, while I tried to make everything work for generic cases. As such, sometimes behaviour can be a bit iffy, YMMV.
+- [SPACE SHUTTLE ORBITER OPERATIONAL LEVEL C SOFTWARE REQUIREMENTS - GUIDANCE ASCENT/RTLS](https://www.ibiblio.org/apollo/Shuttle/STS83-0002-34%20-%20Guidance%20Ascent-RTLS.pdf)
+- [Flight Procedures Handbook - Ascent/Aborts (OI-30)](https://www.ibiblio.org/apollo/Shuttle/Crew%20Training/Flight%20Procedures%20Ascent-Aborts.pdf)
 
 # Installation
 
@@ -25,11 +26,10 @@ You will find one folder:
 - **Script**
 
 Put the contents of the Script folder inside Ship/Script so that kOS can see all the files.
-In particular, you will only run one of two script files:
-- **shuttle.ks** to launch the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
-- **shuttle3a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
-
-There is also a **node.ks** script, this is a little manoeuvre node executor that I use to execute OMS burns in orbit, it takes care of the offset OMS thrust position (so it even works with a single OMS burn) and is compatible with nodes created with Principia
+There are a few scripts you can run:
+- **ops1.ks** to setup a launch of the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
+- **ops13a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
+- **node.ks** a little manoeuvre node executor that I use to execute OMS burns in orbit, it takes care of the offset OMS thrust position (so it even works with a single OMS burn) and is compatible with nodes created with Principia
 
 
 # Setup  
@@ -37,7 +37,7 @@ There is also a **node.ks** script, this is a little manoeuvre node executor tha
 The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance, without the mass of SRB or launch clamps. The script will measure everything automatically provided that the part tree is set up correctly in the VAB.  
 
 Take care of the following things while building the Shuttle Stack in the VAB:
-- ~~The root part must be one of the orbiter parts (the cabin is fine)~~ IF you use my latest SpaceShuttleSystem version, there is a single Orbiter assembled part that I advise you use instead, this is your root part.
+- The root part must be the Space Shuttle Orbiter part you find in my fork of Space Shuttle System
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
@@ -49,19 +49,16 @@ Make sure the vessel staging is as follows (from the bottom stage upwards) :
 - External tank separation and OMS engines
 - Anything in the payload bay
 - Tail parachute
+- ### Don't forget to set the FAR control surface settings as required by the Entry script README.
+- right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). **Make sure you select the same version for all three SSMEs.**
+- if you do a launch from Vandenberg, switch the SRB type to 'Filament-wound casing' for extra performance
 
-
-### Don't forget to set the FAR control surface settings as required by the Entry script README.
-
-Finally, right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately).  
-**Make sure you select the same version for all three SSMEs.**
-
-IF you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the script should detect this and break during vehicle initialisation. This is intended and meant to signal to you that something is wrong.
+If you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the script should detect this and break during vehicle initialisation. This is intended and meant to signal to you that something is wrong.
  
 
 ## kOS configuration file
 
-The mission parameters are specified in the main launch script **shuttle.ks** or **shuttle3a.ks**.  
+The mission parameters are specified in the main launch script **ops1.ks** or **ops13a.ks**.  
 It contains variable definitions for:
 - a "target_orbit" structure describing the shape of the desired orbit. Apoapsis, periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the inclination to whatever you desire (read more about this later on).
 - a disabled variable *engine_failure_time* which you can uncomment to trigger an automatic engine failure at the specified time. More on aborts later on.
