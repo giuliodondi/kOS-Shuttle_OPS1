@@ -1,6 +1,12 @@
 //main abort lexicon
 //abort boundaries are defined with velocity in their own functions
 GLOBAL abort_modes IS LEXICON( 
+					"engine_failure", lexicon(
+												"mode", "",
+												"times", list()
+					
+					
+									),
 					"trigger_t",time:seconds + 10000000000,
 					"abort_initialised", false,
 					"manual_abort", false,

@@ -73,29 +73,29 @@ FUNCTION make_main_ascent_gui {
 	SET ascent_toggles_box:STYLE:WIDTH TO main_ascent_gui_width - 16.
 	
 	GLOBAL dap_b_box IS ascent_toggles_box:ADDHLAYOUT().
-	SET dap_b_box:STYLE:WIDTH TO 120.
+	SET dap_b_box:STYLE:WIDTH TO 105.
 	GLOBAL dap_b_text IS dap_b_box:ADDLABEL("DAP").
 	set dap_b_text:style:margin:v to -3.
 	GLOBAL dap_b IS dap_b_box:addpopupmenu().
 	set dap_b:style:margin:v to -3.
-	SET dap_b:STYLE:WIDTH TO 70.
+	SET dap_b:STYLE:WIDTH TO 65.
 	SET dap_b:STYLE:HEIGHT TO 25.
 	SET dap_b:STYLE:ALIGN TO "center".
 	dap_b:addoption("AUTO").
 	dap_b:addoption("CSS").
-	ascent_toggles_box:addspacing(15).
+	ascent_toggles_box:addspacing(8).
 	
 	GLOBAL abort_mode_box IS ascent_toggles_box:ADDHLAYOUT().
-	SET abort_mode_box:STYLE:WIDTH TO 120.
+	SET abort_mode_box:STYLE:WIDTH TO 115.
 	GLOBAL abort_mode_text IS abort_mode_box:ADDLABEL("Mode").
 	set abort_mode_text:style:margin:v to -3.
 	GLOBAL abort_mode_select IS abort_mode_box:addpopupmenu().
 	set abort_mode_select:style:margin:v to -3.
-	SET abort_mode_select:STYLE:WIDTH TO 70.
+	SET abort_mode_select:STYLE:WIDTH TO 65.
 	SET abort_mode_select:STYLE:HEIGHT TO 25.
 	SET abort_mode_select:STYLE:ALIGN TO "center".
 
-	ascent_toggles_box:addspacing(15).
+	ascent_toggles_box:addspacing(10).
 	
 	GLOBAL abort_b is ascent_toggles_box:ADDBUTTON("ABORT").
 	SET abort_b:STYLE:WIDTH TO 55.
@@ -105,7 +105,7 @@ FUNCTION make_main_ascent_gui {
 	
 	SET abort_b:ONCLICK TO manual_abort_trigger@.
 	
-	ascent_toggles_box:addspacing(15).
+	ascent_toggles_box:addspacing(8).
 	
 	GLOBAL tal_site_box IS ascent_toggles_box:ADDHLAYOUT().
 	SET tal_site_box:STYLE:WIDTH TO 180.
@@ -116,6 +116,22 @@ FUNCTION make_main_ascent_gui {
 	SET tal_site_select:STYLE:WIDTH TO 110.
 	SET tal_site_select:STYLE:HEIGHT TO 25.
 	SET tal_site_select:STYLE:ALIGN TO "center".
+	
+	ascent_toggles_box:addspacing(8).
+	
+	GLOBAL eng_fail_b is ascent_toggles_box:ADDBUTTON("<size=22	><b>!</b></size>").
+	SET eng_fail_b:STYLE:WIDTH TO 25.
+	SET eng_fail_b:STYLE:HEIGHT TO 25.
+	set eng_fail_b:style:margin:v to -3.
+	set eng_fail_b:STYLE:BG to "Shuttle_OPS1/src/gui_images/abort_btn.png".
+	set eng_fail_b:toggle to true.
+	
+	SET eng_fail_b:ONTOGGLE TO enginefailuregui@.
+	
+	//needed bc if we stop and start the program the gui handle needs to go as well
+	if (defined engine_failure_gui) {
+		unset engine_failure_gui.
+	}
 	
 	
 	
@@ -198,6 +214,142 @@ FUNCTION make_main_ascent_gui {
 	
 }
 
+function enginefailuregui{
+	parameter toggled.
+	
+	if (not toggled) {
+		engine_failure_gui:HIDE().
+		return.
+	}
+	
+	if (defined engine_failure_gui) {
+		engine_failure_gui:show().
+		return.
+	}
+
+	global engine_failure_gui is gui(155, 200).
+	
+	set engine_failure_gui:X to main_ascent_gui:X + main_ascent_gui:STYLE:WIDTH.
+	set engine_failure_gui:Y to main_ascent_gui:Y + 42.
+	
+	GLOBAL engine_failure_gui_title_box is engine_failure_gui:addhbox().
+	set engine_failure_gui_title_box:style:height to 25. 
+	set engine_failure_gui_title_box:style:margin:top to 0.
+	
+	GLOBAL engine_failure_gui_titletext IS engine_failure_gui_title_box:ADDLABEL("<b><size=15><color=#" + guitextredhex + ">ENGINE FAILURE</color></size></b>").
+	SET engine_failure_gui_titletext:STYLE:ALIGN TO "center".
+	set engine_failure_gui_titletext:style:margin:v to -2.
+	
+	GLOBAL engfailbox IS engine_failure_gui:ADDVLAYOUT().
+	
+	SET engfailbox:STYLE:ALIGN TO "center".
+	SET engfailbox:STYLE:WIDTH TO engine_failure_gui:STYLE:width.
+	
+	GLOBAL engfailmode_text IS engfailbox:addlabel("Failure mode :").
+	
+	GLOBAL engfailmode_b IS engfailbox:addpopupmenu().
+	SET engfailmode_b:STYLE:WIDTH TO 55.
+	SET engfailmode_b:STYLE:HEIGHT TO 25.
+	SET engfailmode_b:STYLE:ALIGN TO "center".
+	engfailmode_b:addoption("OFF").
+	engfailmode_b:addoption("RAND").
+	engfailmode_b:addoption("TIME").
+	
+	set engfailmode_b:onchange to {
+		parameter fail_mode.
+	
+		set abort_modes["engine_failure"]["mode"] to fail_mode.
+		
+		if (fail_mode = "TIME") {
+			engfailtime_container:SHOW().
+			make_engfailtime_panel().
+		} else {
+			engfailtime_container:clear().
+		}
+	}.
+	
+	
+	engfailbox:addspacing(2).
+	
+	global engfailtime_list is list().
+	
+	global engfailtime_container is engfailbox:ADDVLAYOUT().
+	
+	
+	GLOBAL engine_failure_gui_close IS  engfailbox:ADDBUTTON("<size=16>Confirm</size>").
+	SET engine_failure_gui_close:STYLE:WIDTH TO 70.
+	SET engine_failure_gui_close:STYLE:ALIGN TO "center".
+	//SET quitb:style:width TO 80.
+	function enginefailureguiclosecheck {
+		if (engfailmode_b:VALUE = "TIME") {
+			write_new_engfailtimes(engfailtime_list).
+		}
+		engine_failure_gui:HIDE().
+		set eng_fail_b:pressed to false.
+	}
+	SET engine_failure_gui_close:ONCLICK TO enginefailureguiclosecheck@.
+	engine_failure_gui:SHOW().
+}
+
+function make_engfailtime_panel {
+
+	global engfailtime_box is engfailtime_container:ADDVBOX().
+	SET engfailtime_box:STYLE:HEIGHT TO 31.
+	
+	global engfailtime_list_box is engfailtime_box:ADDVLAYOUT().
+	set engfailtime_list_box:style:margin:top to 2. 
+	
+	
+	GLOBAL engfailtime_addb IS  engfailtime_box:ADDBUTTON("<size=16>+</size>").
+	SET engfailtime_addb:STYLE:WIDTH TO 18.
+	SET engfailtime_addb:STYLE:HEIGHT TO 18.
+	
+	SET engfailtime_addb:ONCLICK TO {
+	
+		if (engfailtime_list:length >= vehicle["SSME"]["active"]) {
+			return.
+		}
+		
+		add_engfailtime_field().
+	}.
+	
+	for eftlex in abort_modes["engine_failure"]["times"] {
+	
+		local eft_str is "".
+		
+		if (eftlex["time"] > 0) {
+			set eft_str to eftlex["time"]:tostring.
+		}
+	
+		add_engfailtime_field(eft_str).
+	}
+}
+
+function add_engfailtime_field {
+	parameter new_time is "".
+
+	set engfailtime_box:style:height to engfailtime_box:style:height + 26.
+	
+	engfailtime_list_box:addspacing(4).
+	LOCAL newfailtimetext IS engfailtime_list_box:addtextfield(new_time).
+	engfailtime_list:add(newfailtimetext).
+	set newfailtimetext:style:width to 65.
+	set newfailtimetext:style:height to 18. 
+}
+
+function write_new_engfailtimes {
+	parameter engfailtimes_list.
+
+	set abort_modes["engine_failure"]["times"] to list().
+	
+	for eft_ in engfailtimes_list {
+		local new_failt is eft_:TEXT:tonumber(-1).
+		
+		if (new_failt >= 0) {
+			abort_modes["engine_failure"]["times"]:add(lexicon("time", new_failt)).
+		}
+	}
+}
 
 FUNCTION is_dap_css {
 	return (dap_b:VALUE = "CSS").

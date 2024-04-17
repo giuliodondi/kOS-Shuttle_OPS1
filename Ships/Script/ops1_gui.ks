@@ -24,6 +24,9 @@ close_all_GUIs().
 make_main_ascent_gui().
 make_ascent_traj1_disp().
 
+//needed to test eng fail gui 
+GLOBAL vehicle IS LEXICON("SSME",parse_ssme()).
+
 local sample_data is sample_traj_data().
 local sample_data_count is 250.
 
@@ -74,7 +77,7 @@ until false {
 				"vi", vi,
 				"ve", ve,
 				"alt", alt_,
-				"alt_ref", traj_disp_alt_ref,
+				"ref_alt", traj_disp_alt_ref,
 				"pred_vi", vi + 100,
 				"pred_ve", ve + 100,
 				"pred_alt", alt_ + 2,
@@ -90,7 +93,11 @@ until false {
 	
 	update_ascent_traj_disp(gui_data).
 	
-	print abort_mode_select:value.
+	IF EXISTS("0:/abort_modes_dump.txt") {
+		DELETEPATH("0:/abort_modes_dump.txt").
+	}
+	
+	log abort_modes:dump() to "0:/abort_modes_dump.txt".
 	
 	wait (0.1).
 }
