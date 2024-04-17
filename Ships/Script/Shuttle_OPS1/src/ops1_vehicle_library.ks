@@ -1290,38 +1290,31 @@ FUNCTION get_srb_thrust {
 }
 
 
-//if a global flag is set, sets up an event to shutdown one of the SSMEs
-FUNCTION setup_engine_failure {
+//shutdown one random engine 
+//if all engines are running, avoid shautting down the centre engine
+FUNCTION trigger_engine_failure {
 
-	IF (DEFINED engine_failure_time) {
-		
-		events:ADD(	
-			LEXICON(
-					"time",engine_failure_time,
-					"type", "action",
-					"action",{
-								LOCAL englist IS get_ssme_parts().
-								LOCAL zpos IS 0.
-								LOCAL ze_ IS 0.
-								FROM {local e_ is 0.} UNTIL e_ >= englist:LENGTH STEP {set e_ to e_+1.} DO { 
-									
-									LOCAL eng IS englist[e_].
-									LOCAL z_ IS VDOT(VXCL(SHIP:FACING:STARVECTOR, eng:POSITION), SHIP:FACING:TOPVECTOR).
-									IF (z_ > zpos) {
-										set zpos to z_.
-										set ze_ to e_.
-									}
-								}
-								englist:REMOVe(ze_).
-								select_rand(englist):SHUTDOWN.
-					}
-			)
-		).
+	local engines_out is get_engines_out().
 	
+	LOCAL englist IS get_ssme_parts().
+	
+	if (engines_out = 0) {
+		LOCAL zpos IS 0.
+		LOCAL ze_ IS 0.
+		FROM {local e_ is 0.} UNTIL e_ >= englist:LENGTH STEP {set e_ to e_+1.} DO { 
+			
+			LOCAL eng IS englist[e_].
+			LOCAL z_ IS VDOT(VXCL(SHIP:FACING:STARVECTOR, eng:POSITION), SHIP:FACING:TOPVECTOR).
+			IF (z_ > zpos) {
+				set zpos to z_.
+				set ze_ to e_.
+			}
+		}
+		englist:REMOVe(ze_).
 	}
+	select_rand(englist):SHUTDOWN.
 
 }
-
 
 
 //measure both ssme and oms fuel 

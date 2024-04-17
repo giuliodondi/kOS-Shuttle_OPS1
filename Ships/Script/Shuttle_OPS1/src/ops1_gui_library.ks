@@ -279,11 +279,10 @@ function enginefailuregui{
 	GLOBAL engine_failure_gui_close IS  engfailbox:ADDBUTTON("<size=16>Confirm</size>").
 	SET engine_failure_gui_close:STYLE:WIDTH TO 70.
 	SET engine_failure_gui_close:STYLE:ALIGN TO "center".
-	//SET quitb:style:width TO 80.
+
 	function enginefailureguiclosecheck {
-		if (engfailmode_b:VALUE = "TIME") {
+		//if (engfailmode_b:VALUE = "TIME") {
 			write_new_engfailtimes(engfailtime_list).
-		}
 		engine_failure_gui:HIDE().
 		set eng_fail_b:pressed to false.
 	}

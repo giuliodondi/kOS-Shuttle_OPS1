@@ -4,8 +4,6 @@ GLOBAL abort_modes IS LEXICON(
 					"engine_failure", lexicon(
 												"mode", "",
 												"times", list()
-					
-					
 									),
 					"trigger_t",time:seconds + 10000000000,
 					"abort_initialised", false,
@@ -80,6 +78,8 @@ function initialise_abort_sites {
 //gather abort redion determinator, abort initialiser, and anything else that may come up
 function abort_handler {
 
+	setup_engine_failure().
+
 	//before getstate we need to update engines and setup aborts so the stage is reconfigured 
 	//and then adjusted to the current fuel mass
 	measure_update_engines().
@@ -95,6 +95,68 @@ function abort_handler {
 	log abort_modes:dump() to "0:/abort_modes_dump.txt".
 	
 	abort_initialiser().
+
+}
+
+//
+function setup_engine_failure {
+
+	local engines_out is get_engines_out().
+	
+	local engfail_triggered is 0.
+	
+	if (abort_modes["engine_failure"]["mode"] = "RAND") {
+		
+		//random failure model:
+		//3 different probabilities for single, double or triple failure 
+		//probability is defined per second
+		//boost for every engine already failed
+		
+		local one_eo_prob is 0.0008.
+		local two_eo_prob is 0.0002.
+		local three_eo_prob is 0.0001.
+		local eng_out_boost_fac is 2.
+		
+		set two_eo_prob to two_eo_prob + one_eo_prob.
+		set three_eo_prob to three_eo_prob + two_eo_prob.
+		
+		set one_eo_prob to one_eo_prob * surfacestate["deltat"] * MAX(1, eng_out_boost_fac * engines_out).
+		set two_eo_prob to two_eo_prob * surfacestate["deltat"] * MAX(1, eng_out_boost_fac * engines_out).
+		set three_eo_prob to three_eo_prob * surfacestate["deltat"] * MAX(1, eng_out_boost_fac * engines_out).
+		
+		local eo_fail_diceroll is RANDOM().
+		
+		if (eo_fail_diceroll < one_eo_prob) and (engines_out <= 2) {
+			set engfail_triggered to 1.
+		} else if (eo_fail_diceroll < two_eo_prob) and (engines_out <= 1) {
+			set engfail_triggered to 2.
+		} else if (eo_fail_diceroll < three_eo_prob) and (engines_out <= 0) {
+			set engfail_triggered to 3.
+		}
+		
+		//print "one_eo_prob : " + one_eo_prob at (0,1).
+		//print "two_eo_prob : " + two_eo_prob at (0,2).
+		//print "three_eo_prob : " + three_eo_prob at (0,3).
+		//print "eo_fail_diceroll : " + eo_fail_diceroll at (0,5).
+		
+	} else if (abort_modes["engine_failure"]["mode"] = "TIME") {
+		
+		local new_eft_list is list().
+		
+		for eft_ in abort_modes["engine_failure"]["times"] {
+			if (eft_["time"] > surfacestate["MET"]) {
+				new_eft_list:add(eft_).
+			} else {
+				set engfail_triggered to engfail_triggered + 1.
+			}
+		}
+		
+		set abort_modes["engine_failure"]["times"] to new_eft_list.
+	}	
+	
+	FROM {local k is 0.} UNTIL k = engfail_triggered STEP {set k to k+1.} DO {
+		trigger_engine_failure().
+	}
 
 }
 
