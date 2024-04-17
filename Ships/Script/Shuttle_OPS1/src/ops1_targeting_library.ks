@@ -4,6 +4,7 @@
 GLOBAL launchpad IS SHIP:GEOPOSITION.
 GLOBAL surfacestate IS  LEXICON(
 								"time",0,
+								"deltat", 0,
 								"MET",0,
 								"surfv", v(0,0,0),
 								"horiz_dwnrg_v", v(0,0,0),
@@ -380,7 +381,9 @@ FUNCTION prepare_launch {
 
 FUNCTION update_navigation {
 	
-	SET surfacestate["time"] TO TIME:SECONDS. 
+	local t_prev is surfacestate["time"].
+	SET surfacestate["time"] TO TIME:SECONDS.
+	set surfacestate["deltat"] to surfacestate["time"] - t_prev.
 	SET surfacestate["MET"] TO surfacestate["time"] - vehicle["ign_t"]. 
 	
 	

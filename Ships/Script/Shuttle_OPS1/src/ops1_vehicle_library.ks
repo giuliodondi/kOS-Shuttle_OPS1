@@ -692,8 +692,6 @@ FUNCTION add_action_event{
 
 FUNCTION events_handler {
 
-	local met is TIME:SECONDS - vehicle["ign_t"].
-
 	local x IS events:LENGTH.
 	
 	local rem_list IS LIST().
@@ -703,7 +701,7 @@ FUNCTION events_handler {
 	LOCAL k IS 0.
 	FOR evt IN events {
 		
-		IF met>evt["time"]  {
+		IF surfacestate["MET"]>evt["time"]  {
 			IF evt["type"]="jettison" {
 				TOGGLE AG8.
 				IF evt:HASKEY("mass") {
@@ -885,11 +883,7 @@ function calculate_dv_remaining {
 //thrust only averaged over if staging is not in progress
 FUNCTION getState {
 	
-	LOCAL deltat IS surfacestate["time"].
-	
 	update_navigation().
-	
-	SET deltat TO surfacestate["time"] - deltat.
 	
 	IF DEFINED events {	events_handler().}
 	
@@ -916,7 +910,7 @@ FUNCTION getState {
 		
 		IF (vehiclestate["cur_stg"]=1) {
 		
-			SET cur_stg["Tstage"] TO cur_stg["Tstage"] - deltat.
+			SET cur_stg["Tstage"] TO cur_stg["Tstage"] - surfacestate["deltat"].
 			
 			srb_staging().
 			
