@@ -160,21 +160,23 @@ These are the main events durign ascent:
 
 # Abort scenarios
 
-### General remarks
+## General remarks
 
-Abort scenarios are usually required whenever one or more engines fail. You can either shutdown an engine manually or use the **_Engine Failure_** setup panel:
+Abort modes are usually required whenever one or more engines fail. You can either shutdown an engine manually or use the **_Engine Failure_** setup panel:
 
 ![engfail_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/engfail_gui.png)
 
 - The failure mode by default is _OFF_
 - the _RAND_ setting will run a probability-based algorithm to decide whether to trigger a single, double or even triple engine failure at any moment
-- the _TIME_ setting allow you to schedule up to three failures at a specified time. Click the **+** button to add a failure
+- the _TIME_ setting allow you to schedule up to three failures at any MET you like. Click the **+** button to add a failure
 
+There are two kinds of abort modes:
+- **Intact aborts** where there always is a procedure that will take the Shuttle to a landing runway with sufficient energy
+- **Contingency aborts** where the Shuttle is not guaranteed to reach a runway or even survive the reentry into the lower atmosphere
 
-- There are two kinds of abort modes:
-  - **Intact aborts** where there always is a procedure that will take the Shuttle to a landing runway with sufficient energy
-  - **Contingency aborts** where the Shuttle is not guaranteed to reach a runway or even survive the reentry into the lower atmosphere
-- Inta
+## Intact aborts
+
+Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure. 
 
 
 ### General considerations
