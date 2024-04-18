@@ -2,7 +2,7 @@
 ## Updated April 2024 - please go through the README
 
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
-Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted and modified to perform aborts.
+Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted and modified to perform aborts. Allows for assisted manual flight.
 
 # References
 
@@ -58,83 +58,115 @@ If you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the
 
 ## kOS configuration file
 
-The mission parameters are specified in the main launch script **ops1.ks** or **ops13a.ks**.  
+The mission parameters are specified in the main launch script **ops1.ks** or **ops13a.ks**.  **The scripts assume that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
+
 It contains variable definitions for:
-- a "target_orbit" structure describing the shape of the desired orbit. Apoapsis, periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the inclination to whatever you desire (read more about this later on).
+- a "target_orbit" structure describing the shape of the desired orbit. Periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the apoapsis and inclination to suit your needs.
 - a disabled variable *engine_failure_time* which you can uncomment to trigger an automatic engine failure at the specified time. More on aborts later on.
-- a disabled variable TAL_site which you can uncomment to select a specific TAL landing site (the selection is automatic by default). The value must match the name of some landing site defined in the **Shuttle_entrysim/landing_sites.ks** file in the Entry script source or the script will crash.
 - a variable to enable telemetry logging in the UPFG_OPS1/LOGS/ folder if you want to plot it with your own means
+ 
+# The main Ascent script
 
-There is no longer any need for a specific vessel configuration file as the script now measures both vehicle mass and SSME parameters automatically. **The script assumes that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
+Upon running **ops1.ks** you will be greeted with a GUI with buttons and a data display to interface with the program:
 
-# Mission profiles
+![ascent_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_gui.png)
 
-## Nominal launch
+- The _X_ button will interrupt the program at any point
+- _DAP_ selects the digital autopilot modes. By default it's AUTO but it can be switched to CSS for manual flight. More on autopilot modes later on.
+- The red _ABORT_ button triggers a manual abort and the selector menu to its left selects the modes currently available. More on aborts later on.
+- the _TAL site_ selector is specifically to choose an available landing site for a manual TAL abort
+- the _Display_ will show different things depending on the flight phase. There will be plenty more about this later on.
+- the _Message Window_ at the bottom displays printouts of the program state. Useful to monitor the abort state
 
-As mentioned, the mission is started by running **shuttle.ks**. Running this script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch a few seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch. It is possible to launch in the orbital plane of a ship in orbit by selecting it as a target in the map view **BEFORE** running the script. This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.  
-Fuel cells are automatically activated at liftoff. On a nominal mission a roll to heads-up attitude is performed at T+5:50.  
+## The ASCENT TRAJ displays
 
-Although the Shuttle was a two-stage vehicle, the script treats it as a four-stage vehicle:
-- stage 1 is the SRB atmospheric phase, with open-loop guidance. It terminates 5 seconds after SRB sep.
-- stage 2 is closed-loop PEG guidance with the engines at full constant throttle. It terminates when the acceleration reaches 3G
-- stage 3 is closed-loop PEG guidance with the engines throttling back continuously to maintain aroung 3G acceleration. It terminates either at MECO or when the minimum throttle setting is reached. For missions with very heavy payloads this might be the last phase overall, as fuel will be depleted before the minimum throttle setting is reached.
-- stage 4 s closed-loop PEG guidance with the engines at minimum throttle. It terminates at MECO or fuel depletion. This phase is only ever entered for missions out of Vandenberg because of the extra deltaV required by the retrograde launch.
+![ascent_traj_displays](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_traj_displays.png)
 
-After MECO the script will automatically:
-- trigger ET sep
-- command an RCS vertical translation manoeuvre
-- close the umbilical doors
-- disable SSME gimballing
-
-The script then enters an infinite loop displaying the results of an orbital analysis, calculating the erros with respect to the desired orbit. At this point you can halt the script with ctrl+C in the script window.
-**Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
-
-The script now implements a functional GUI which re-creates the real-world Space Shuttle monitor displays during ascent. Although the GUI is fully functional, so far it is just a fancy display since there is no possibility of manual control.
-
-### ASCENT TRAJ 1 display
-
-![ascent_traj_1_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_traj1_gui.png)
-
-This is the display during the majority of first stage, until right before SRB separation.
+These two displays show useful data and trajectory printouts:
+- **_TRAJ 1_** displays first stage (SRB) flight until right before SRB sep
+- **_TRAJ 2_** takes over from there all the way to MECO
 - At the top you have the display title and the running mission elapsed time
-- On the left data box you have vertical speed (H-dot) and the roll (R), pitch (P) and yaw (Y) angles with respect to the surface prograde direction
-- On the right data box you have:
-    - a slider indicating the current acceleration in units of G
-    - the remaining propellant quantity (PROP) as a percentage
-    - the current throttle setting (THR) as a percentage of Rated Power Level (more on this later)
-    - TGO and VGO are yellow and inactive during first stage
-- In the middle is a plot of altitude on the vertical vs. surface velocity on the horizontal. The solid represents a nominal ascent trajectory. The numbered ticks indicate roughly the surface pitch that the Shuttle should have at that moment
-- The dashed line is the first-stage ascent in case of an engine failure at liftoff. Because of lower acceleration and trajectory biasing done by Guidance, the hsuttle climbs faster than it accelerates comapred to nominal
-- The yellow triangle indicates the Shuttle's state right now
-- The circle is the predicted state 30 seconds into the future, the prediction is a trajectory integration assuming the thrust direction is invariant and doesn't accoutn for the fact that the Shuttle is constantly pitching down
-- at the bottom you have a message box detailing the status of the underlying script
+  - the display title is ASCENT in the nominal case, but in an abort it will change to RTLS, TAL, ATO or CONT
+- On the left side you have:
+  - current vertical speed **Ḣ**
+  - the errors with respect to guidance commands: roll **_R_**, pitch **_P_**, yaw **_Y_**, throttle **_T_**
+  - R,P,Y errors are in angles with respect to the commanded thrust direction in the vehicle-fixed frame of reference, T is a percentage.
+  - When the errors are too large, the numbers will turn yellow
+- **_CONT ABORT_** shows the current active contingency abort regions for 2- and 3-engine-out situations. More about this in the aborts section
+- The TRAJ 1 central plot shows altitude vs. surface velocity
+  - The ticks show the pitch angle that the Shuttle should have at that moment
+  - The solid line is the typical nominal trajectory
+  - The dashed line is the trajectory in case of one engine out at liftoff
+- The TRAJ 2 plot is altitude vs. inertial (orbital) velocity
+  - the solid line shows the early lofting and droop which is typical of the Shuttle
+  - the ticks show roughly the intact abort boundaries: negative return (RTLS), press to ATO (ATO), last TAL opportunity (TAL)
+- On the right side you have:
+  - a slider with the current acceleration in G-units, the indicator will turn yellow if it exceeds 3G
+  - **_THROT_** is the current throttle level in units of Rated Power Level
+  - **_PROP_** is the percentage of remaining propellant in the External Tank
+- On the TRAJ 2 display, below the title, there is the MECO velocity line indicator, close to MECO it shows how far off from the targeted cutoff velocity (**_CO_**) you are
+- On the TRAJ2 display, in the top right corner, are some UPFG-specific values:
+  - **_TGO_** is the guidance-calculated time to MECO
+  - **_VGO_** is the guidance-calculated delta-V to gain to MECO
+  - the numbers will be yellow when the algorithm is unconverged, green upon convergence
 
-### ASCENT TRAJ 2 display
 
-![ascent_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_traj2_gui.png)
-
-This is the display from the final moments of first stage all the way to MECO, during nominal ascent, TAL and ATO aborts (RTLS has its own display).
-
-- The left data box is identical to the TRAJ1 display
-- the right data box is also identical to the TRAJ1 display, with the exception of the TGO and VGO fields which are now active:
-    - TGO is the guidance calculated time-to-go until the MECO target is reached
-    - VGO is the guidance calculated velocity-to-go in m/s until the MECO target is reached
-- both fields will be yellow when the guidance algorithm is unconverged, then turn green once the algorithm stabilises
-- At the top, below the title, you have the MECO velocity indicator. It's a slider which ranges from 7000 to 8000 m/s and the CO symbol indicates the desired cutoff speed. The triangle indicates the current orbital velocity and should stop at the CO mark at MECO.
-- In the middle is now a plot of altitude on the vertical vs. orbital velocity on the horizontal. The long central curve is the nominal trajectory, which droops during the late stages of ascent (this is normal and realistic).
-    - The dashed track to the left of the nominal trajectory is the trajectory for a retrograde launch out of Vandenberg. In that case the Shuttle moves against the Earth's rotation and so orbital velocity is lower at the start
-- The ticks along the trajectory plot represent abort boundaries:
-    - TAL indicates the last TAL opportunity
-    - ATO indicates the earliest ATO opportunity, although ATO is currently only available after TAL
-    - RTLS indicates the last RTLS opportunity. The RTLS boundary is surface velocity, not orbital. For retrograde launches it's reached at a much lower orbital velocity, hence why it's a double tick.
-
-### Meaning of Rated Power Level and the THR indicator
+## Meaning of Rated Power Level and the THROT indicator
 
 The Space Shuttle Main Engine had several performance improvements in its operational life, and you have all the variants at your disposal in KSP RO.  
 The caveat is that "full power" is an ambiguous term in this situation. For this reason we define the Rated Power Level (100% RPL) as 2090 kN, the max thrust of the original variant. 
 This is significant because for the later part of the Shuttle program, when they used the RS-25D variant, the nominal throttle setting was 104% RPL and boosted to the full 109% RPL in case of an abort. This was done to reduce wear and risk of failure on the engines, it's all realistic and simulated by the script.
 
-## Aborts
+## How to fly manually with CSS
+
+CSS means control-stick-steering, a fly-by-wire mode that allows you to use keyboard or joystick to command changes in pitch, roll or yaw letting kOS worry about keeping stability.  
+At any time you can switch between the two. **A manual ascent from liftoff to orbit in CSS is possible but challenging**.
+Here are some tips and remarks on how to do it:
+- switch the KSP camera to _Locked_ or switch to IVA mode
+- **the errors are defined relative to the body axes, not the Earth's horizon**
+- Positive Roll and Yaw errors means you need to correct to the **right**. Positive pitch error means you need to pitch **up**. Positive throttle error means you need to throttle up
+- You will need to constantly correct, especialy in pitch
+- Make small corrections and see the result in the Display before correcting further
+- **The initial roll manoeuvre is by far the hardest:**
+  - it's a combined roll, pitch and yaw manoeuvre that puts you on the right azimuth for ascent
+  - It's useful not to rely solely on the numbers and also have a mental image of where the Shuttle is and how it needs to move to ascend heads-down
+  - use continuous roll inputs and correct pitch and yaw as required by the error numbers
+- During TRAJ 1 you can use the trajectory plot as a guide to correct your pitch, you shouldn't go too far off the line
+- During TRAJ 2 I don't suggest you try to follow the line closely, the Guidance commands already account for any error you accumulated
+
+# Nominal mission scenario
+
+Running the **ops1.ks** script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch about 10 seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch.  
+**You can launch to rendezvous with a vessel in orbit by selecting it as a target in the map view BEFORE running the script.** This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.
+
+These are the main events durign ascent:
+- Fuel cells are automatically activated at liftoff
+- Dynamic pressure (**Q**) is monitored throughout and SSME throttle will be reduced to 75% RPL during the Max-Q period. **If you fly CSS you have to be alert and adjust throttle**
+- SRB separation is thrust-dependent and usually happens around the T+02:00 mark
+- 5 seconds after SRB sep the program transitions to closed-loop guidance using the UPFG algorithm
+- On a nominal mission a roll to heads-up attitude is performed at T+05:50
+- About a minute before MECO, Guidance will start throttling down the engines to maintain a maximum acceleration of 3G. **Again, if you're flying CSS you need to be alert for this**
+- 5 seconds before the targeted MECO the program transitions to terminal guidance at minimum throttle
+  - alternatively it can happen 5 seconds before the Shuttle runs out of propellant
+- After MECO the program will automatically:
+  - disable SSME gimballing
+  - trigger ET sep
+  - command an RCS vertical translation manoeuvre
+  - close the umbilical doors
+- The program then prints a message in the message window, displaying the results of an orbital analysis calculating the erros with respect to the targeted orbit
+- 5 seconds after this, the program will quit itself
+- **Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
+
+# Abort scenarios
+
+### General remarks
+
+- The Shuttle requires abort modes whenever reaching the nominal orbit is impossible or not appropriate, either for an SSME failure or some other problem (fuel cells, windows, hydraulics...)
+- There are two kinds of abort modes:
+  - **Intact aborts** where there always is a procedure that will take the Shuttle to a landing runway with sufficient energy
+  - **Contingency aborts** where the Shuttle is not guaranteed to reach a runway or even survive the reentry into the lower atmosphere
+- Inta
+
 
 ### General considerations
 
