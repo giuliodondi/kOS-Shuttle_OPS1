@@ -75,6 +75,7 @@ Upon running **ops1.ks** you will be greeted with a GUI with buttons and a data 
 - _DAP_ selects the digital autopilot modes. By default it's AUTO but it can be switched to CSS for manual flight. More on autopilot modes later on.
 - The red _ABORT_ button triggers a manual abort and the selector menu to its left selects the modes currently available. More on aborts later on.
 - the _TAL site_ selector is specifically to choose an available landing site for a manual TAL abort
+- the red button with the **!** symbol opens the Engine Failure setup panel, more on this in the aborts section
 - the _Display_ will show different things depending on the flight phase. There will be plenty more about this later on.
 - the _Message Window_ at the bottom displays printouts of the program state. Useful to monitor the abort state
 
@@ -161,7 +162,15 @@ These are the main events durign ascent:
 
 ### General remarks
 
-- The Shuttle requires abort modes whenever reaching the nominal orbit is impossible or not appropriate, either for an SSME failure or some other problem (fuel cells, windows, hydraulics...)
+Abort scenarios are usually required whenever one or more engines fail. You can either shutdown an engine manually or use the **_Engine Failure_** setup panel:
+
+![engfail_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/engfail_gui.png)
+
+- The failure mode by default is _OFF_
+- the _RAND_ setting will run a probability-based algorithm to decide whether to trigger a single, double or even triple engine failure at any moment
+- the _TIME_ setting allow you to schedule up to three failures at a specified time. Click the **+** button to add a failure
+
+
 - There are two kinds of abort modes:
   - **Intact aborts** where there always is a procedure that will take the Shuttle to a landing runway with sufficient energy
   - **Contingency aborts** where the Shuttle is not guaranteed to reach a runway or even survive the reentry into the lower atmosphere
