@@ -183,7 +183,8 @@ There are two kinds of abort modes:
 
 ## Intact aborts
 
-Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure. In some regions, even a double engine failure will allow an intact abort.  
+Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure.  
+In some regions, even a double engine failure will allow an intact abort. This is valid both for a sudden double-engine failure or a second engine failure during an ongoing abort 
 
 - Intact aborts can be triggered either manually or automatically
 - Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
@@ -203,7 +204,8 @@ The above chart shows the intact abort modes and their boundaries:
   later in the ascent, Single-engine press to ATO is available
 
 
-## Return to Launch Site (RTLS) abort 
+<details>
+<summary><h2>Return to Launch Site (RTLS) </h2></summary>
 
 RTLS is quite involved and has a powered phase (until MECO) and a Glide phase after that. Powered-RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
 - Altitude about 72 km
@@ -243,12 +245,11 @@ Once we trigger Flyback, T_C will settle around zero as the PEG algorithm adjust
 
 ### Glide-RTLS
 
-After MECO and separation, the script will stop and call the OPS3 reentry script which takes case of  **Glide-RTLS (GRTLS)** guidance.  
+After MECO and separation, the script will stop and automatically call the **OPS3** reentry script which takes case of  **Glide-RTLS (GRTLS)** guidance.  
 In a nutshell: the Shuttle pitches up to 45° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces. At the end of GRTLS the Shuttle will be about 200 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent.  
 **Please read carefully the OPS3 documentation for more about Glide-RTLS**
 
-<details>
-<summary><b>Detailed results from my RTLS tests</b></summary>
+### Detailed results from my RTLS tests
 
 Here I present my test results for RTLS aborts. The scenario was STS-9 (RS-25A, Lightweight tank, Spacelab payload at 57° inclination). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to just before Negative Return. The plots include both Powered and GLide RTLS phases 
 
@@ -290,31 +291,38 @@ The Glide-RTLS phase, which starts after arrival on the RV line, is completely o
 
 </details>
 
-## TAL abort
+<details>
+<summary><h2>Transoceanic Abort Landing (TAL)</h2></summary>
+ 
+The available TAL landing sites are taken from the landing sites defined in **Shuttle_OPS3/landing_sites.ks**, specifically those downrange of your launch trajectory. The program estimates continuously if there is enough delta-V to reach any of them accounting for gravity losses and crossrange. As soon as one is reachable, TAL becomes active. This is done for both the two- and one-engine case, gravity losses are higher in the latter case and this is why single-engine TAL is only available so late.
 
-The TAL abort is triggered if an engine is shut down between negative return and 4350 inertial velocity. The boundary is called **press to ATO** and an ATO/AOA abort is commanded after that.  
-The TAL site is selected automatically from the landing sites defined in **Shuttle_OPS3/landing_sites.ks** based on whether they lie downrange and estimating if there is enough delta-V to alter the trajectory within ~800km crossrange of them. One site is chosen at random out of all the ones satisfying these conditions, to simulate weather availability. The site choice can be overridden by specifying the site name in the **shuttle.ks** file.  
+In case of a manually-triggered abort, the TAL site chosen will be the one in the TAL site GUI selector. In case of an automatic abort, the site will be chosen at random among the sites within reach.  
+If the TAL abort downmodes to single-engine TAL because of a second engien failure, the site remains the one selected. In case of a sudden double engine failure, the chosen site is the one with the best delta-V margin.
+ 
+Either way, there isn't much difference from a normal ascent, save for the automatic OMS dump and the roll to heads-up attitude which happens earlier.   
+After MECO and separation the Shuttle will be around 120km and about to descend. The script will quit itself and automatically call the **OPS3** reentry script.
+**Please read carefully the OPS3 documentation for more about TAL reentries**
 
-Once the site is selected, Closed-loop Guidance will alter the PEG target state so that the trajectory falls within the crossrange limits to the landing site. Apart from the internal targeting, the abort is carried out like a normal ascent, the only difference being an automatic OMS fuel dump.  
-After MECO and separation the Shuttle will be at around 110km and about to descend. Stop the ascent script immediately and begin entry preparations.
 
-In some cases, attemtping to reduce reentry crossrange may result in a MECO underspeed. This happens in cases where only one TAL site is available and late in the ascent, since the faster the Shuttle is already, the more deltaV it takes to steer the trajectory within crossrange limits.  
-If the underspeed is very severe, you have a small window to do an OMS burn to add a little horizontal velocity before engaging Reentry guidance.  
-**Do not add too much velocity**, even in the nominal TAL case the ballistic trajectory should fall well short of the target.
+</details>
 
-## ATO/AOA aborts
+<details>
+<summary><h2>Abort to orbit / Abort once-around (ATO/AOA)</h2></summary>
 
-Both aborts use the same guidance and differ only in what you decide to do after MECO. They are triggered if an engine is shut down between Press to ATO and 6100 inertial velocity. The boundary is called **press to MECO** and no abort is commanded after that.  
-This abort mode lowers the cutoff altitude a bit and the apoapsis to about 160km, just outside of the upper atmosphere. Additionally it forces guidance not to thrust out of plane anymore, giving more performance margin at the cost of a MECO orbital inclination lower than desired. Also no OMS dump is performed as you will need the fuel to do orbital corrections later on.  
+Abort to orbit and Abort once-around use the same guidance and differ only in what you decide to do after MECO. The targeted orbit has an apoapsis just above the edge atmosphere and should only require 250 m/s of OMS propellant to circularise. Additionally, the orbital plane is not constrained so that guidance will not waste fule burning off-plane.  
+Since you need OMS fuel to do orbital corrections, no OMS dump is performed for this abort.
 
 After MECO you have two options:
 - do an OMS burn to raise the orbit and continue your mission
 - firstly do a combined circularization - plane change OMS burn to bring you closer to a landing site on the next pass. Later on do a second OMS deorbit burn with the deorbit planner tool
 
-If you use my latest version of SpaceShuttleSystem and the fork of FAR that I created, with the realistic aerodymamics, you have enough crossrange to cover all Abort Once Around trajectories.  
+My fork of SpaceShuttleSystem and the **OPS3** entry script afford enough crossrange ability to cover all Abort Once Around trajectories.  
 For AoA aborts out of KSC, you can return to KSC for inclinations up to ~45° . For higher inclinations, Northrup (White Sands) is your best choice.  
 For Vandenberg launches, AoA back to Vandenberg is your only option
 
-## Post-ATO engine failure 
+</details>
 
-After the ATO boundary, the program will assume that it's able to achieve the nominal MECO targets. The only action here is to get rid of the G-throttling logic.
+
+## Contingency aborts
+
+### Coming soon, not implemented yet
