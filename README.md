@@ -32,7 +32,7 @@ You will find one folder:
 Put the contents of the Script folder inside Ship/Script so that kOS can see all the files.
 There are a few scripts you can run:
 - **ops1.ks** to setup a launch of the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
-- **ops13a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
+- **ops1_3a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
 - **node.ks** a little manoeuvre node executor that I use to execute OMS burns in orbit, it takes care of the offset OMS thrust position (so it even works with a single OMS burn) and is compatible with nodes created with Principia
 
 
