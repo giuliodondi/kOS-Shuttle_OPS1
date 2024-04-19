@@ -1,6 +1,8 @@
 # Kerbal Space Program Space Shuttle Ascent Guidance
 ## Updated April 2024 - please go through the README
 
+![ops1_cover](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ops1_cover.png)
+
 My KSP ascent guidance script for the Space Shuttle, intended to be used in KSP Realism Overhaul.
 Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted and modified to perform aborts. Allows for assisted manual flight.
 
@@ -178,6 +180,8 @@ There are two kinds of abort modes:
 
 Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure. 
 
+
+![intact_modes](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/intact_modes.png)
 
 ### General considerations
 
