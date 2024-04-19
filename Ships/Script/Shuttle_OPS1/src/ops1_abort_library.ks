@@ -173,8 +173,6 @@ function intact_abort_region_determinator {
 	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) {
 		return.
 	}
-
-	clearscreen.
 	
 	if (abort_modes["intact_modes"]["1eo"]["rtls"]) {
 		local neg_return is RTLS_boundary().
@@ -184,6 +182,9 @@ function intact_abort_region_determinator {
 			set abort_modes["intact_modes"]["1eo"]["rtls"] to false.
 		}
 	}
+	
+	//for good measure 
+	set abort_modes["intact_modes"]["2eo"]["rtls"] to false.
 	
 	local two_eng_lex is build_engines_lex(2).
 	local one_eng_lex is build_engines_lex(1).
@@ -394,6 +395,7 @@ function contingency_abort_region_determinator {
 				set abort_modes["2eo_cont_mode"] to "GREEN".
 			} else if (abort_modes["2eo_cont_mode"] = "GREEN") and (SHIP:VERTICALSPEED >= 30) {
 				set abort_modes["2eo_cont_mode"] to "RED".
+				set abort_modes["intact_modes"]["2eo"]["rtls"] to true.
 			} 
 			
 		} else {
@@ -827,6 +829,8 @@ FUNCTION setup_RTLS {
 	//plane defined from current position and velocity, must point to the launch site though
 	local cur_norm is -VCRS(curR, vecYZ(surfacestate["surfv"])):NORMALIZED.
 	
+	LOCAL cur_stg IS get_stage().
+	
 	// only do this on the first rtls initialisation
 	if (NOT (DEFINED RTLSAbort)) {
 	
@@ -836,7 +840,6 @@ FUNCTION setup_RTLS {
 		
 		RTLS_burnout_mass(m_final).		
 		
-		LOCAL cur_stg IS get_stage().
 
 		//time to desired burnout mass
 		LOCAL dmbo_t IS (cur_stg["m_initial"] - vehicle["rtls_mbod"]) * cur_stg["Tstage"]/cur_stg["m_burn"].
@@ -921,7 +924,7 @@ FUNCTION setup_RTLS {
 											abort_ve_theta, 
 											vehiclestate["srb_sep"]["ve"], 
 											vehiclestate["srb_sep"]["alt"], 
-											get_stage()["engines"]["thrust"] 
+											cur_stg["engines"]["thrust"] * throt_val 
 		).
 		
 		LOCAL rtlsC1v IS  RTLS_C1(theta).	
