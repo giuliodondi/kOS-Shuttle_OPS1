@@ -62,7 +62,7 @@ If you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the
 
 ## kOS configuration file
 
-The mission parameters are specified in the main launch script **ops1.ks** or **ops13a.ks**.  **The scripts assume that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
+The mission parameters are specified in the main launch script **ops1.ks** or **ops1_3a.ks**.  **The scripts assume that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
 
 It contains variable definitions for:
 - a "target_orbit" structure describing the shape of the desired orbit. Periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the apoapsis and inclination to suit your needs.
@@ -102,9 +102,11 @@ These two displays show useful data and trajectory printouts:
   - The ticks show the pitch angle that the Shuttle should have at that moment
   - The solid line is the typical nominal trajectory
   - The dashed line is the trajectory in case of one engine out at liftoff
+  - The triangle is the current state, the circle is the predicted state 15 seconds into the future
 - The TRAJ 2 plot is altitude vs. inertial (orbital) velocity
   - the solid line shows the early lofting and droop which is typical of the Shuttle
   - the ticks show roughly the intact abort boundaries: negative return (RTLS), press to ATO (ATO), last TAL opportunity (TAL)
+  - The triangle is the current state, the circle is the predicted state 30 seconds into the future
 - On the right side you have:
   - a slider with the current acceleration in G-units, the indicator will turn yellow if it exceeds 3G
   - **_THROT_** is the current throttle level in units of Rated Power Level
@@ -141,7 +143,7 @@ Here are some tips and remarks on how to do it:
 
 # Nominal mission scenario
 
-Running the **ops1.ks** script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch about 10 seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch.  
+Running the **ops1.ks** or **ops1_3a.ks** script is the only action required for a nominal launch (aborts are different). Simply running the script will program the launch about 10 seconds after running the script, meaning that the LAN of the target orbit depends on the time of day you choose to launch.  
 **You can launch to rendezvous with a vessel in orbit by selecting it as a target in the map view BEFORE running the script.** This will override the launch inclination to match and warp to the right time to launch so the LAN is correct.
 
 These are the main events durign ascent:
@@ -149,6 +151,7 @@ These are the main events durign ascent:
 - Dynamic pressure (**Q**) is monitored throughout and SSME throttle will be reduced to 75% RPL during the Max-Q period. **If you fly CSS you have to be alert and adjust throttle**
 - SRB separation is thrust-dependent and usually happens around the T+02:00 mark
 - 5 seconds after SRB sep the program transitions to closed-loop guidance using the UPFG algorithm
+- It should take around 10 iterations for the algorithm to converge and in the nominal case it should stay converged throughout
 - On a nominal mission a roll to heads-up attitude is performed at T+05:50
 - About a minute before MECO, Guidance will start throttling down the engines to maintain a maximum acceleration of 3G. **Again, if you're flying CSS you need to be alert for this**
 - 5 seconds before the targeted MECO the program transitions to terminal guidance at minimum throttle
@@ -166,7 +169,7 @@ These are the main events durign ascent:
 
 ## General remarks
 
-Abort modes are usually required whenever one or more engines fail. You can either shutdown an engine manually or use the **_Engine Failure_** setup panel:
+Abort modes are usually required whenever one or more engines fail. You can either shutdown an engine manually or setup an automatic failure using the **_Engine Failure_** panel:
 
 ![engfail_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/engfail_gui.png)
 
@@ -180,30 +183,29 @@ There are two kinds of abort modes:
 
 ## Intact aborts
 
-Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure. 
+Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure. In some regions, even a double engine failure will allow an intact abort.  
 
+- Intact aborts can be triggered either manually or automatically
+- Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
+- In case of an engine failure, you have 10 seconds to select a manual abort, after which the program will automatically activate an abort mode
+  - The automatic intact abort logic is: ATO-TAL-RTLS in this order of preference, based on availability
+- You can manually activate an abort even without an engine failure, guidance will work just the same
 
 ![intact_modes](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/intact_modes.png)
 
-### General considerations
-
-Aborts can be triggered by uncommenting the *engine_failure_time* variable in the main **shuttle.ks** script. The time specified will trigger a different abort mode, each with its own guidance and targeting scheme. Alternatively a failure can be triggered manually by shutting down an engine mid-flight, the program is able to detect both situations.  
-The boundaries between abort scenarios depend on velocity, so they may be reached at significantly different METs depending on the SSME condiguration and the payload.  
-All abort scenarios discard the SSME throttling stages and keep the throttle at maximum until MECO or fuel depletion, except for RTLS which uses throttling for guidance.
-
-Bear in mind that only **intact aborts** are covered right now. A double engine failure is a Contingency scenario and the script will not attempt to handle them.
-
-**Caveat:**
-The Shuttle has its engines pointed away from the main vehicle axis and as such there is coupling between yaw and roll. This script uses the kOS built-in steering manager which is unaware of this coupling and thus struggles at times.  Oscillations are expected and should be fine, unless they are too severe.
+The above chart shows the intact abort modes and their boundaries:
+- **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **NEGATIVE RETURN**
+- **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until Single-engine Press to ATO is available)
+  - late in the ascent, Single-engine TAL should become available, this also disappears when Single-engine Press to ATO is available
+- **Press to ATO** is available some time after Negative Return until Press to MECO
+  - later in the ascent, Single-engine press to ATO is available
+- **Press to MECO** is available roughly a minute after press to ATO, this is not really an abort mode
+  later in the ascent, Single-engine press to ATO is available
 
 
 ## Return to Launch Site (RTLS) abort 
 
-RTLS is triggered if an engine fails before a certain surface-relative velocity is reached. The actual speed varies between 2600 and 2200 m/s depending on how large the desired orbital inclination is. The boundary is called **negative return** and a TAL abort is commanded after that. This abort scenario is quite involved and has a powered phase (until MECO) and a Glide phase after that.
-
-### Powered-RTLS
-
-Powered-RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
+RTLS is quite involved and has a powered phase (until MECO) and a Glide phase after that. Powered-RTLS guidance aims to bring the Shuttle to the following conditions at MECO:
 - Altitude about 72 km
 - Moving towards the launch site with velocity that depends on distance at MECO
 - Less than 2% propellant remaining, no more than 20 s of burn time on two engines
@@ -216,29 +218,17 @@ Automatic OMS dump is initiated during fuel dissipation.
 - **Flyback**, where the shuttle pitches around towards the launch site and the outbound trajectory is slowly reversed to bring it home. The script uses a modified version of PEG for guidance. Since velocity-to-go and time-to-go need to match the 2% propellant constraint at MECO, as well as the constraint between position and velocity, active throttling is used as an extra degree-of-freedom. Throttling is disabled some time seconds before MECO as it can become unstable. 
 The OMS fuel dump will cease before or at MECO during flyback.
 
-### Glide-RTLS
-
-After MECO and separation, the script will stop and call the OPS3 reentry script which takes case of  **Glide-RTLS (GRTLS)** guidance.  
-In a nutshell: the Shuttle pitches up to 45° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces. At the end of GRTLS the Shuttle will be about 200 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent.  
-**Please read carefully the OPS3 documentation for more about Glide-RTLS**
-
 ### RTLS TRAJ 2 display
 
-![rtls_traj_2_gui](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_traj2_gui.png)
+![rtls_traj2_display](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/rtls_traj2_display.png)
 
-This display is rendered when the RTLS abort is initialised (not when the engine is lost) and lasts until after MECO.
+This display is rendered when the RTLS abort is initialised and lasts until after MECO.
 
 - At the top you have another cutoff velocity indicator, this time in terms of surface velocity. The range is from 1500 to 2500 m/s, and since the goal is to turn back higher cutoff speeds are indicated from right to left.
     - While the CO mark is actively placed in the right place, you should expect the actual speed at cutoff to be off this mark by a little.
-- The right data box only contains the G indicator and attitude angles
-- the left data box contains:
-    - vertical speed (H-dot)
-    - propellant left (PROP)
-    - the current RPL throttle value (THR)
-    - Time- and velocity-to-go (TGO, VGO)
-    - Again, both TGO and VGO are yellow until guidance converges to a good solution. This is true for both dissipation and flyback phases
-    - The desired burnout delta-time (T_C), this is the main indicator of a good guidance state, more on this later
-- the central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive velocity (i.e. travelling away) and negative velocity (travelling back) regions of the plot in the horizontal direction.
+- The data lines are identical to the ASCENT TRAJ display, with the exceptionif an additional readout in the top-right UPFG box:
+    - The desired burnout delta-time (T_C), this is the main indicator of a good RTLS guidance state, more on this later
+- The central plot is a little complicated. It represents altitude on the vertical versus the horizontal component of downrange velocity from the launch site. This means there are positive velocity (i.e. travelling away) and negative velocity (travelling back) regions of the plot in the horizontal direction.
     - The Shuttle bug should move within the curved lines, first it will be in the lower right region, moving up and further right during fuel dissipation. During flyback it will start moving to the left as the Shuttle decelerates, and also down as it loses altitude. It will cross the "0" line when the Shuttle starts moving back to the launch site, then it will keep moving left and gradually start climbing once again.
     - the bottom-right curve is the nominal ascent trajectory, the Shuttle shouldn't be to the right of this
     - the top slanted curve is the maximum lofted trajectory during flyback for aborts close to the Negative Return boundary
@@ -251,8 +241,14 @@ T_C is just a name for the difference between the time to burn down to 2% propel
 During the dissipation phase this will be positive, because TGO assumes we turn back immediately but we still have too much propellant. Actually, if the engine failure is before SRB sep and the algorithm is started when we're still close to the launch site, there might not be a good solution to find and T_C will have some nonsense values. TGO and VGO will be yellow until we're safely far enough away and T_C is stable, only then the program will accept its value to check if we should begin flyback.  
 Once we trigger Flyback, T_C will settle around zero as the PEG algorithm adjusts the throttle so that we burn propellant all the way to 2% during the rest of the manoeuvre. 
 
+### Glide-RTLS
 
-### Results from my RTLS tests
+After MECO and separation, the script will stop and call the OPS3 reentry script which takes case of  **Glide-RTLS (GRTLS)** guidance.  
+In a nutshell: the Shuttle pitches up to 45° as it performs an aerobraking manoeuvre to stabilise the falling trajectory into a more nominal reentry trajectory, controlling vertical G forces. At the end of GRTLS the Shuttle will be about 200 km from the launch site, 35/40km altitude at about Mach 4, in a gentle descent.  
+**Please read carefully the OPS3 documentation for more about Glide-RTLS**
+
+<details>
+<summary>**ùDetailed results from my RTLS tests**</summary>
 
 Here I present my test results for RTLS aborts. The scenario was STS-9 (RS-25A, Lightweight tank, Spacelab payload at 57° inclination). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to just before Negative Return. The plots include both Powered and GLide RTLS phases 
 
@@ -292,6 +288,7 @@ The final plot shows the throttle setting in terms of RPL percentage. The thottl
 
 The Glide-RTLS phase, which starts after arrival on the RV line, is completely open-loop, just a control loop exeuting pre-programmed manoeuvres triggered by the vessel state. The 40° angle of attack should be no problem for the Shuttle, assuming the control surfaces are set as per the Entry script instructions. Do not shift the CG aft, as the script will deploy the body flap to stabilise pitch and I've seen that this induces yaw instability in this phase.  
 
+</details>
 
 ## TAL abort
 
