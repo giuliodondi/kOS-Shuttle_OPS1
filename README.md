@@ -201,7 +201,7 @@ The above chart shows the intact abort modes and their boundaries:
 - **Press to ATO** is available some time after Negative Return until Press to MECO
   - later in the ascent, Single-engine press to ATO is available
 - **Press to MECO** is available roughly a minute after press to ATO, this is not really an abort mode
-  later in the ascent, Single-engine press to ATO is available
+  - later in the ascent, Single-engine press to ATO is available
 
 
 <details>
