@@ -618,12 +618,15 @@ function abort_initialiser {
 			//setup ato 
 			addGUIMessage("ABORT 2EO ATO/AOA").
 			setup_ATO().
+		} else if (abort_modes["cont_2eo_active"]) {
+			addGUIMessage("ABORT 2EO " + abort_modes["2eo_cont_mode"]).
 		}
 		
 		
 	} else if (three_engout) {
 		//3eo is always a contingency even in the blank region 
 		set abort_modes["cont_3eo_active"] to true. 
+		addGUIMessage("ABORT 3EO " + abort_modes["3eo_cont_mode"]).
 	}
 
 	set abort_modes["abort_initialised"] to true.
