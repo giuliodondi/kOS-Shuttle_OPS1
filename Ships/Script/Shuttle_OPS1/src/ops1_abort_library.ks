@@ -394,7 +394,7 @@ function contingency_abort_region_determinator {
 			} else if (abort_modes["2eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
 				set abort_modes["2eo_cont_mode"] to "GREEN".
 			} else if (abort_modes["2eo_cont_mode"] = "GREEN") and (SHIP:VERTICALSPEED >= 30) {
-				set abort_modes["2eo_cont_mode"] to "RED".
+				set abort_modes["2eo_cont_mode"] to "BLANK".
 				set abort_modes["intact_modes"]["2eo"]["rtls"] to true.
 			} 
 			
