@@ -248,7 +248,7 @@ In a nutshell: the Shuttle pitches up to 45° as it performs an aerobraking mano
 **Please read carefully the OPS3 documentation for more about Glide-RTLS**
 
 <details>
-<summary>**ùDetailed results from my RTLS tests**</summary>
+<summary><b>Detailed results from my RTLS tests</b></summary>
 
 Here I present my test results for RTLS aborts. The scenario was STS-9 (RS-25A, Lightweight tank, Spacelab payload at 57° inclination). The only variable is the time of engine failure _t_fail_ which ranges from liftoff to just before Negative Return. The plots include both Powered and GLide RTLS phases 
 
