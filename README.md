@@ -178,13 +178,13 @@ Abort modes are usually required whenever one or more engines fail. You can eith
 - the _TIME_ setting allow you to schedule up to three failures at any MET you like. Click the **+** button to add a failure
 
 There are two kinds of abort modes:
-- **Intact aborts** where there always is a procedure that will take the Shuttle to a landing runway with sufficient energy
-- **Contingency aborts** where the Shuttle is not guaranteed to reach a runway or even survive the reentry into the lower atmosphere
+- **Intact aborts** where there always is a procedure that will take the Shuttle to a safe trajectory, either to space or to a landing runway
+- **Contingency aborts** where the Shuttle cannot achieve a nominal safe trajectory and will not reach space in any way. There is no guarantee to reach a runway or even survive the reentry into the lower atmosphere
 
 ## Intact aborts
 
 Intact aborts mean that there always is a procedure that will take the Shuttle to a landing runway with sufficient energy. The Shuttle has continuous intact abort coverage from liftoff to orbit in case of a single engine failure.  
-In some regions, even a double engine failure will allow an intact abort. This is valid both for a sudden double-engine failure or a second engine failure during an ongoing abort 
+In some regions, even a double engine failure will allow an intact abort. This is valid both for a sudden double-engine failure or a second engine failure during an ongoing abort
 
 - Intact aborts can be triggered either manually or automatically
 - Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
@@ -309,14 +309,14 @@ After MECO and separation the Shuttle will be around 120km and about to descend.
 <details>
 <summary><h2>Abort to orbit / Abort once-around (ATO/AOA)</h2></summary>
 
-Abort to orbit and Abort once-around use the same guidance and differ only in what you decide to do after MECO. The targeted orbit has an apoapsis just above the edge atmosphere and should only require 250 m/s of OMS propellant to circularise. Additionally, the orbital plane is not constrained so that guidance will not waste fule burning off-plane.  
+Abort to orbit and Abort once-around use the same guidance and differ only in what you decide to do after MECO. The PEG targeted orbit has an apoapsis just above the edge atmosphere and should only require 250 m/s of OMS propellant to circularise. Additionally, the orbital plane is not constrained so that guidance will not waste any more fuel burning off-plane.  
 Since you need OMS fuel to do orbital corrections, no OMS dump is performed for this abort.
 
-After MECO you have two options:
-- do an OMS burn to raise the orbit and continue your mission
-- firstly do a combined circularization - plane change OMS burn to bring you closer to a landing site on the next pass. Later on do a second OMS deorbit burn with the deorbit planner tool
+The program will quit after MECO. Beyond this you have two options:
+- the ATO case: do an OMS burn to raise the orbit and continue your mission
+- the AOA case: firstly do a combined circularization - plane change OMS burn to bring you closer to a landing site on the next pass. Later on do a second OMS deorbit burn with the deorbit planner tool
 
-My fork of SpaceShuttleSystem and the **OPS3** entry script afford enough crossrange ability to cover all Abort Once Around trajectories.  
+My fork of SpaceShuttleSystem with the **OPS3** entry script afford enough crossrange ability to cover all Abort Once Around trajectories.  
 For AoA aborts out of KSC, you can return to KSC for inclinations up to ~45° . For higher inclinations, Northrup (White Sands) is your best choice.  
 For Vandenberg launches, AoA back to Vandenberg is your only option
 
