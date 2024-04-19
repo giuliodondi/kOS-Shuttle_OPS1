@@ -41,6 +41,14 @@ GLOBAL abort_modes IS LEXICON(
 							
 ).
 
+function dump_abort {
+	IF EXISTS("0:/abort_modes_dump.txt") {
+		DELETEPATH("0:/abort_modes_dump.txt").
+	}
+	
+	log abort_modes:dump() to "0:/abort_modes_dump.txt".
+}
+
 function abort_triggered {
 	return abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"] or abort_modes["cont_2eo_active"] or abort_modes["cont_3eo_active"].
 }
@@ -88,12 +96,10 @@ function abort_handler {
 	
 	contingency_abort_region_determinator().
 	
-	IF EXISTS("0:/abort_modes_dump.txt") {
-		DELETEPATH("0:/abort_modes_dump.txt").
+	if (debug_mode) {
+		dump_abort().
 	}
-	
-	log abort_modes:dump() to "0:/abort_modes_dump.txt".
-	
+
 	abort_initialiser().
 
 }
