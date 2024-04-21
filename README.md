@@ -83,6 +83,8 @@ Upon running **ops1.ks** you will be greeted with a GUI with buttons and a data 
 - the _Display_ will show different things depending on the flight phase. There will be plenty more about this later on.
 - the _Message Window_ at the bottom displays printouts of the program state. Useful to monitor the abort state
 
+**The abort buttons and selectors, except for engine failure, are frozen at program start and unfreeze after SRB separation**
+
 ## The ASCENT TRAJ displays
 
 ![ascent_traj_displays](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ascent_traj_displays.png)
@@ -187,6 +189,7 @@ Intact aborts mean that there always is a procedure that will take the Shuttle t
 In some regions, even a double engine failure will allow an intact abort. This is valid both for a sudden double-engine failure or a second engine failure during an ongoing abort
 
 - Intact aborts can be triggered either manually or automatically
+- **Remmebr that the abort selectors and buttons are inactive until after SRB separation**
 - Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
 - In case of an engine failure, you have 10 seconds to select a manual abort, after which the program will automatically activate an abort mode
   - The automatic intact abort logic is: ATO-TAL-RTLS in this order of preference, based on availability
