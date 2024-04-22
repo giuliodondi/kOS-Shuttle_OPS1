@@ -1,4 +1,4 @@
-# Kerbal Space Program Space Shuttle Ascent Guidance
+# Kerbal Space Program Space Shuttle OPS1 Ascent Guidance
 ## Updated April 2024 - please go through the README
 
 <p align="center">
