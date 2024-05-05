@@ -2,7 +2,7 @@
 CLEARSCREEN.
 SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
-global debug_mode is true.
+global debug_mode is false.
 
 
 //	Load libraries
@@ -316,6 +316,10 @@ function ops1_second_stage_nominal {
 			addGUIMessage("TERMINAL GUIDANCE").
 			BREAK.
 		}	
+		
+		IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
+			tgt_j2_timefor(target_orbit, upfgInternal["tgo"]).
+		}
 		
 		upfg_sense_current_state(upfgInternal).
 		

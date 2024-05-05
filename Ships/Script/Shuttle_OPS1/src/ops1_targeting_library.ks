@@ -162,6 +162,14 @@ function estimate_excess_deltav {
 
 }
 
+//adaptive launch offset based on target inclination 
+function launch_time_adv {
+
+	local delta_incl is abs(target_orbit["inclination"]) - 28.
+
+	return max(300, 12.5 * delta_incl).
+}
+
 //only called if hastarget=true
 //propagates the current target orbital parameters forward in time 
 //given a delta-t and applies secular variations
@@ -174,9 +182,8 @@ FUNCTION tgt_j2_timefor {
 	
 	SET tgt_orb["LAN"] TO  fixangle(TARGET:ORBIT:LAN +  j2LNG*deltat ).
 	SET tgt_orb["inclination"] TO TARGET:ORBIT:INCLINATION.	
-
-	RETURN tgt_orb.
-
+	
+	SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
 }							   
 
 FUNCTION warp_window{
@@ -249,6 +256,8 @@ FUNCTION prepare_launch {
 
 
 	// now compute orbital plane
+	
+	set vehicle["launchTimeAdvance"] to launch_time_adv().
 
 	// check inclination 
 	//overridden in case of targeted launch
@@ -344,14 +353,6 @@ FUNCTION prepare_launch {
 	initialise_abort_sites().
 	
 	warp_window(target_orbit["warp_dt"]).	
-	
-	
-	//if has target, shift ahead to acocunt for j2
-	IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
-		//hard-coded time shift of 8 minutes
-		SET target_orbit TO tgt_j2_timefor(target_orbit,480).
-	}
-	
 	
 	//initialise target normal and velocity for abort calculations - in upfg coords
 	
