@@ -51,7 +51,7 @@ function initialise_shuttle {
 	GLOBAL vehicle IS LEXICON(
 						"name",SHIP:NAME,
 						"ign_t", 0,
-						"launchTimeAdvance", 300,
+						"launchTimeAdvance", 0,
 						"roll_v0",35,
 						"pitch_v0",38.7096,
 						"trajectory_scale",0,

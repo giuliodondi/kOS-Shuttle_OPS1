@@ -317,6 +317,10 @@ function ops1_second_stage_nominal {
 			BREAK.
 		}	
 		
+		IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
+			tgt_j2_timefor(target_orbit, upfgInternal["tgo"]).
+		}
+		
 		upfg_sense_current_state(upfgInternal).
 		
 		upfg(
