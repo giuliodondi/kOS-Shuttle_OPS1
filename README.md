@@ -45,6 +45,7 @@ Take care of the following things while building the Shuttle Stack in the VAB:
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
+- I advise you to disable the fairings on the RCS covers as once they are jettisoned they might collide with other parts and destroy them
 
 Make sure the vessel staging is as follows (from the bottom stage upwards) :
 - SSMEs and RCS staging toggles (required for aborts and MECO attiude control)
