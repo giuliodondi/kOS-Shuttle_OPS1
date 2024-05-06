@@ -24,7 +24,9 @@ Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted a
 - **[My OPS3 Shuttle entry program](https://github.com/giuliodondi/kOS-Shuttle-OPS3) required by RTLS and TAL aborts. Grab the latest version from its repo**
   - **no longer compatible with the older kOS-ShuttleEntrySim program**
 
-**Not compatible with SpaceODY's original fork or any other Shuttle mod.**
+# Known Incompatibilities
+- **Not compatible with SpaceODY's original fork or any other Shuttle mod**
+- RO Engines
 
 You will find one folder: 
 - **Script**
