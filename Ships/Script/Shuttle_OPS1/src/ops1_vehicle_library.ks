@@ -1267,7 +1267,22 @@ FUNCTION get_shuttle_res_left {
 }
 
 function get_ssme_parts {
-	return SHIP:PARTSDUBBED("ShuttleSSME").
+
+	local expected_ssme is 3.
+
+	local sss_eng is SHIP:PARTSDUBBEDPATTERN(".*ssme.*").
+	
+	if (sss_eng:length = expected_ssme) {
+		return sss_eng.
+	}
+	
+	local ro_eng is SHIP:PARTSDUBBEDPATTERN(".*rs25.*").
+	
+	if (ro_eng:length = expected_ssme) {
+		return ro_eng.
+	}
+
+	return list().
 }
 
 function get_srb_parts {
@@ -1293,6 +1308,25 @@ FUNCTION get_ssme_prop {
 //return the ET propellant fraction left
 function get_et_prop_fraction {
 	return vehicle["SSME_prop"] / vehicle["SSME_prop_0"].
+}
+
+function get_oms_parts {
+
+	local expected_oms is 2.
+
+	local sss_eng is SHIP:PARTSDUBBEDPATTERN(".*engineoms.*").
+	
+	if (sss_eng:length = expected_oms) {
+		return sss_eng.
+	}
+	
+	local ro_eng is SHIP:PARTSDUBBEDPATTERN(".*aj10.*").
+	
+	if (ro_eng:length = expected_oms) {
+		return ro_eng.
+	}
+
+	return list().
 }
 
 //return a list ocntaining parts with OMS fuel (i.e. oms pods)
@@ -1321,7 +1355,7 @@ function get_oms_prop_fraction {
 FUNCTION activate_fuel_cells {
 
 	LOCAL partslist IS LIST().
-	for p in SHIP:PARTSDUBBEDPATTERN("ShuttleOrbiter*") {
+	for p in SHIP:PARTSDUBBEDPATTERN("ShuttleOrbiter.*") {
 		partslist:ADD(p).
 	}
 	for p in SHIP:PARTSDUBBED("ShuttleEngMount") {
@@ -1351,7 +1385,7 @@ function et_sep {
 FUNCTION close_umbilical {
 
 	LOCAL partslist IS LIST().
-	for p in SHIP:PARTSDUBBEDPATTERN("ShuttleOrbiter*") {
+	for p in SHIP:PARTSDUBBEDPATTERN("ShuttleOrbiter.*") {
 		partslist:ADD(p).
 	}
 	for p in SHIP:PARTSDUBBED("ShuttleEngMount") {
@@ -1379,7 +1413,7 @@ FUNCTION start_oms_dump {
 		SET SHIP:CONTROL:FORE TO 1.
 		SET SHIP:CONTROL:TOP TO 1.
 	}
-	FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+	FOR oms IN get_oms_parts() {
 		oms:ACTIVATE.
 	}
 	SET abort_modes["oms_dump"] TO TRUE.
@@ -1395,7 +1429,7 @@ FUNCTION stop_oms_dump {
 	IF (get_oms_prop_fraction() <= vehicle["OMS_prop_dump_frac"]) OR (force) {
 
 		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-		FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+		FOR oms IN get_oms_parts() {
 			oms:SHUTDOWN.
 		}
 		addGUIMessage("OMS DUMP STOPPED").
@@ -1488,11 +1522,12 @@ FUNCTION parse_oms {
 	
 	//count OMS, not necessary per se but a useful check to see if we're flying a DECQ shuttle
 	LOCAL oms_count IS 0. 
-	SET omslex["type"] TO SHIP:PARTSDUBBED("ShuttleEngineOMS")[0]:CONFIG.
+	
+	SET omslex["type"] TO get_oms_parts()[0]:CONFIG.
 	
 	LOCAL oms_reslex IS LEXICON().
 	
-	FOR oms IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+	FOR oms IN get_oms_parts() {
 		IF oms:ISTYPE("engine") {
 			SET oms_count TO oms_count + 1.
 			
@@ -1637,7 +1672,7 @@ FUNCTION measure_update_engines {
 	SET vehicle["SSME"]["active"] TO SSMEcount.
 	
 	LOCAL OMScount IS 0.
-	FOR e IN SHIP:PARTSDUBBED("ShuttleEngineOMS") {
+	FOR e IN get_oms_parts() {
 		IF e:IGNITION {
 			SET OMScount TO OMScount + 1.
 		}
