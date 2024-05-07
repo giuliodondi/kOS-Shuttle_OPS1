@@ -955,7 +955,7 @@ FUNCTION setup_RTLS {
 	SET upfgInternal["throtset"] TO 0.96 * throt_val.
 	
 	
-	start_oms_dump(flyback_immediate).
+	start_oms_dump(true).
 	
 }
 

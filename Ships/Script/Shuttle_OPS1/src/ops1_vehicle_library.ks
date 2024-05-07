@@ -72,7 +72,7 @@ function initialise_shuttle {
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
 						"OMS_prop", 0,
-						"OMS_prop_dump_frac", 0.5,
+						"OMS_prop_dump_frac", 0.3,
 						"SSME",0,
 						"OMS",0,
 						"stack_full_mass", 0,
