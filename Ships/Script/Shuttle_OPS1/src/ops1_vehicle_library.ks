@@ -605,10 +605,14 @@ function ascent_dap_factory {
 	
 	this:add("set_steering_med", {
 	
-		local steer_val is 0.75.
+		local eng_out is get_engines_out().
+	
+		local steer_val is 0.
 		
-		if (get_engines_out() = 0) {
-			set steer_val to 0.5.
+		if (eng_out >= 2) {
+			set steer_val to 0.1.
+		} else {
+			set steer_val to 0.55.
 		}
 	
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO steer_val.
@@ -1730,6 +1734,8 @@ function ssme_out_safing {
 function single_engine_roll_control {
 
 	dap:set_rcs(TRUE).
+	
+	dap:set_steering_low().
 	
 	FOR ssme IN get_ssme_parts() {
 		IF (ssme:IGNITION) {
