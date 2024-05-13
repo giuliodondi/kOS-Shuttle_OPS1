@@ -628,6 +628,7 @@ FUNCTION upfg {
 					//moved here from main executive
 					addGUIMessage("GUIDANCE CONVERGED IN " + internal["itercount"] + " ITERATIONS").
 					SET internal["s_conv"] tO TRUE.
+					SET internal["iter_conv"] TO 0.
 				}
 			}
 		} ELSE { //something is wrong, reset
