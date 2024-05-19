@@ -2,7 +2,8 @@
 CLEARSCREEN.
 SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
-global debug_mode is false.
+global debug_mode is true.
+global dap_debug is false.
 
 
 //	Load libraries
@@ -59,7 +60,7 @@ function ops1_main_exec {
 													
 													set get_stage()["Throttle"] to dap:thr_rpl_tgt.
 													
-													if (debug_mode) {
+													if (dap_debug) {
 														//clearscreen.
 														clearvecdraws().
 														
@@ -332,6 +333,17 @@ function ops1_second_stage_nominal {
 		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
 			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
 			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
+		}
+		
+		if (debug_mode) {
+			clearvecdraws().
+			arrow_ship(vecyz(upfgInternal["steering"]),"steer").
+			arrow_ship(vecyz(upfgInternal["ix"]),"ix").
+			arrow_ship(vecyz(upfgInternal["iy"]),"iy").
+			arrow_ship(vecyz(upfgInternal["iz"]),"iz").
+			
+			arrow_body(vecyz(upfgInternal["rd"]),"rd").
+			arrow_body(vecyz(target_orbit["normal"]),"rd").
 		}
 	}
 	
