@@ -293,6 +293,8 @@ function ops1_second_stage_nominal {
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
+	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
+	
 	SET vehiclestate["major_mode"] TO 103.
 	
 	//upfg loop
@@ -342,6 +344,7 @@ function ops1_second_stage_nominal {
 			arrow_ship(vecyz(upfgInternal["iy"]),"iy").
 			arrow_ship(vecyz(upfgInternal["iz"]),"iz").
 			
+			arrow_body(vecyz(vxcl(upfgInternal["iy"], upfgInternal["r_cur"])),"r_proj").
 			arrow_body(vecyz(upfgInternal["rd"]),"rd").
 			arrow_body(vecyz(target_orbit["normal"]),"rd").
 		}
@@ -635,6 +638,7 @@ function ops1_termination {
 	}
 	
 	CLEARSCREEN.
+	clearvecdraws().
 	dap_gui_executor["stop_execution"]().
 	close_all_GUIs().
 	

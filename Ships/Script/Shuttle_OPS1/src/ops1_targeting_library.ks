@@ -59,7 +59,8 @@ FUNCTION nominal_cutoff_params {
 	PARAMETER tgt_orb.
 	PARAMETER cutoff_r.
 	
-	//SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
+	//updating this every loop is NOT optional
+	SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
 	
 	set tgt_orb["radius"] to cutoff_r.
 	
@@ -162,14 +163,6 @@ function estimate_excess_deltav {
 
 }
 
-//adaptive launch offset based on target inclination 
-function launch_time_adv {
-
-	local delta_incl is abs(target_orbit["inclination"]) - 28.
-
-	return max(300, 12.5 * delta_incl).
-}
-
 //only called if hastarget=true
 //propagates the current target orbital parameters forward in time 
 //given a delta-t and applies secular variations
@@ -182,19 +175,17 @@ FUNCTION tgt_j2_timefor {
 	
 	SET tgt_orb["LAN"] TO  fixangle(TARGET:ORBIT:LAN +  j2LNG*deltat ).
 	SET tgt_orb["inclination"] TO TARGET:ORBIT:INCLINATION.	
-	
-	SET tgt_orb["normal"] TO upfg_normal(tgt_orb["inclination"], tgt_orb["LAN"]).
 }							   
 
 FUNCTION warp_window{
-	parameter liftofftime.
+	parameter warp_dt.
 	
-	LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
-	addGUIMessage("TIME TO WINDOW : " + sectotime(timetolaunch)).
+	LOCAL launch_time IS TIME:SECONDS + warp_dt.
+	addGUIMessage("TIME TO WINDOW : " + sectotime(warp_dt)).
 
 	UNTIL FALSE {
 	
-		LOCAL timetolaunch IS liftofftime - TIME:SECONDS.
+		LOCAL timetolaunch IS launch_time - TIME:SECONDS.
 		
 		warp_controller(timetolaunch, TRUE, 2).
 		
@@ -256,8 +247,6 @@ FUNCTION prepare_launch {
 
 
 	// now compute orbital plane
-	
-	set vehicle["launchTimeAdvance"] to launch_time_adv().
 
 	// check inclination 
 	//overridden in case of targeted launch
@@ -296,15 +285,18 @@ FUNCTION prepare_launch {
 		
 		LOCAL dlng IS get_a_bBB(SHIP:GEOPOSITION:LAT, target_orbit["inclination"]).
 		
-		LOCAL north_launch_vec IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), -(target_orbit["LAN"] + dlng)).
+		LOCAL north_launch_vec IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), -(target_orbit["LAN"] - dlng)).
 		LOCAL south_launch_vec IS rodrigues(SOLARPRIMEVECTOR, V(0,1,0), -(target_orbit["LAN"] + 180 - dlng)).
-		
+
 		//arrow_body(north_launch_vec, "north").
 		//arrow_body(south_launch_vec, "south").
 		//arrow_body(shiplngvec, "ship").
 		
-		LOCAL north_dlan IS signed_angle(north_launch_vec, shiplngvec, V(0,1,0), 1).
-		LOCAL south_dlan IS signed_angle(south_launch_vec, shiplngvec, V(0,1,0), 1).
+		LOCAL north_dlan IS signed_angle(shiplngvec, north_launch_vec, V(0,1,0), 1).
+		LOCAL south_dlan IS signed_angle(shiplngvec, south_launch_vec, V(0,1,0), 1).
+		
+		//print " north_dlan " + north_dlan at (0,61).
+		//print " south_dlan " + south_dlan at (0,62).
 		
 		IF (south_dlan < north_dlan) {
 			SET target_orbit["direction"] TO "south". 
@@ -343,12 +335,18 @@ FUNCTION prepare_launch {
 		SET time2window TO time2window + SHIP:BODY:ROTATIONPERIOD.
 	}
 	
-	set target_orbit["warp_dt"] to TIME:SECONDS + time2window  - vehicle_countdown.
+	set target_orbit["warp_dt"] to time2window  - vehicle_countdown.
 	
 	//this is for message logging
 	SET vehicle["ign_t"] TO TIME:SECONDS + time2window. 
 	
-	set target_orbit["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).	
+	set target_orbit["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).
+
+
+	//print target_orbit:dump.
+	//arrow_body(targetLANvec(target_orbit["LAN"]), "lan").
+	//arrow_body(targetNormal(target_orbit["inclination"], target_orbit["LAN"]), "norm").
+	//until false{}	
 	
 	initialise_abort_sites().
 	
@@ -364,10 +362,7 @@ FUNCTION prepare_launch {
 	SET target_orbit TO nominal_cutoff_params(target_orbit, cutoff_r).
 	
 	
-	//print target_orbit:dump.
-	//arrow_body(targetLANvec(target_orbit["LAN"]), "lan").
-	//arrow_body(targetNormal(target_orbit["inclination"], target_orbit["LAN"]), "norm").
-	//until false{}
+	
 
 }
 
