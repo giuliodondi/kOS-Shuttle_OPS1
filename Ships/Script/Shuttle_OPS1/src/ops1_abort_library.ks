@@ -208,12 +208,19 @@ function intact_abort_region_determinator {
 		
 		for s in abort_modes["tal_candidates"] {
 		
-			local tal_meco_v is tal_site_meco_velocity(s, current_normal).
+			local tal_meco_v is tal_predict_meco_velocity(s, current_normal, target_orbit["radius"]).
 			
 			LOCAL dv2site IS (tal_meco_v - orbitstate["velocity"]).
 			
+			local tal_delaz is signed_angle(
+								vxcl(orbitstate["radius"], dv2site),
+								vxcl(orbitstate["radius"], orbitstate["velocity"]),
+								orbitstate["radius"],
+								0
+			).
+			
 			//test maximum az error 
-			if (abs(vang(vxcl(orbitstate["radius"], orbitstate["velocity"]), vxcl(orbitstate["radius"], dv2site))) < 35) {
+			if (abs(tal_delaz) < 35) {
 			
 				local two_eng_tal_dv_excess is estimate_excess_deltav(
 														orbitstate["radius"],
@@ -224,7 +231,8 @@ function intact_abort_region_determinator {
 				
 				local two_eng_tal_dv is lexicon(
 											"site", s, 
-											"deltav", two_eng_tal_dv_excess
+											"deltav", two_eng_tal_dv_excess,
+											"delaz", tal_delaz
 				).
 				
 				if (two_eng_tal_dv_excess > 0) {
@@ -245,7 +253,8 @@ function intact_abort_region_determinator {
 				
 				local one_eng_tal_dv is lexicon(
 											"site", s, 
-											"deltav", one_eng_tal_dv_excess
+											"deltav", one_eng_tal_dv_excess,
+											"delaz", tal_delaz
 				).
 				
 				if (one_eng_tal_dv_excess > 0) {
@@ -259,20 +268,22 @@ function intact_abort_region_determinator {
 			}
 		}
 		
-		if (not abort_modes["intact_modes"]["1eo"]["tal"]) {
-			if (NOT abort_modes["intact_modes"]["1eo"]["rtls"]) {
-				// if we're not tal by negative return, force tal mode with the least bad site 
-				if (tal_2e_dv:length = 0) {
-					tal_2e_dv:add(two_eng_best_tal).
-				}
-				
+		if (NOT abort_modes["intact_modes"]["1eo"]["rtls"]) {
+			// if we're not tal by negative return, force tal mode with the least bad site 
+			if (tal_2e_dv:length = 0) {
+				tal_2e_dv:add(two_eng_best_tal).
 			}
+		}
+		
+		if (not abort_modes["intact_modes"]["1eo"]["tal"]) {
 			
 			if (tal_2e_dv:length > 0) {
 				addGUIMessage("TWO ENGINE TAL").
 				set abort_modes["intact_modes"]["1eo"]["tal"] to true.
 			}
 		}
+		
+		
 		
 		if (not abort_modes["intact_modes"]["2eo"]["tal"]) {
 			if (tal_1e_dv:length > 0) { 
@@ -334,7 +345,6 @@ function intact_abort_region_determinator {
 	if (abort_modes["ato_active"]) {
 		return.
 	}
-	
 	
 	local meco_vel is cutoff_velocity_vector(
 										orbitstate["radius"],
@@ -963,6 +973,19 @@ FUNCTION setup_RTLS {
 
 //	TAL functions
 
+//rv-line for TAL 
+//actually a 3rd degree curve 
+//range in KILOMETRES this time 
+function TAL_rvline {
+	parameter range_.
+
+	local a_ is 1.8723e-08.
+	local b_ is -3.4446e-04.
+	local c_ is 2.2382.
+	local d_ is 2054.
+	
+	return ((a_*range_ + b_)*range_ + c_)*range_ + d_.
+}
 
 //give the position of a TAL site, returns a corrected position within a set crossrange distance
 //from the abeam position on the current orbital plane
@@ -992,9 +1015,10 @@ FUNCTION TAL_site_xrange_shift {
 	RETURN tgtvec.
 }
 
-function tal_site_meco_velocity {
+function tal_predict_meco_velocity {
 	PARAMETER sname.
 	PARAMETER current_normal.
+	PARAMETER cutoff_r.
 
 	LOCAL site IS ldgsiteslex[sname].
 			
@@ -1010,8 +1034,8 @@ function tal_site_meco_velocity {
 	
 	LOCAL site_plane IS VXCL(current_normal,sitepos).
 	
-	//shift ahead by half an hour
-	LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1800))).
+	//shift ahead by 20 minutes
+	LOCAL sitepos_shifted IS vecYZ(pos2vec(shift_pos(vecYZ(sitepos),-1200))).
 	
 	//correct shifted site within cossrange
 	LOCAL sitepos_candidate IS TAL_site_xrange_shift(sitepos_shifted,current_normal).
@@ -1019,7 +1043,9 @@ function tal_site_meco_velocity {
 	LOCAL site_normal IS - VCRS(orbitstate["radius"], sitepos_candidate):NORMALIZED.
 	
 	//estimate deltav to curve velocity to point to the target site
-	LOCAL tgtMECOvel IS 7250.
+	local range_ is greatcircledist(cutoff_r, sitepos_candidate).
+	LOCAL tgtMECOvel IS TAL_rvline(range_).
+	
 	LOCAL cutoffVel IS VCRS(orbitstate["radius"],site_normal):NORMALIZED*tgtMECOvel.
 	
 	return cutoffVel.
@@ -1123,22 +1149,14 @@ FUNCTION TAL_cutoff_params {
 	
 	set tgt_orb["radius"] to cutoff_r.
 	
-	//shifts underground the radius of the ballistic impact point
-	LOCAL radius_bias IS 200.	//in km
-	
-	
 	LOCAL AP is cutoff_r:MAG.
-	LOCAL tgt_vec_radius IS BODY:RADIUS - radius_bias*1000.
 	SET tgt_orb["fpa"] TO 0.
 	SET tgt_orb["eta"] TO 180.
 	
-	LOCAL tgt_eta IS 180 + signed_angle(tgt_orb["radius"], abort_modes["tal_tgt_site"]["position"], tgt_orb["normal"], 0).
+	SET tgt_orb["velocity"] TO TAL_rvline(
+							greatcircledist(abort_modes["tal_tgt_site"]["position"], tgt_orb["radius"])
+	).
 	
-	SET tgt_orb["ecc"] TO (AP - tgt_vec_radius)/(AP + tgt_vec_radius*COS(tgt_eta)).
-	SET tgt_orb["SMA"] TO AP/(1 + tgt_orb["ecc"] ).
-	SET tgt_orb["velocity"] TO orbit_alt_vel(AP, tgt_orb["SMA"]).
-	SET tgt_orb["apoapsis"] TO (AP - BODY:RADIUS)/1000.
-	SET tgt_orb["periapsis"] TO (2*tgt_orb["SMA"] - AP - BODY:RADIUS)/1000.
 	
 	//clearvecdraws().
 	//arrow_body(vecYZ(cur_r * 2),"cur_r").

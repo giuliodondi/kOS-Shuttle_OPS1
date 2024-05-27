@@ -222,6 +222,10 @@ function ops1_first_stage {
 		if (quit_program) {
 			RETURN.
 		}
+		
+		if (debug_mode) {
+			clearvecdraws().
+		}
 	
 		abort_handler().
 		getState().
