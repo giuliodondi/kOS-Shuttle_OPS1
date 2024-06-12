@@ -26,7 +26,7 @@ Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted a
 
 # Known Incompatibilities
 - **Not compatible with SpaceODY's original fork or any other Shuttle mod**
-- RO Engines
+- ~~RO Engines~~ It should now be compatible, but not recommended
 
 You will find one folder: 
 - **Script**
