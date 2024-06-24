@@ -46,7 +46,7 @@ FUNCTION make_main_ascent_gui {
 			main_ascent_gui:SHOWONLY(title_box).
 			SET main_ascent_gui:STYLe:HEIGHT TO 50.
 		} ELSE {
-			SET main_ascent_gui:STYLe:HEIGHT TO main_gui_height.
+			SET main_ascent_gui:STYLe:HEIGHT TO main_ascent_gui_height.
 			for w in main_ascent_gui:WIDGETS {
 				w:SHOW().
 			}
