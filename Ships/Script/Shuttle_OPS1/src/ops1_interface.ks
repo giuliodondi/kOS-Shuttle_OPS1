@@ -1,5 +1,3 @@
-GLOBAL P_vizMsg IS LIST().
-
 
 FUNCTION addGUIMessage {
 	PARAMETER msg.
@@ -19,30 +17,6 @@ FUNCTION addGUIMessage {
 						clear_
 	).
 
-}
-
-FUNCTION addMessage {
-	DECLARE PARAMETER msg.
-	LOCAL tt IS TIME:SECONDS.
-	LOCAL ttl IS 4.
-
-	local rem_list IS LIST().
-	FROM {LOCAL k IS 0.} UNTIL k = P_vizMsg:LENGTH  STEP { SET k TO k+1.} DO{
-		IF tt >= P_vizMsg[k]["ttl"] {
-			rem_list:ADD(k).
-		}
-	}
-	FROM {LOCAL k IS rem_list:LENGTH-1.} UNTIL k <0  STEP { SET k TO k-1.} DO{
-		P_vizMsg:REMOVE(rem_list[k]).
-	}
-	
-	P_vizMsg:INSERT(
-					0,
-					LEXICON(
-							"msg","T+" + sectotime(TIME:SECONDS - vehicle["ign_t"],"") + ": " + msg,
-							"ttl",tt + ttl
-					)
-	) .
 }
 
 FUNCTION dataViz {
