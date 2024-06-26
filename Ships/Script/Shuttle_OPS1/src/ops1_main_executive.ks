@@ -248,35 +248,32 @@ function ops1_first_stage {
 		set dap:thr_min to vehicle["minThrottle"].
 		
 		// q bucket and throttling logic
+		//modification - meaure max-Q separately from throttling so it's done for aborts as well 
+		if (NOT vehicle["max_q_reached"]) AND (surfacestate["vs"] > 100) {
+			IF (surfacestate["q"] >=  surfacestate["maxq"] ) {
+				SET surfacestate["maxq"] TO surfacestate["q"].
+				set vehicle["max_q_reached"] to FALSE.
+			} else {
+				addGUIMessage("VEHICLE HAS REACHED MAX-Q").
+				set vehicle["max_q_reached"] to TRUE.
+			}
+		}
 		
-		if (vehicle["ssme_out_detected"]) {
+		if (get_engines_out() > 0) {
 			set dap:thr_rpl_tgt to vehicle["maxThrottle"].
+			set throt_flag to false.
 		} else {
 			if (throt_flag) {
 				if (vehicle["qbucket"]) {
-				
-					IF (surfacestate["vs"] <= 50 ) or (surfacestate["q"] >=  surfacestate["maxq"] ) {
-						SET surfacestate["maxq"] TO surfacestate["q"].
-						set vehicle["max_q_reached"] to FALSE.
-					} else {
-						if (NOT vehicle["max_q_reached"]) {
-							addGUIMessage("VEHICLE HAS REACHED MAX-Q").
-							set vehicle["max_q_reached"] to TRUE.
-						}
-						
-						if (surfacestate["q"] < 0.95*surfacestate["maxq"]) {
-							addGUIMessage("GO AT THROTTLE-UP").
-							set vehicle["qbucket"] to FALSE.
-						}
+					if (vehicle["max_q_reached"]) AND (surfacestate["q"] < 0.95*surfacestate["maxq"]) {
+						addGUIMessage("GO AT THROTTLE-UP").
+						set vehicle["qbucket"] to FALSE.
 					}
-				
 					set dap:thr_rpl_tgt to vehicle["qbucketThrottle"].
 				} else {
 					if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > vehicle["qbucketval"]) {
 						set vehicle["qbucket"] to TRUE.
 						addGUIMessage("THROTTLING DOWN").
-					} else {
-						set vehicle["qbucket"] to FALSE.
 					}
 				
 					set dap:thr_rpl_tgt to vehicle["nominalThrottle"].
