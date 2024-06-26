@@ -167,8 +167,6 @@ function initialise_shuttle {
 	activate_fuel_cells().
 	add_action_event(350, roll_heads_up@ ).
 	
-	setup_engine_failure().
-	
 }
 
 
@@ -1224,30 +1222,47 @@ FUNCTION get_srb_thrust {
 }
 
 
-//shutdown one random engine 
-//if all engines are running, avoid shautting down the centre engine
+//shutdown a number of engines
+//if just one, avoid shautting down the centre engine
 FUNCTION trigger_engine_failure {
+	parameter n.
 
 	local engines_out is get_engines_out().
 	
-	LOCAL englist IS get_ssme_parts().
+	LOCAL running_eng IS get_running_ssmes().
 	
-	if (engines_out = 0) {
-		LOCAL zpos IS 0.
-		LOCAL ze_ IS 0.
-		FROM {local e_ is 0.} UNTIL e_ >= englist:LENGTH STEP {set e_ to e_+1.} DO { 
-			
-			LOCAL eng IS englist[e_].
-			LOCAL z_ IS VDOT(VXCL(SHIP:FACING:STARVECTOR, eng:POSITION), SHIP:FACING:TOPVECTOR).
-			IF (z_ > zpos) {
-				set zpos to z_.
-				set ze_ to e_.
+	
+	if (n = 1) {
+		if (engines_out = 0) {
+			LOCAL zpos IS 0.
+			LOCAL ze_ IS 0.
+			FROM {local e_ is 0.} UNTIL e_ >= running_eng:LENGTH STEP {set e_ to e_+1.} DO { 
+				
+				LOCAL eng IS running_eng[e_].
+				LOCAL z_ IS VDOT(VXCL(SHIP:FACING:STARVECTOR, eng:POSITION), SHIP:FACING:TOPVECTOR).
+				IF (z_ > zpos) {
+					set zpos to z_.
+					set ze_ to e_.
+				}
 			}
+			running_eng:REMOVe(ze_).
 		}
-		englist:REMOVe(ze_).
+		
+		select_rand(running_eng):SHUTDOWN.
+		
+	} else if (n > 1) {
+		
+		if (n = 2)  and (engines_out = 0) {
+			local safe_eng_idx is random_int_range(running_eng:length).
+		
+			running_eng:remove(safe_eng_idx).
+		}
+		
+		for e_ in running_eng {
+			e_:shutdown.
+		}
+	
 	}
-	select_rand(englist):SHUTDOWN.
-
 }
 
 
@@ -1287,6 +1302,18 @@ function get_ssme_parts {
 	}
 
 	return list().
+}
+
+function get_running_ssmes {
+	local running_ssme is list().
+
+	FOR e_ IN get_ssme_parts() {
+		IF e_:IGNITION {
+			running_ssme:add(e_).
+		}
+	}
+	
+	return running_ssme.
 }
 
 function get_srb_parts {
@@ -1637,12 +1664,7 @@ FUNCTION measure_update_engines {
 	LOCAL SSMEcount_prev IS vehicle["SSME"]["active"].
 	
 	//measure engines 
-	LOCAL SSMEcount IS 0.
-	FOR e IN get_ssme_parts() {
-		IF e:IGNITION {
-			SET SSMEcount TO SSMEcount + 1.
-		}
-	}
+	LOCAL SSMEcount IS get_running_ssmes():length.
 	
 	local ssmes_out is (SSMEcount_prev - SSMEcount).
 	local ssme_out_detected_flag is (ssmes_out > 0).

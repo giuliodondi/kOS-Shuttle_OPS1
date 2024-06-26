@@ -160,9 +160,7 @@ function setup_engine_failure {
 		set abort_modes["engine_failure"]["times"] to new_eft_list.
 	}	
 	
-	FROM {local k is 0.} UNTIL k = engfail_triggered STEP {set k to k+1.} DO {
-		trigger_engine_failure().
-	}
+	trigger_engine_failure(engfail_triggered).
 
 }
 

@@ -422,14 +422,15 @@ declare function sectotime_simple {
 	
 }
 
+function random_int_range {
+	parameter range_.
+	return FLOOR(range_*RANDOM()).
+}
 
 //select a random element from a list
 FUNCTION select_rand{
 	PARAMETER lst.
-	
-	LOCAL len IS lst:LENGTH.
-	
-	RETURN lst[FLOOR(len*RANDOM())].
+	RETURN lst[random_int_range(lst:LENGTH)].
 }
 
 
