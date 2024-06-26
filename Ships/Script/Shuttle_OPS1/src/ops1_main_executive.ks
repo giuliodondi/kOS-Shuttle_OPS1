@@ -186,9 +186,16 @@ function ops1_countdown{
 	SET surfacestate["time"] TO TIME:SECONDS. 
 	SET vehicle["ign_t"] TO TIME:SECONDS. 
 	
+	//vertical speed greater than 1 three times in a row
+	local liftoff_sample_c is 0.
 	until false {
-		wait 0.	
-		if (SHIP:VERTICALSPEED > 1) {break.}
+		if (liftoff_sample_c >= 3) {
+			break.
+		}
+		if (SHIP:VERTICALSPEED > 1) {
+			set liftoff_sample_c to liftoff_sample_c + 1.
+		}
+		wait 0.1.
 	}
 	
 	addGUIMessage("LIFT-OFF CONFIRMED").
