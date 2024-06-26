@@ -1,33 +1,4 @@
 
-//conic state extrapolation function / gravity integrator
-FUNCTION cse {
-	 PARAMETER r0.
-	PARAMETER v0.
-	PARAMETER tgo.
-	PARAMETER dummy_ IS 0.
-		
-	LOCAL nstep IS 30.
-	LOCAL dT Is tgo/nstep.
-	
-	LOCAl simstate IS blank_simstate(
-		LEXICON(
-				"position", r0,
-				"velocity", v0
-		)
-	).
-	
-	FROM { LOCAL i IS 1. } UNTIL i>nstep STEP { SET i TO i+1. } DO {
-		SET simstate TO clone_simstate(coast_rk3(dT, simstate)).
-	}
-	
-	RETURN LISt(
-				simstate["position"],
-				simstate["velocity"],
-				dummy_
-	).
-
-}
-
 
 //global UPFG variables 
 
@@ -72,7 +43,6 @@ FUNCTION setupUPFG {
 		"tgo_conv", 1,
 		"steer_conv", 20,
 		"constraint_release_t", 40,
-		"cser", 0,
 		"rbias", V(0, 0, 0),
 		"rd", V(0, 0, 0),
 		"rdmag", 0,
@@ -456,11 +426,10 @@ FUNCTION upfg {
 	
 	LOCAL rc1 IS internal["r_cur"] - 0.1 * rthrust - (internal["tgo"] / 30) * vthrust.
 	LOCAL vc1 IS internal["v_cur"] + 1.2 * rthrust / internal["tgo"] - 0.1 * vthrust.
-	LOCAL pack IS cse(rc1, vc1, internal["tgo"], internal["cser"]).
-	SET internal["cser"] TO pack[2].
+	
+	LOCAL pack IS cse_rk3(rc1, vc1, internal["tgo"]).
 	SET internal["rgrav"] TO pack[0] - rc1 - vc1 * internal["tgo"].
 	LOCAL vgrav IS pack[1] - vc1.
-	
 
 	LOCAL rp IS internal["r_cur"] + internal["v_cur"]*internal["tgo"] + internal["rgrav"] + rthrust.
 	LOCAL vp IS internal["v_cur"] + vgrav + vthrust.
