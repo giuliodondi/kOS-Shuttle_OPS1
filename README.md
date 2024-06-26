@@ -45,8 +45,10 @@ The script needs to know accurately the mass of orbiter + payload + ET + propell
 Take care of the following things while building the Shuttle Stack in the VAB:
 - The root part must be the Space Shuttle Orbiter part you find in my fork of Space Shuttle System
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
+- Set fuel flow priority on the Orbiter lower than the External Tank, or else you won't have cryos for the fuel cells once you're in orbit
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
+- Don't place clamps on the opposite side to where the Orbiter is because the angled SSMEs will push the stack in that direction and you may have a collision
 - I advise you to disable the fairings on the RCS covers as once they are jettisoned they might collide with other parts and destroy them
 
 Make sure the vessel staging is as follows (from the bottom stage upwards) :
