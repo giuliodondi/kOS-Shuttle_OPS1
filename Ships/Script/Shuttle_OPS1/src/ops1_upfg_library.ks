@@ -41,7 +41,7 @@ FUNCTION setupUPFG {
 		"itercount", 0,
 		"terminal_time", 5,
 		"tgo_conv", 1,
-		"steer_conv", 20,
+		"steer_conv", 45,
 		"constraint_release_t", 40,
 		"rbias", V(0, 0, 0),
 		"rd", V(0, 0, 0),
@@ -67,6 +67,7 @@ FUNCTION setupUPFG {
 		"s_plane", FALSE,
 		"s_throt", FALSE,
 		"throtset", init_throt,
+		"rtls_terminal_time", 15,
 		"rtls_Kkmin", min_throt * 100,			//rtls throttling works in percentages not fractions
 		"rtls_throt_release_t", 60,
 		"s_flyback",FALSE,
@@ -155,6 +156,9 @@ FUNCTION upfg_rtls_initialise {
 	
 	SET internal["s_plane"] TO FALSE.
 	SET internal["s_alt"] TO TRUE.
+	
+	//my modification: ensure they're properly set at every upfg reset after rtls setup
+	SET internal["terminal_time"] TO internal["rtls_terminal_time"].
 }
 
 FUNCTION upfg_sense_current_state {

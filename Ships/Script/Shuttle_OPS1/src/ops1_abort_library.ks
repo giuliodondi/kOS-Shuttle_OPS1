@@ -911,9 +911,6 @@ FUNCTION setup_RTLS {
 		//prepare upfg
 		resetUPFG().
 		
-		SET upfgInternal["terminal_time"] TO 15.
-		SET upfgInternal["tgo_conv"] TO 2.
-		
 	}
 	
 	set RTLSAbort["t_abort"] to surfacestate["MET"].
