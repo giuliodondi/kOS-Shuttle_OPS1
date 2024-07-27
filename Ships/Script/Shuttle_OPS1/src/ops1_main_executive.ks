@@ -547,8 +547,6 @@ function ops1_second_stage_rtls {
 		LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
 		LOCAL tgtsurfvel IS RTLS_rvline(rng).
 		
-		set target_orbit["rtls_cutv"] to tgtsurfvel.
-		
 		IF (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel OR SSME_flameout()) {
 			BREAK.
 		}

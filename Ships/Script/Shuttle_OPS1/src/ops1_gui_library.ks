@@ -633,8 +633,7 @@ function make_rtls_cutv_slider {
 function rtls_gui_set_cutv_indicator {
 	parameter cutv.
 
-	set rtls_cutv_tgt_bug_:style:margin:h to 4 + ( 1 - (cutv/1000 - 1.5))*420.
-
+	set rtls_cutv_tgt_bug_:style:margin:h to 4 - (cutv/1000 - 2.5)*320.
 }
 
 function make_g_slider {
@@ -965,7 +964,7 @@ function update_rtls_traj_disp {
 	set ascent_trajrightdata4:text to "THROT " + round(gui_data["ssme_thr"],0). 
 	set ascent_trajrightdata5:text to "PROP   " + round(gui_data["et_prop"], 0). 
 	
-	SET rtls_cutv_slider:VALUE TO CLAMP(-SIGN(gui_data["dwnrg_ve"]) * gui_data["ve"]/1000,rtls_cutv_slider:MIN,rtls_cutv_slider:MAX).
+	SET rtls_cutv_slider:VALUE TO CLAMP(abs(gui_data["dwnrg_ve"])/1000,rtls_cutv_slider:MIN,rtls_cutv_slider:MAX).
 	rtls_gui_set_cutv_indicator(gui_data["rtls_cutv"]).
 	
 	local xval is gui_data["dwnrg_ve"].
