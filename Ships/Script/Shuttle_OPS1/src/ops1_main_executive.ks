@@ -80,15 +80,16 @@ function ops1_main_exec {
 		if (NOT quit_program) {
 			WAIT 5.
 		}
-		CLEARSCREEN.
-		dap_gui_executor["stop_execution"]().
-		close_all_GUIs().
+		clean_up_ops1().
 		RETURN.
 	}
 	
 	ops1_first_stage().
 	
-	if (quit_program) {RETURN.}
+	if (quit_program) {
+		clean_up_ops1().
+		RETURN.
+	}
 	
 	setupUPFG().
 	
@@ -100,7 +101,10 @@ function ops1_main_exec {
 	
 	ops1_second_stage_nominal().
 	
-	if (quit_program) {RETURN.}
+	if (quit_program) {
+		clean_up_ops1().
+		RETURN.
+	}
 	
 	//handle sequence for rtls and contingency 
 	
@@ -108,13 +112,19 @@ function ops1_main_exec {
 		ops1_second_stage_rtls().
 	}
 	
-	if (quit_program) {RETURN.}
+	if (quit_program) {
+		clean_up_ops1().
+		RETURN.
+	}
 	
 	if (abort_modes["cont_2eo_active"]) {		//probably won't handle 3eo in this block
 		ops1_second_stage_contingency().
 	}
 	
-	if (quit_program) {RETURN.}
+	if (quit_program) {
+		clean_up_ops1().
+		RETURN.
+	}
 	
 	ops1_et_sep().
 	
@@ -529,7 +539,7 @@ function ops1_second_stage_rtls {
 	UNTIL FALSE{
 		getState().
 		
-		LOCAL steervec IS SHIP:VELOCITY:SURFACE:NORMALIZED.
+		LOCAL steervec IS surfacestate["surfv"]:NORMALIZED.
 		LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
 		set dap:steer_tgtdir to LOOKDIRUP(steervec, upvec).
@@ -537,7 +547,9 @@ function ops1_second_stage_rtls {
 		LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
 		LOCAL tgtsurfvel IS RTLS_rvline(rng).
 		
-		IF (SHIP:VELOCITY:SURFACE:MAG >= tgtsurfvel OR SSME_flameout()) {
+		set target_orbit["rtls_cutv"] to tgtsurfvel.
+		
+		IF (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel OR SSME_flameout()) {
 			BREAK.
 		}
 		
@@ -645,10 +657,7 @@ function ops1_termination {
 		WAIT 5.
 	}
 	
-	CLEARSCREEN.
-	clearvecdraws().
-	dap_gui_executor["stop_execution"]().
-	close_all_GUIs().
+	clean_up_ops1().
 	
 	if (abort_modes["tal_active"]) {
 		RUN "0:/ops3"("tal", abort_modes["tal_tgt_site"]["site"]).
@@ -656,6 +665,14 @@ function ops1_termination {
 		RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
 	}
 
+}
+
+function clean_up_ops1 {
+	CLEARSCREEN.
+	clearvecdraws().
+	dap_gui_executor["stop_execution"]().
+	close_all_GUIs().
+	SAS ON.	//for good measure
 }
 
 ops1_main_exec().
