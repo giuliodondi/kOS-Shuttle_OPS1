@@ -504,20 +504,12 @@ function abort_initialiser {
 		
 		//premature optimisation is the root of all evil
 		
-		//if there's an active mode we triggered a manual abort and hten we had an engine failure, re-initialise the same mode 
-		if (abort_modes["rtls_active"]) {
-			set one_eo_rtls_abort to true.
-			set one_eo_tal_abort to false.
-			set one_eo_ato_abort to false.
-		} else if (abort_modes["tal_active"]) {
-			set one_eo_rtls_abort to false.
-			set one_eo_tal_abort to true.
-			set one_eo_ato_abort to false.
-		} else if (abort_modes["ato_active"]) {
-			set one_eo_rtls_abort to false.
-			set one_eo_tal_abort to false.
-			set one_eo_ato_abort to true.
-		} else if (abort_modes["manual_abort"]) {
+		//requirements:
+		//if we manually triggered the abort, always override 
+		//if a mode is already active, re-initialise it 
+		//if auto abort and no mode active, choose MECO-ATO-TAL-RTLS in this order of preference
+		
+		if (abort_modes["manual_abort"]) {
 			//in case of a manual abort, read and trigger the selected mode 
 			if (is_abort_rtls_selected()) {
 				set one_eo_rtls_abort to true.
@@ -532,9 +524,19 @@ function abort_initialiser {
 				set one_eo_tal_abort to false.
 				set one_eo_ato_abort to true.
 			}
+		} else if (abort_modes["rtls_active"]) {
+			set one_eo_rtls_abort to true.
+			set one_eo_tal_abort to false.
+			set one_eo_ato_abort to false.
+		} else if (abort_modes["tal_active"]) {
+			set one_eo_rtls_abort to false.
+			set one_eo_tal_abort to true.
+			set one_eo_ato_abort to false.
+		} else if (abort_modes["ato_active"]) {
+			set one_eo_rtls_abort to false.
+			set one_eo_tal_abort to false.
+			set one_eo_ato_abort to true.
 		} else {
-			//in case of an auto abort we choose MECO-ATO-TAL-RTLS in this order of preference
-			
 			if (abort_modes["intact_modes"]["1eo"]["meco"]) {
 				set one_eo_rtls_abort to false.
 				set one_eo_tal_abort to false.
@@ -552,7 +554,6 @@ function abort_initialiser {
 				set one_eo_tal_abort to false.
 				set one_eo_ato_abort to false.
 			}
-			
 		}
 		
 		set abort_modes["rtls_active"] to one_eo_rtls_abort.
@@ -575,6 +576,7 @@ function abort_initialiser {
 		}
 	} else if (two_engout) {
 		//2eo is a contingency unless one of the intact modes is available
+		//no manual selection, only auto-
 		
 		local two_eo_ato_abort is false.
 		local two_eo_tal_abort is false.
