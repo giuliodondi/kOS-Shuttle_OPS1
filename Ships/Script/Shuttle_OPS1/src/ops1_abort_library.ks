@@ -1247,7 +1247,7 @@ function get_ato_tgt_orbit {
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
 	
 	//230 m/s burn to circularise at apoapsis
-	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - 180.
+	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - 130.
 	
 	local ato_sma is 2/ato_cutoff_radius - ato_ap_v^2/BODY:MU.
 	set ato_sma to 1/ato_sma.
