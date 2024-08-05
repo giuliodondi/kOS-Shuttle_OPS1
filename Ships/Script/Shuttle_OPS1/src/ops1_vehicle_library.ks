@@ -610,7 +610,7 @@ function ascent_dap_factory {
 		if (eng_out >= 2) {
 			set steer_val to 0.1.
 		} else {
-			set steer_val to 0.55.
+			set steer_val to 0.3.
 		}
 	
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO steer_val.
