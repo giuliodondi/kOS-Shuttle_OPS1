@@ -376,6 +376,10 @@ function ascent_dap_factory {
 	
 	this:add("steer_dir", SHIP:FACINg).
 	
+	this:add("roll_rate", 0).
+	this:add("pitch_rate", 0).
+	this:add("yaw_rate", 0).
+	
 	this:add("measure_refv_roll", {
 		LOCAL refv IS VXCL(this:steer_thrvec, this:steer_refv):NORMALIZED.
 		LOCAL topv IS VXCL(this:steer_thrvec, this:cur_dir:TOPVECTOR):NORMALIZED.
@@ -405,6 +409,12 @@ function ascent_dap_factory {
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
 		
 		set this:throt_delta to this:thr_rpl_tgt - this:thr_cmd_rpl.
+		
+		local angv_ is SHIP:ANGULARVEL * constant:RadToDeg.
+		
+		set this:roll_rate to VDOT(this:cur_dir:FOREVECTOR, angv_).
+		set this:yaw_rate to VDOT(this:cur_dir:TOPVECTOR, angv_).
+		set this:pitch_rate to VDOT(this:cur_dir:STARVECTOR, angv_).
 	}).
 	
 	
@@ -587,6 +597,10 @@ function ascent_dap_factory {
 		print "steer_roll_delta : " + round(this:steer_roll_delta,3) + "    " at (0,line + 12).
 		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 13).
 		print "throt_delta : " + round(this:throt_delta,3) + "    " at (0,line + 14).
+		
+		print "pitch rate: " + round(this:pitch_rate,1) + "			" at (0,line + 16).
+		print "roll rate: " + round(this:roll_rate,1) + "			" at (0,line + 17).
+		print "yaw rate: " + round(this:yaw_rate,1) + "			" at (0,line + 18).
 		
 	}).
 	
