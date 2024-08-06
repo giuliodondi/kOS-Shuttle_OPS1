@@ -320,9 +320,9 @@ FUNCTION roll_heads_up {
 		set dap:steer_roll to 0.
 		dap:set_steering_med().
 		
-		local tnext is TIME:SECONDS + 40.
+		//local tnext is TIME:SECONDS + 40.
 		
-		WHEN(TIME:SECONDS > tnext) THEN {
+		WHEN(ABS(dap:steer_roll - dap:cur_steer_roll) < 5) THEN {
 			dap:set_steering_low().
 		}
 	}
