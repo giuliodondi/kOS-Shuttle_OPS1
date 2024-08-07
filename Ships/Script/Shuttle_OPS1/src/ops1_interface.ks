@@ -6,14 +6,8 @@ FUNCTION addGUIMessage {
 	
 	local t_msg is TIME:SECONDS - vehicle["ign_t"].
 	
-	local t_str IS "".
-	
-	if (t_msg >= 0) {
-		SET t_str TO t_str + "+".
-	}
-	
 	ascent_add_scroll_msg(
-						t_str + sectotime(TIME:SECONDS - vehicle["ign_t"],"") + ": " + msg,
+						sectotime(TIME:SECONDS - vehicle["ign_t"],"") + ": " + msg,
 						clear_
 	).
 
