@@ -98,8 +98,9 @@ function ops1_main_exec {
 	getState().
 	
 	// check for abort modes, proceed to nominal, rtls or contingency
-	
-	ops1_second_stage_nominal().
+	if NOT (abort_modes["cont_2eo_active"] or abort_modes["cont_3eo_active"] or abort_modes["rtls_active"]) {
+		ops1_second_stage_nominal().
+	}
 	
 	if (quit_program) {
 		clean_up_ops1().
@@ -235,6 +236,7 @@ function ops1_first_stage {
 		SET dap:thr_rpl_tgt TO vehicle["nominalThrottle"].
 	}
 	
+	//main ascent loop
 	UNTIL FALSE {	
 		if (quit_program) {
 			RETURN.
@@ -247,7 +249,9 @@ function ops1_first_stage {
 		abort_handler().
 		getState().
 		
-		IF (surfacestate["MET"] >= vehicle["handover"]["time"] ) {BREAK.}
+		IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 4 ) {
+			BREAK.
+		}
 		
 		if vehiclestate["staging_in_progress"] {
 			SET steer_flag TO FALSE.
@@ -298,6 +302,78 @@ function ops1_first_stage {
 			
 			}
 		}
+	}
+	
+	
+	//separation loop
+	//central block to handle nominal srb sep and 3eo contingency et sep 
+	
+	SET vehiclestate["staging_in_progress"] TO TRUE.
+	
+	//save the 3eo flag so we don't mess things up if 3eo happens during the srb sep loop
+	local _3eo_et_sep is abort_modes["cont_3eo_active"].
+	local staging_met is surfacestate["MET"] + 100000.
+	
+	if (_3eo_et_sep) {
+		addGUIMessage("STAND-BY FOR EMERGENCY ET SEP").
+		dap:set_steering_high().
+		dap:set_rcs(TRUE).
+	} else {
+		addGUIMessage("STAND-BY FOR SRB SEP").
+	}
+	
+	local break_sep_loop is false.
+	local rcs_translation_sep is _3eo_et_sep.
+	
+	UNTIL FALSE {	
+		if (quit_program) {
+			RETURN.
+		}
+		
+		if (break_sep_loop) {
+			break.
+		}
+		
+		if (debug_mode) {
+			clearvecdraws().
+		}
+		
+		abort_handler().
+		getState().
+		
+		local srb_tailoff is (get_srb_thrust()<400).
+		
+		local stg_elapsed is (surfacestate["MET"] - staging_met).
+		
+		if (_3eo_et_sep) {
+			
+			
+		
+		} else  {
+		
+			set break_sep_loop to (stg_elapsed >= 5).
+		
+			//at tailoff, trigger srb sep
+			if (NOT vehicle["srb_sep_flag"]) and (srb_tailoff) {
+				wait until stage:ready.
+				STAGE.
+				
+				//measure and save conditions at staging 
+				LOCAL ve_stg IS surfacestate["surfv"]:MAG.
+
+				SET vehiclestate["srb_sep"]["time"] TO surfacestate["MET"].
+				SET vehiclestate["srb_sep"]["ve"] TO ve_stg.
+				SET vehiclestate["srb_sep"]["alt"] TO surfacestate["alt"].
+				
+				increment_stage().
+				
+				set staging_met to (vehiclestate["staging_time"] - vehicle["ign_t"]).
+				
+				set vehicle["srb_sep_flag"] to true.
+			}
+		}
+		
+		
 	}
 	
 }
@@ -398,6 +474,8 @@ function ops1_second_stage_nominal {
 function ops1_second_stage_rtls {
 
 	SET vehiclestate["major_mode"] TO 601.
+	
+	freeze_abort_gui(true).
 	
 	dap:set_steering_low().
 	
@@ -584,6 +662,8 @@ function ops1_second_stage_contingency {
 function ops1_et_sep {
 	parameter fast_sep is false.
 	
+	if (vehicle["et_sep_flag"]) {return.}
+	
 	dap:set_rcs(TRUE).
 	toggle_roll_rcs(true).
 	ssme_out_safing().
@@ -634,6 +714,8 @@ function ops1_et_sep {
 	}
 	
 	close_umbilical().
+	
+	set vehicle["et_sep_flag"] to true.
 	
 	//this is presumably where we add logic for atttude control in contingency
 	
