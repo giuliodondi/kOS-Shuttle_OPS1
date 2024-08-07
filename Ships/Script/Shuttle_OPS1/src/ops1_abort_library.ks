@@ -444,7 +444,6 @@ function contingency_abort_region_determinator {
 			}
 		}
 	}
-
 }
 
 //determine if it's time to initialise an abort and which mode to activate
@@ -641,6 +640,53 @@ function abort_initialiser {
 
 	set abort_modes["abort_initialised"] to true.
 
+}
+
+function et_sep_mode_determinator {
+	//3 modes: nominal, immediate, rate-sep 
+	
+	//for the nominal case, all intact aborts, 2eo blue
+	local et_sep_mode is "nominal".
+	
+	if (abort_modes["cont_3eo_active"]) {
+		if (abort_modes["rtls_active"]) {
+			if (abort_modes["3eo_cont_mode"] = "BLUE") {
+				set et_sep_mode to "rate".
+			} else if (abort_modes["3eo_cont_mode"] = "YELLOW") {
+				set et_sep_mode to "immediate".
+			} else if (abort_modes["3eo_cont_mode"] = "ORANGE") {
+				set et_sep_mode to "rate".
+			} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
+				set et_sep_mode to "nominal".
+			}
+		} else {
+			if (abort_modes["3eo_cont_mode"] = "BLUE") {
+				set et_sep_mode to "immediate".
+			} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
+				set et_sep_mode to "nominal".
+			}
+		}
+	} else if (abort_modes["cont_2eo_active"]) {
+		if (abort_modes["rtls_active"]) {
+			if (abort_modes["2eo_cont_mode"] = "BLUE") {
+				set et_sep_mode to "nominal".
+			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") {
+				set et_sep_mode to "rate".
+			} else if (abort_modes["2eo_cont_mode"] = "ORANGE") {
+				set et_sep_mode to "rate".
+			} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
+				set et_sep_mode to "nominal".
+			}
+		} else {
+			if (abort_modes["2eo_cont_mode"] = "BLUE") {
+				set et_sep_mode to "nominal".
+			} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
+				set et_sep_mode to "rate".
+			}
+		}
+	}
+	
+	return et_sep_mode.
 }
 
 
