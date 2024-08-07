@@ -57,10 +57,11 @@ function initialise_shuttle {
 						"trajectory_scale",0,
 						"preburn",5.1,
 						"roll",180,
+						"srb_sep_flag", FALSE,
+						"et_sep_flag", FALSE,
 						"qbucketval", 0.28,
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
-						"handover", LEXICON("time", srb_time + 5),
 						"glim", 3,
 						"low_level", FALSE,
 						"low_level_burnt", 5,
@@ -858,8 +859,6 @@ FUNCTION getState {
 		
 			SET cur_stg["Tstage"] TO cur_stg["Tstage"] - surfacestate["deltat"].
 			
-			srb_staging().
-			
 		} ELSE {
 			IF (vehiclestate["cur_stg"]=2) {
 			
@@ -1021,36 +1020,6 @@ FUNCTION reset_stage {
 	set vehiclestate["cur_stg"] to min(vehiclestate["cur_stg"], 2).
 }
 
-
-FUNCTION srb_staging {
-	IF vehiclestate["staging_in_progress"] {RETURN.}
-
-	IF (vehicle["stages"][vehiclestate["cur_stg"]]["Tstage"] <= 4 ) {
-		SET vehiclestate["staging_in_progress"] TO TRUE.
-
-		addGUIMessage("STAND-BY FOR SRB SEP").
-		
-		//WHEN (get_TWR()<0.98) THEN {
-		WHEN (get_srb_thrust()<400) THEN {	//try srb thrust triggering
-			
-			wait until stage:ready.
-			STAGE.
-			
-			//measure conditions at staging 
-			LOCAL ve_stg IS SHIP:VELOCITY:SURFACE:MAG.
-
-			SET vehiclestate["srb_sep"]["time"] TO surfacestate["MET"].
-			SET vehiclestate["srb_sep"]["ve"] TO ve_stg.
-			SET vehiclestate["srb_sep"]["alt"] TO SHIP:ALTITUDE.
-			
-			increment_stage().
-			
-			SET vehicle["handover"]["time"] TO vehiclestate["staging_time"] - vehicle["ign_t"] + 5.
-		}
-	}
-	
-
-}
 
 FUNCTION ssme_staging {
 	parameter cur_stg.
@@ -1229,10 +1198,13 @@ function empty_stg_template {
 
 FUNCTION get_srb_thrust {
 
-	local srb is get_srb_parts()[0].
+	local srb_l is get_srb_parts().
 	
-	return srb:thrust.
-
+	if (srb_l:length = 0) {
+		return 0.
+	}
+	
+	return srb_l[0]:thrust.
 }
 
 
