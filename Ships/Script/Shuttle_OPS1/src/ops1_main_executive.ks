@@ -226,7 +226,7 @@ function ops1_first_stage {
 																			   
 	getState().
 	
-	WHEN SHIP:VERTICALSPEED >= (vehicle["roll_v0"]) THEN {
+	WHEN (surfacestate["vs"] >= vehicle["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		SET throt_flag TO true.

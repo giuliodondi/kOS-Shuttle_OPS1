@@ -998,7 +998,7 @@ FUNCTION update_stage4 {
 
 FUNCTION increment_stage {
 	
-	SET vehiclestate["staging_time"] TO TIME:SECONDS.
+	SET vehiclestate["staging_time"] TO surfacestate["time"].
 	
 	LOCAL j IS vehiclestate["cur_stg"].
 	
@@ -1008,7 +1008,7 @@ FUNCTION increment_stage {
 	
 	vehiclestate["avg_thr"]:reset().
 	
-	WHEN TIME:SECONDS > vehiclestate["staging_time"] + 0.5 THEN {
+	WHEN (surfacestate["time"] > vehiclestate["staging_time"] + 0.5) THEN {
 		addGUIMessage("STAGING SEQUENCE COMPLETE").
 		SET vehiclestate["staging_in_progress"] TO FALSE.
 	}
