@@ -695,8 +695,7 @@ function ops1_second_stage_contingency {
 }
 
 
-function ops1_et_sep {
-	parameter fast_sep is false.
+function ops1_et_sep_old {
 	
 	if (vehicle["et_sep_flag"]) {return.}
 	
@@ -755,12 +754,103 @@ function ops1_et_sep {
 	
 	//this is presumably where we add logic for atttude control in contingency
 	
-	UNLOCK THROTTLE.
-	UNLOCK STEERING.
-	SAS ON.
 	
 	
-	RETURN.
+}
+
+
+function ops1_et_sep {
+
+	if (vehicle["et_sep_flag"]) {return.}
+	
+	dap:set_rcs(TRUE).
+	toggle_roll_rcs(true).
+	ssme_out_safing().
+
+	addGUIMessage("STAND-BY FOR ET SEP").
+	
+	//3 modes: nominal, immediate, rate-sep 
+	// if immediate or rate-sep we also do a re-orientation after et-sep 
+	//bc we might be in a weird attitude
+
+	local et_sep_mode is et_sep_mode_determinator().
+	
+	
+	LOCAL sequence_trigger_t IS surfacestate["time"].
+	
+	local pre_sequence_t is 0.
+	local pre_sep_t is 0.
+	local translation_t is 0.
+	
+	if (et_sep_mode = "nominal") {
+		set pre_sequence_t to 2.
+		set pre_sep_t to 2.
+		set translation_t to 15.
+	} else if (et_sep_mode = "immediate") {
+		set pre_sequence_t to 0.
+		set pre_sep_t to 0.3.
+		set translation_t to 7.
+	} else if (et_sep_mode = "rate") {
+		set pre_sequence_t to 0.
+		set pre_sep_t to 0.
+		set translation_t to 7.
+	}
+	
+	LOCAL sequence_start is false.
+	LOCAL sequence_end is false.
+	
+	
+	
+	UNTIL FALSE{
+		getState().
+		
+		IF (sequence_end) {
+			BREAK.
+		}
+		
+		//rate sep is different
+		if (et_sep_mode = "rate") {
+		
+		} else {
+			//nominal and immediate sep work the same except with different timings
+			
+			if (NOT sequence_start) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t)) {
+				set sequence_start to true.
+				set sequence_trigger_t to surfacestate["time"].
+				
+				SET SHIP:CONTROL:TOP TO 1.
+				SET SHIP:CONTROL:FORE TO 1.
+				
+				//work out whether to translate sideways as well
+				if (et_sep_mode = "immediate") {
+					SET SHIP:CONTROL:STARBOARD TO 1.
+				}
+			}
+			
+			if (not vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + pre_sep_t)) {
+				set vehicle["et_sep_flag"] to true.
+				set sequence_trigger_t to surfacestate["time"].
+				
+				et_sep().
+			}
+			
+			if (vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + translation_t)) {
+				set sequence_end to true.
+				set sequence_trigger_t to surfacestate["time"].
+				
+				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+			}
+		}
+		
+		
+		
+		WAIT 0.1.
+	}
+	
+	close_umbilical().
+	
+	//after et sep set toggle serc off in the dap
+
 }
 
 //figure out what to do based on mode and abort modes 
@@ -788,6 +878,8 @@ function clean_up_ops1 {
 	clearvecdraws().
 	dap_gui_executor["stop_execution"]().
 	close_all_GUIs().
+	UNLOCK THROTTLE.
+	UNLOCK STEERING.
 	SAS ON.	//for good measure
 }
 
