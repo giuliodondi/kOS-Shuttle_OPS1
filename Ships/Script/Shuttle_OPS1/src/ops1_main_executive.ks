@@ -347,7 +347,43 @@ function ops1_first_stage {
 		
 		if (_3eo_et_sep) {
 			
+			//handle rcs separation
+			if (rcs_translation_sep) {
+				SET SHIP:CONTROL:TOP TO 1.
+				SET SHIP:CONTROL:FORE TO 1.
+				//also translate sideways if et sep has occured
+				if (vehicle["et_sep_flag"]) {
+					SET SHIP:CONTROL:STARBOARD TO 1.
+				}
+			} else {
+				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+			}
+		
 			
+			if (vehicle["et_sep_flag"]) {
+				
+				//wait a little then roll to heads-up
+				IF (stg_elapsed >= 7) {
+					//re-implement logic from roll to heads-up
+					set rcs_translation_sep to false.
+					set vehicle["roll"] to 0.
+					set dap:steer_roll to 0.
+					
+					//when roll is complete, break out
+					set break_sep_loop to (ABS(dap:steer_roll - dap:cur_steer_roll) < 5).
+				}
+			} else {
+				
+				//at tailoff, trigger et sep
+				if (srb_tailoff) {
+					et_sep().
+					
+					increment_stage().
+					
+					set staging_met to (vehiclestate["staging_time"] - vehicle["ign_t"]).
+					set vehicle["et_sep_flag"] to true.
+				}
+			}
 		
 		} else  {
 		
