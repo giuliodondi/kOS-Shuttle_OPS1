@@ -381,6 +381,7 @@ function ascent_dap_factory {
 	this:add("steer_yaw_delta", 0).
 	this:add("steer_roll_delta", 0).
 	this:add("throt_delta", 0).
+	this:add("ship_roll_delta", 0).
 	
 	this:add("steer_dir", SHIP:FACINg).
 	
@@ -411,12 +412,16 @@ function ascent_dap_factory {
 		local tgtv_v is vxcl(this:steer_dir:starvector, this:steer_tgtdir:forevector):normalized.
 		local tgttv_p is vxcl(this:steer_dir:forevector, this:steer_tgtdir:topvector):normalized.
 		
+		local shptv_p is vxcl(this:steer_dir:forevector, this:cur_dir:topvector):normalized.
+		
 		
 		set this:steer_pitch_delta to signed_angle(tgtv_v, this:steer_dir:forevector, this:steer_dir:starvector, 0).
 		set this:steer_yaw_delta to -signed_angle(tgtv_h, this:steer_dir:forevector, this:steer_dir:topvector, 0).
 		set this:steer_roll_delta to signed_angle(tgttv_p, this:steer_dir:topvector, this:steer_dir:forevector, 0).
 		
 		set this:throt_delta to this:thr_rpl_tgt - this:thr_cmd_rpl.
+		
+		set this:ship_roll_delta to signed_angle(this:steer_dir:topvector, shptv_p, this:steer_dir:forevector, 0).
 		
 		local angv_ is SHIP:ANGULARVEL * constant:RadToDeg.
 		
@@ -496,6 +501,8 @@ function ascent_dap_factory {
 		//set tgt_topvec to rodrigues(cur_topvec, tgt_steervec, -roll_corr).
 	
 		set this:steer_dir to LOOKDIRUP(tgt_steervec, tgt_topvec ).
+		
+		this:update_serc().
 	}).
 
 
@@ -559,6 +566,8 @@ function ascent_dap_factory {
 		set new_steertop to rodrigues(new_steertop, new_steerfore, - deltaroll).
 		
 		set this:steer_dir to LOOKDIRUP(new_steerfore, new_steertop ).
+		
+		this:update_serc().
 	}).
 	
 	
@@ -592,6 +601,31 @@ function ascent_dap_factory {
 		set this:thr_cmd_rpl to throtteValueConverter(this:thr_cmd, this:thr_min, TRUE).
 	}).
 	
+	//serc stuff 
+	
+	this:add("serc_enabled", FALSE).
+	this:add("serc_tgt_roll_rate", 0).
+	this:add("serc_yaw_pid", PIDLOOP(0.2,0,0.6)).
+	SET this:serc_yaw_pid:SETPOINT TO 0.
+	
+	this:add("toggle_serc", {
+		parameter enabled_.
+		set this:serc_enabled to enabled_.
+	}).
+	
+	this:add("update_serc", {
+	
+		if (NOT this:serc_enabled) {
+			SET SHIP:CONTROL:STARBOARD TO 0.
+			return.
+		}
+		
+		set this:serc_tgt_roll_rate to -sign(this:ship_roll_delta) * MIN(0.5 * abs(this:ship_roll_delta), 5).
+		
+		SET SHIP:CONTROL:STARBOARD TO  this:serc_yaw_pid:UPDATE(this:last_time, this:serc_tgt_roll_rate - this:roll_rate ).
+	
+	}).
+	
 	
 	this:add("print_debug",{
 		PARAMETER line.
@@ -612,9 +646,11 @@ function ascent_dap_factory {
 		print "steer_yaw_delta : " + round(this:steer_yaw_delta,3) + "    " at (0,line + 13).
 		print "throt_delta : " + round(this:throt_delta,3) + "    " at (0,line + 14).
 		
-		print "pitch rate: " + round(this:pitch_rate,1) + "			" at (0,line + 16).
-		print "roll rate: " + round(this:roll_rate,1) + "			" at (0,line + 17).
-		print "yaw rate: " + round(this:yaw_rate,1) + "			" at (0,line + 18).
+		print "ship_roll_delta : " + round(this:ship_roll_delta,3) + "    " at (0,line + 16).
+		
+		print "pitch rate: " + round(this:pitch_rate,1) + "			" at (0,line + 18).
+		print "roll rate: " + round(this:roll_rate,1) + "			" at (0,line + 19).
+		print "yaw rate: " + round(this:yaw_rate,1) + "			" at (0,line + 20).
 		
 	}).
 	
@@ -1760,7 +1796,9 @@ function single_engine_roll_control {
 
 	dap:set_rcs(TRUE).
 	
-	dap:set_steering_low().
+	dap:set_steering_high().
+	
+	dap:toggle_serc(true).
 	
 	FOR ssme IN get_ssme_parts() {
 		IF (ssme:IGNITION) {
@@ -1771,8 +1809,10 @@ function single_engine_roll_control {
 
 }
 
-function toggle_roll_rcs {
-	parameter full_rcs is false.
+function switch_att_rcs {
+	parameter pitch_rcs is true.
+	parameter yaw_rcs is true.
+	parameter roll_rcs is true.
 	
 	LIST RCS IN rcslist.
 	
@@ -1785,9 +1825,9 @@ function toggle_roll_rcs {
 				wait 0.
 			}
 			
-			rcsm_:SETFIELD("pitch",full_rcs).
-			rcsm_:SETFIELD("yaw",full_rcs).
-			rcsm_:SETFIELD("roll",true).
+			rcsm_:SETFIELD("pitch",pitch_rcs).
+			rcsm_:SETFIELD("yaw",yaw_rcs).
+			rcsm_:SETFIELD("roll",roll_rcs).
 		}
 	}
 
