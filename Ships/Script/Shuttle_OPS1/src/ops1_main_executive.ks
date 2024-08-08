@@ -306,7 +306,7 @@ function ops1_first_stage {
 	
 	
 	//separation loop
-	//central block to handle nominal srb sep and 3eo contingency et sep 
+	//central block to handle nominal srb sep and 3eo contingency breakout to the et sep block
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.
 	
@@ -314,12 +314,17 @@ function ops1_first_stage {
 	local _3eo_et_sep is abort_modes["cont_3eo_active"].
 	local staging_met is surfacestate["MET"] + 100000.
 	
+	local srb_tailoff_thr is 0.
+	
 	if (_3eo_et_sep) {
 		addGUIMessage("STAND-BY FOR EMERGENCY ET SEP").
 		dap:set_steering_high().
 		dap:set_rcs(TRUE).
+		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
+		set srb_tailoff_thr to 500.
 	} else {
 		addGUIMessage("STAND-BY FOR SRB SEP").
+		set srb_tailoff_thr to 350.
 	}
 	
 	local break_sep_loop is false.
@@ -341,50 +346,13 @@ function ops1_first_stage {
 		abort_handler().
 		getState().
 		
-		local srb_tailoff is (get_srb_thrust()<400).
+		local srb_tailoff is (get_srb_thrust()<srb_tailoff_thr).
 		
 		local stg_elapsed is (surfacestate["MET"] - staging_met).
 		
 		if (_3eo_et_sep) {
-			
-			//handle rcs separation
-			if (rcs_translation_sep) {
-				SET SHIP:CONTROL:TOP TO 1.
-				SET SHIP:CONTROL:FORE TO 1.
-				//also translate sideways if et sep has occured
-				if (vehicle["et_sep_flag"]) {
-					SET SHIP:CONTROL:STARBOARD TO 1.
-				}
-			} else {
-				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-			}
-		
-			
-			if (vehicle["et_sep_flag"]) {
-				
-				//wait a little then roll to heads-up
-				IF (stg_elapsed >= 7) {
-					//re-implement logic from roll to heads-up
-					set rcs_translation_sep to false.
-					set vehicle["roll"] to 0.
-					set dap:steer_roll to 0.
-					
-					//when roll is complete, break out
-					set break_sep_loop to (ABS(dap:steer_roll - dap:cur_steer_roll) < 5).
-				}
-			} else {
-				
-				//at tailoff, trigger et sep
-				if (srb_tailoff) {
-					et_sep().
-					
-					increment_stage().
-					
-					set staging_met to (vehiclestate["staging_time"] - vehicle["ign_t"]).
-					set vehicle["et_sep_flag"] to true.
-				}
-			}
-		
+	
+			set break_sep_loop to srb_tailoff.
 		} else  {
 		
 			set break_sep_loop to (stg_elapsed >= 5).
@@ -770,11 +738,8 @@ function ops1_et_sep {
 	addGUIMessage("STAND-BY FOR ET SEP").
 	
 	//3 modes: nominal, immediate, rate-sep 
-	// if immediate or rate-sep we also do a re-orientation after et-sep 
-	//bc we might be in a weird attitude
 
 	local et_sep_mode is et_sep_mode_determinator().
-	
 	
 	LOCAL sequence_trigger_t IS surfacestate["time"].
 	
@@ -814,7 +779,7 @@ function ops1_et_sep {
 		} else {
 			//nominal and immediate sep work the same except with different timings
 			
-			if (NOT sequence_start) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t)) {
+			if (NOT sequence_start) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) {
 				set sequence_start to true.
 				set sequence_trigger_t to surfacestate["time"].
 				
@@ -827,14 +792,14 @@ function ops1_et_sep {
 				}
 			}
 			
-			if (not vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + pre_sep_t)) {
+			if (not vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
 				set vehicle["et_sep_flag"] to true.
 				set sequence_trigger_t to surfacestate["time"].
 				
 				et_sep().
 			}
 			
-			if (vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + translation_t)) {
+			if (vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + translation_t) {
 				set sequence_end to true.
 				set sequence_trigger_t to surfacestate["time"].
 				
@@ -849,6 +814,9 @@ function ops1_et_sep {
 	
 	close_umbilical().
 	
+	//if we're in a contingency do more stuff 
+	
+	//do a re-orientation after et-sep since we might be in a weird attitude
 	//after et sep set toggle serc off in the dap
 
 }
