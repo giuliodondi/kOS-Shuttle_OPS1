@@ -59,6 +59,7 @@ function initialise_shuttle {
 						"roll",180,
 						"srb_sep_flag", FALSE,
 						"et_sep_flag", FALSE,
+						"meco_flag", FALSE,
 						"qbucketval", 0.28,
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
@@ -863,7 +864,7 @@ FUNCTION getState {
 	LOCAL avg_thrust is vehiclestate["avg_thr"]:average().
 	LOCAL avg_isp is x[1].
 
-	IF NOT (vehiclestate["staging_in_progress"]) {
+	IF NOT (vehiclestate["staging_in_progress"] OR vehicle["meco_flag"]) {
 		
 		LOCAL current_m IS SHIP:MASS*1000.
 		

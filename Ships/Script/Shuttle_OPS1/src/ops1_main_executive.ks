@@ -464,8 +464,6 @@ function ops1_second_stage_nominal {
 		}
 	}
 	
-	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
-	
 	//stop oms dump for intact aborts
 	LOCK THROTTLE to 0.
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -636,8 +634,6 @@ function ops1_second_stage_rtls {
 		
 	}
 	
-	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
-	
 	//stop oms dump for intact aborts
 	LOCK THROTTLE to 0.
 	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -672,7 +668,12 @@ function ops1_et_sep {
 	set dap:thrust_corr to FALSE.
 	dap:set_rcs(TRUE).
 	toggle_roll_rcs(true).
+	
+	shutdown_ssmes().	//for good measure
+	SET vehicle["meco_flag"] TO TRUE.
 	ssme_out_safing().
+	
+	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 
 	addGUIMessage("STAND-BY FOR ET SEP").
 	
@@ -761,7 +762,7 @@ function ops1_et_sep {
 	//do a re-orientation after et-sep since we might be in a weird attitude
 	//after et sep set toggle serc off in the dap
 	
-	if (et_sep_mode <> "nominal") {
+	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
 		dap:set_steering_free().
 		dap:set_steer_tgt(pitch_up_steer).
 		until false {
@@ -805,7 +806,7 @@ function clean_up_ops1 {
 	clearvecdraws().
 	dap_gui_executor["stop_execution"]().
 	close_all_GUIs().
-	stop_oms_dump(true).
+
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
 	SAS ON.	//for good measure
