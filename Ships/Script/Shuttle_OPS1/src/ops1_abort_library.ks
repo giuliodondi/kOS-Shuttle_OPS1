@@ -637,6 +637,13 @@ function abort_initialiser {
 		set abort_modes["cont_3eo_active"] to true. 
 		addGUIMessage("ABORT 3EO " + abort_modes["3eo_cont_mode"]).
 	}
+	
+	//start oms dump in any abort case except ato
+	if (abort_modes["cont_3eo_active"] or abort_modes["cont_2eo_active"] 
+		or abort_modes["rtls_active"] or abort_modes["tal_active"]) {
+		start_oms_dump(true).
+	}
+	
 
 	set abort_modes["abort_initialised"] to true.
 
@@ -1007,9 +1014,6 @@ FUNCTION setup_RTLS {
 	//default percentage of full throttle for rtls upfg convergence
 	SET upfgInternal["throtset"] TO 0.96 * throt_val.
 	
-	
-	start_oms_dump(true).
-	
 }
 
 
@@ -1271,8 +1275,6 @@ FUNCTION setup_TAL{
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
-	
-	start_oms_dump(true).
 
 	//trigger the roll to heads-up if it hasn't already, important for reentry 
 	WHEN ( surfacestate["MET"] > (abort_modes["trigger_t"] + 40) ) THEN {
