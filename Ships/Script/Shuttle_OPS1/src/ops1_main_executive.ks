@@ -3,7 +3,7 @@ CLEARSCREEN.
 SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
 global debug_mode is false.
-global dap_debug is false.
+global dap_debug is true.
 
 
 //	Load libraries
@@ -317,7 +317,7 @@ function ops1_first_stage {
 	local srb_tailoff_thr is 0.
 	
 	if (_3eo_et_sep) {
-		addGUIMessage("STAND-BY FOR EMERGENCY ET SEP").
+		addGUIMessage("EMERGENCY ET SEP").
 		dap:set_steering_high().
 		dap:set_rcs(TRUE).
 		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
@@ -662,74 +662,11 @@ function ops1_second_stage_contingency {
 	}
 }
 
-
-function ops1_et_sep_old {
-	
-	if (vehicle["et_sep_flag"]) {return.}
-	
-	dap:set_rcs(TRUE).
-	toggle_roll_rcs(true).
-	ssme_out_safing().
-	
-	local pre_sequence_t is 0.
-	local pre_sep_t is 0.
-	local translation_t is 0.
-	
-	if (NOT fast_sep) {
-		addGUIMessage("STAND-BY FOR ET SEP").
-		set pre_sequence_t to 2.
-		set pre_sep_t to 2.
-		set translation_t to 15.
-	} else {
-		addGUIMessage("FAST ET SEP").
-		set pre_sequence_t to 0.1.
-		set pre_sep_t to 0.5.
-		set translation_t to 5.
-	}
-	
-	
-	//ET sep loop
-	LOCAL sequence_start_t IS surfacestate["time"].
-	LOCAL sequence_exit is false.
-	WHEN ( surfacestate["time"] > sequence_start_t + pre_sequence_t) THEN {
-		SET SHIP:CONTROL:TOP TO 1.
-		SET SHIP:CONTROL:FORE TO 1.
-		
-		WHEN ( surfacestate["time"] > sequence_start_t + pre_sep_t) THEN {
-			et_sep().
-			
-			WHEN ( surfacestate["time"] > sequence_start_t + translation_t) THEN {
-				set sequence_exit to true.
-				//to disable RCS separation maneouvre
-				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-			}
-		}
-	}
-	
-	
-	UNTIL FALSE{
-		getState().
-		
-		IF (sequence_exit) {
-			BREAK.
-		}
-		WAIT 0.1.
-	}
-	
-	close_umbilical().
-	
-	set vehicle["et_sep_flag"] to true.
-	
-	//this is presumably where we add logic for atttude control in contingency
-	
-	
-	
-}
-
-
 function ops1_et_sep {
 
 	if (vehicle["et_sep_flag"]) {return.}
+	
+	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	dap:set_rcs(TRUE).
 	toggle_roll_rcs(true).
@@ -764,7 +701,9 @@ function ops1_et_sep {
 	LOCAL sequence_start is false.
 	LOCAL sequence_end is false.
 	
-	
+	//calculate a pitch-up steering direction for contingencies
+	local cur_steer is dap:steer_dir.
+	local pitch_up_steer is rodrigues(cur_steer:forevector, -cur_steer:starvector, 20).
 	
 	UNTIL FALSE{
 		getState().
@@ -786,9 +725,12 @@ function ops1_et_sep {
 				SET SHIP:CONTROL:TOP TO 1.
 				SET SHIP:CONTROL:FORE TO 1.
 				
+				//if immediate, pitch up 20°
 				//work out whether to translate sideways as well
 				if (et_sep_mode = "immediate") {
-					SET SHIP:CONTROL:STARBOARD TO 1.
+					
+					dap:set_steer_tgt(pitch_up_steer).
+				
 				}
 			}
 			
@@ -807,8 +749,6 @@ function ops1_et_sep {
 			}
 		}
 		
-		
-		
 		WAIT 0.1.
 	}
 	
@@ -818,6 +758,23 @@ function ops1_et_sep {
 	
 	//do a re-orientation after et-sep since we might be in a weird attitude
 	//after et sep set toggle serc off in the dap
+	
+	if (et_sep_mode <> "nominal") {
+		dap:set_steering_high().
+		dap:set_steer_tgt(pitch_up_steer).
+		until false {
+			getState().
+			
+			set vehicle["roll"] to 0.
+			set dap:steer_roll to 0.
+			
+			if (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) {
+				BREAK.
+			}
+			
+			wait 0.1.
+		}
+	}
 
 }
 
@@ -846,6 +803,7 @@ function clean_up_ops1 {
 	clearvecdraws().
 	dap_gui_executor["stop_execution"]().
 	close_all_GUIs().
+	stop_oms_dump(true).
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
 	SAS ON.	//for good measure
