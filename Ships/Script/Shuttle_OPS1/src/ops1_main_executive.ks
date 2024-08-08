@@ -141,7 +141,7 @@ function ops1_countdown{
 	wait 0.
 
 	SAS OFF.
-	toggle_roll_rcs().
+	switch_att_rcs(false, false, false).
 	
 	//this sets the pilot throttle command to some value so that it's not zero if the program is aborted
 	LOCK THROTTLE to dap:thr_cmd.
@@ -647,6 +647,11 @@ function ops1_second_stage_rtls {
 function ops1_second_stage_contingency {
 
 	addGUIMessage("Contingency not yet implemented, please quit program").
+	
+	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	
+	set vehicle["roll"] to 0.
+	set dap:steer_roll to 0.
 
 	until false {
 		if (quit_program) {
@@ -667,7 +672,7 @@ function ops1_et_sep {
 	
 	set dap:thrust_corr to FALSE.
 	dap:set_rcs(TRUE).
-	toggle_roll_rcs(true).
+	switch_att_rcs().
 	
 	shutdown_ssmes().	//for good measure
 	SET vehicle["meco_flag"] TO TRUE.
@@ -761,6 +766,8 @@ function ops1_et_sep {
 	
 	//do a re-orientation after et-sep since we might be in a weird attitude
 	//after et sep set toggle serc off in the dap
+	
+	dap:toggle_serc(false).
 	
 	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
 		dap:set_steering_free().
