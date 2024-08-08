@@ -232,15 +232,19 @@ fUNCTION nominal_pitch_profile {
 //bias first-stage trajectory scale for lofting
 FUNCTION first_stage_engout_lofting_bias {
 	
+	//modification, do not bias higher than 1ee
+	//contingencies do not need lofting
+	
 	local engines_out is get_engines_out().
 	local abort_t is 1000.
 	
+	local engout_fac is 0.
+	
 	if (engines_out > 0) {
 		set abort_t to abort_modes["ssmes_out"][0]["time"].
+		//(0.375 * engines_out + 0.625) * engines_out.
+		set engout_fac to 1.
 	}
-	
-	//decreasing multiplying factor with engines out
-	local engout_fac is (0.375 * engines_out + 0.625) * engines_out.
 	
 	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
 	
