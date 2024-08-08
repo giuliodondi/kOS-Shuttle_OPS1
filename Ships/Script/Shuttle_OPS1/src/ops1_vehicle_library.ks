@@ -420,6 +420,8 @@ function ascent_dap_factory {
 		set this:roll_rate to VDOT(this:cur_dir:FOREVECTOR, angv_).
 		set this:yaw_rate to VDOT(this:cur_dir:TOPVECTOR, angv_).
 		set this:pitch_rate to VDOT(this:cur_dir:STARVECTOR, angv_).
+		
+		this:update_steer_tgtdir().
 	}).
 	
 	
@@ -439,7 +441,9 @@ function ascent_dap_factory {
 		parameter new_thrvec.
 		
 		set this:steer_thrvec to new_thrvec.
-		
+	}).
+	
+	this:add("update_steer_tgtdir", {
 		//required for continuous pilot input across several funcion calls
 		LOCAL time_gain IS ABS(this:iteration_dt/0.2).
 		
@@ -614,6 +618,11 @@ function ascent_dap_factory {
 		local steer_ramp_rate is max_steer/5.
 		
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
+	}).
+	
+	this:add("force_steering_rate", {
+		parameter new_rate.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO new_rate.
 	}).
 	
 	this:add("set_steering_high", {
