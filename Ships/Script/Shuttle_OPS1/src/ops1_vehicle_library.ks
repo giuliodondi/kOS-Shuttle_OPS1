@@ -367,6 +367,8 @@ function ascent_dap_factory {
 		SET this:iteration_dt TO this:last_time - old_t.
 	}).
 	
+	this:add("thrust_corr", TRUE).
+	
 	this:add("cur_dir", SHIP:FACINg).
 	this:add("cur_thrvec", v(0,0,0)).
 	
@@ -433,8 +435,6 @@ function ascent_dap_factory {
 	this:add("steer_cmd_roll", 0).
 	
 	this:add("steer_tgtdir", SHIP:FACINg).
-	
-	
 
 	
 	this:add("set_steer_tgt", {
@@ -454,7 +454,11 @@ function ascent_dap_factory {
 		
 		set this:steer_cmd_roll to this:cur_steer_roll - roll_delta.
 		
-		set this:steer_tgtdir to aimAndRoll(this:steer_thrvec, this:steer_refv, this:steer_cmd_roll).
+		if (this:thrust_corr) {
+			set this:steer_tgtdir to aimAndRoll(this:steer_thrvec, this:steer_refv, this:steer_cmd_roll).
+		} else {
+			set this:steer_tgtdir to aimAndRollDirect(this:steer_thrvec, this:steer_refv, this:steer_cmd_roll).
+		}
 	}).
 	
 	this:add("steer_auto_thrvec", {
@@ -620,9 +624,8 @@ function ascent_dap_factory {
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
 	}).
 	
-	this:add("force_steering_rate", {
-		parameter new_rate.
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO new_rate.
+	this:add("set_steering_free", {
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 8.
 	}).
 	
 	this:add("set_steering_high", {

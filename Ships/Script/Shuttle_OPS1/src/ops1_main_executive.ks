@@ -321,6 +321,7 @@ function ops1_first_stage {
 		dap:set_steering_high().
 		dap:set_rcs(TRUE).
 		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
+		set dap:thrust_corr to FALSE.
 		set srb_tailoff_thr to 500.
 	} else {
 		addGUIMessage("STAND-BY FOR SRB SEP").
@@ -668,6 +669,7 @@ function ops1_et_sep {
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
+	set dap:thrust_corr to FALSE.
 	dap:set_rcs(TRUE).
 	toggle_roll_rcs(true).
 	ssme_out_safing().
@@ -760,7 +762,7 @@ function ops1_et_sep {
 	//after et sep set toggle serc off in the dap
 	
 	if (et_sep_mode <> "nominal") {
-		dap:set_steering_high().
+		dap:set_steering_free().
 		dap:set_steer_tgt(pitch_up_steer).
 		until false {
 			getState().
@@ -768,7 +770,7 @@ function ops1_et_sep {
 			set vehicle["roll"] to 0.
 			set dap:steer_roll to 0.
 			
-			if (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) {
+			if (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) and (dap:roll_rate < 1) {
 				BREAK.
 			}
 			
