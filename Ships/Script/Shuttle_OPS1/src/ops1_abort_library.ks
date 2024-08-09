@@ -456,8 +456,8 @@ function abort_initialiser {
 	local two_engout is (engines_out = 2).
 	local three_engout is (engines_out = 3).
 	
-	//if first stage and not 3eo exit, we initialise the abort after srb sep
-	if (vehiclestate["major_mode"] < 103) and (not three_engout) {
+	//during forst stage only initialise 2eo and 2eo
+	if (vehiclestate["major_mode"] < 103) and (zero_engout or one_engout) {
 		return.
 	}
 
