@@ -647,6 +647,8 @@ function ops1_second_stage_contingency {
 
 	addGUIMessage("Contingency not yet implemented, please quit program").
 	
+	SET vehiclestate["major_mode"] TO 103.
+	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	set vehicle["roll"] to 0.
@@ -664,6 +666,8 @@ function ops1_second_stage_contingency {
 			break.
 		}
 	}
+	
+	SET vehiclestate["major_mode"] TO 104.
 }
 
 function ops1_et_sep {
