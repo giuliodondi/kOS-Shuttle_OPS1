@@ -662,7 +662,7 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("set_steering_free", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 8.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 6.5.
 	}).
 	
 	this:add("set_steering_high", {
@@ -671,17 +671,7 @@ function ascent_dap_factory {
 	
 	this:add("set_steering_med", {
 	
-		local eng_out is get_engines_out().
-	
-		local steer_val is 0.
-		
-		if (eng_out >= 2) {
-			set steer_val to 0.1.
-		} else {
-			set steer_val to 0.3.
-		}
-	
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO steer_val.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.75.
 	}).
 	
 	this:add("set_steering_low", {
