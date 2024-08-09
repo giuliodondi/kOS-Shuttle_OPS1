@@ -314,7 +314,7 @@ function ops1_first_stage {
 	local _3eo_et_sep is abort_modes["cont_3eo_active"].
 	local staging_met is surfacestate["MET"] + 100000.
 	
-	local srb_tailoff_thr is 0.
+	local srb_tailoff_thr is srb_sep_thrust().
 	
 	if (_3eo_et_sep) {
 		addGUIMessage("EMERGENCY ET SEP").
@@ -322,10 +322,8 @@ function ops1_first_stage {
 		dap:set_rcs(TRUE).
 		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
 		set dap:thrust_corr to FALSE.
-		set srb_tailoff_thr to 500.
 	} else {
 		addGUIMessage("STAND-BY FOR SRB SEP").
-		set srb_tailoff_thr to 350.
 	}
 	
 	local break_sep_loop is false.
@@ -659,8 +657,11 @@ function ops1_second_stage_contingency {
 			RETURN.
 		}
 		
+		abort_handler().
+		getState().
+		
 		if  (abort_modes["cont_3eo_active"]) {
-			return.
+			break.
 		}
 	}
 }
@@ -679,8 +680,6 @@ function ops1_et_sep {
 	shutdown_ssmes().	//for good measure
 	SET vehicle["meco_flag"] TO TRUE.
 	ssme_out_safing().
-	//disable rcs oms dump for max rcs control 
-	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
 
@@ -771,7 +770,7 @@ function ops1_et_sep {
 						
 						dap:set_steer_tgt(post_sep_pitch_up_steer).
 						
-						dap:set_steering_med().
+						dap:set_steering_free().
 					}
 				}
 				
@@ -792,14 +791,12 @@ function ops1_et_sep {
 					
 					et_sep().
 					
-					//if immediate, pitch up 20°
-					//work out whether to translate sideways as well
-					if (et_sep_mode = "immediate") {
+					if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
 						
-						set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 20).
+						set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
 						dap:set_steer_tgt(post_sep_pitch_up_steer).
 						
-						dap:set_steering_med().
+						dap:set_steering_free().
 					
 					}
 				}
@@ -815,7 +812,6 @@ function ops1_et_sep {
 			}
 		}
 		
-		WAIT 0.1.
 	}
 	
 	close_umbilical().
@@ -853,11 +849,9 @@ function ops1_et_sep {
 			if (dap:steer_pitch_delta  < 1) 
 				and (dap:steer_yaw_delta < 1) 
 				and (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) 
-				and (dap:roll_rate < 1) {
+				and (dap:roll_rate < 0.5) {
 				BREAK.
 			}
-			
-			wait 0.1.
 		}
 	}
 
