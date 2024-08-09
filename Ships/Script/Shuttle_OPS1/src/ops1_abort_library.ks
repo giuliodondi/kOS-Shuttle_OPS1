@@ -472,11 +472,12 @@ function abort_initialiser {
 		//prepare for intitialisation 
 		set abort_modes["abort_initialised"] to false.
 		
-		//the abort is triggered right now except in a 1eo case, we give 10 seconds for manual abort trigger
+		//the abort is triggered right now except in a 1eo case if we have more than 1 mode available
+		//we give 10 seconds for manual abort trigger
 		//but we shouldn't wait if an abort was already triggered
 		local abort_trigger_t is -0.2.
 		
-		if (one_engout) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
+		if (one_engout) and (get_available_abort_modes():length > 1) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
 			set abort_trigger_t to 10.
 		}
 		
