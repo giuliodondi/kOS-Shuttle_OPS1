@@ -614,6 +614,7 @@ function ops1_second_stage_rtls {
 	addGUIMessage("POWERED PITCH-DOWN").
 	
 	dap:set_steering_high().
+	set dap:thrust_corr to FALSE.
 		
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
@@ -623,7 +624,7 @@ function ops1_second_stage_rtls {
 		LOCAL steervec IS surfacestate["surfv"]:NORMALIZED.
 		LOCAL upvec IS -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
-		set dap:steer_tgtdir to LOOKDIRUP(steervec, upvec).
+		dap:set_steer_tgt(steervec).
 
 		LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
 		LOCAL tgtsurfvel IS RTLS_rvline(rng).
@@ -694,8 +695,8 @@ function ops1_et_sep {
 	
 	if (et_sep_mode = "nominal") {
 		set pre_sequence_t to 2.
-		set pre_sep_t to 2.
-		set translation_t to 15.
+		set pre_sep_t to 1.
+		set translation_t to 10.
 	} else if (et_sep_mode = "immediate") {
 		set pre_sequence_t to 0.
 		set pre_sep_t to 0.3.
