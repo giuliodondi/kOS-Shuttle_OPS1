@@ -65,7 +65,7 @@ function initialise_shuttle {
 						"max_q_reached", FALSE,
 						"glim", 3,
 						"low_level", FALSE,
-						"low_level_burnt", 5,
+						"low_level_burnt", 10,
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
