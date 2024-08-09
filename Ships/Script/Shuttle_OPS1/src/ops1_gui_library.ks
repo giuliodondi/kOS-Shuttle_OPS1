@@ -833,6 +833,10 @@ function update_abort_modes_gui {
 	
 }
 
+function get_available_abort_modes {
+	return abort_mode_select:options.
+}
+
 function freeze_abort_gui {
 	parameter frozen is true.
 	
