@@ -60,6 +60,7 @@ function initialise_shuttle {
 						"srb_sep_flag", FALSE,
 						"et_sep_flag", FALSE,
 						"meco_flag", FALSE,
+						"et_sep_prograde_alt", 55000,
 						"qbucketval", 0.28,
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
@@ -1063,7 +1064,6 @@ FUNCTION reset_stage {
 	set vehiclestate["cur_stg"] to min(vehiclestate["cur_stg"], 2).
 }
 
-
 FUNCTION ssme_staging {
 	parameter cur_stg.
 	
@@ -1250,6 +1250,18 @@ FUNCTION get_srb_thrust {
 	return srb_l[0]:thrust.
 }
 
+//return thrust thresh for separation as a function of engines out 
+function srb_sep_thrust {
+	
+	local engines_out is get_engines_out().
+	
+	if (engines_out = 3) {
+		return 500.
+	}
+	
+	return 350/(1 + engines_out).
+	
+}
 
 //shutdown a number of engines
 //if just one, avoid shautting down the centre engine
