@@ -559,6 +559,9 @@ function abort_initialiser {
 		set abort_modes["tal_active"] to one_eo_tal_abort.
 		set abort_modes["ato_active"] to one_eo_ato_abort.
 		
+		set abort_modes["cont_2eo_active"] to false. 
+		set abort_modes["cont_3eo_active"] to false. 
+		
 		//now initialise the mode 
 		if (abort_modes["rtls_active"]) {
 			//setup rtls	
@@ -614,6 +617,7 @@ function abort_initialiser {
 		set abort_modes["rtls_active"] to two_eo_rtls_abort.
 		set abort_modes["tal_active"] to two_eo_tal_abort. 
 		set abort_modes["ato_active"] to two_eo_ato_abort. 
+		set abort_modes["cont_3eo_active"] to false. 
 		
 		if (abort_modes["rtls_active"]) {
 			//setup rtls 
@@ -635,6 +639,11 @@ function abort_initialiser {
 	} else if (three_engout) {
 		//3eo is always a contingency even in the blank region 
 		set abort_modes["cont_3eo_active"] to true. 
+		set abort_modes["cont_2eo_active"] to false. 
+		set abort_modes["rtls_active"] to false.
+		set abort_modes["tal_active"] to false. 
+		set abort_modes["ato_active"] to false. 
+		
 		addGUIMessage("ABORT 3EO " + abort_modes["3eo_cont_mode"]).
 	}
 	
@@ -686,7 +695,7 @@ function et_sep_mode_determinator {
 			}
 		} else {
 			if (abort_modes["2eo_cont_mode"] = "BLUE") {
-				set et_sep_mode to "nominal".
+				set et_sep_mode to "immediate".
 			} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
 				set et_sep_mode to "rate".
 			}
