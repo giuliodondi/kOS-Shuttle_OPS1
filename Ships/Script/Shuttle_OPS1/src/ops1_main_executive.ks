@@ -674,6 +674,7 @@ function ops1_et_sep {
 	set dap:thrust_corr to FALSE.
 	dap:set_rcs(TRUE).
 	switch_att_rcs().
+	dap:set_steering_high().
 	
 	shutdown_ssmes().	//for good measure
 	SET vehicle["meco_flag"] TO TRUE.
@@ -692,6 +693,7 @@ function ops1_et_sep {
 	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
 	local translation_t is 0.
+	local rate_sep_pitch_rate is 3.
 	
 	if (et_sep_mode = "nominal") {
 		set pre_sequence_t to 2.
@@ -702,8 +704,8 @@ function ops1_et_sep {
 		set pre_sep_t to 0.3.
 		set translation_t to 7.
 	} else if (et_sep_mode = "rate") {
-		set pre_sequence_t to 0.
-		set pre_sep_t to 0.
+		set pre_sequence_t to 3.
+		set pre_sep_t to 0.3.
 		set translation_t to 7.
 	}
 	
@@ -711,8 +713,8 @@ function ops1_et_sep {
 	LOCAL sequence_end is false.
 	
 	//calculate a pitch-up steering direction for contingencies
-	local cur_steer is dap:steer_dir.
-	local pitch_up_steer is rodrigues(cur_steer:forevector, -cur_steer:starvector, 20).
+	local post_sep_pitch_up_steer is dap:cur_dir:forevector.
+	local rate_sep_steer_tgt is dap:cur_dir:forevector.
 	
 	UNTIL FALSE{
 		getState().
@@ -721,36 +723,75 @@ function ops1_et_sep {
 			BREAK.
 		}
 		
-		//rate sep is different
-		if (et_sep_mode = "rate") {
+		if (not vehicle["et_sep_flag"]) {
 		
-		} else {
-			//nominal and immediate sep work the same except with different timings
+			//rate sep is different
+			if (et_sep_mode = "rate") {
 			
-			if (NOT sequence_start) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) {
-				set sequence_start to true.
-				set sequence_trigger_t to surfacestate["time"].
+				dap:set_steering_free().
 				
-				SET SHIP:CONTROL:TOP TO 1.
-				SET SHIP:CONTROL:FORE TO 1.
+				set vehicle["roll"] to 0.
+				set dap:steer_roll to 0.
+				set dap:max_steervec_corr to 8.
+				set dap:steer_refv to dap:cur_dir:topvector.
+			
+				if (NOT sequence_start) {
 				
-				//if immediate, pitch up 20°
-				//work out whether to translate sideways as well
-				if (et_sep_mode = "immediate") {
+					set rate_sep_steer_tgt to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
+					dap:set_steer_tgt(rate_sep_steer_tgt).
+				
+					if (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) and (dap:pitch_rate >= rate_sep_pitch_rate) {
+						set sequence_start to true.
+						set sequence_trigger_t to surfacestate["time"].
+						
+						SET SHIP:CONTROL:TOP TO 1.
+						SET SHIP:CONTROL:FORE TO 1.
+					}
 					
-					dap:set_steer_tgt(pitch_up_steer).
+				} else {
+					if (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
+						set vehicle["et_sep_flag"] to true.
+						set sequence_trigger_t to surfacestate["time"].
+						
+						et_sep().
+						
+						set post_sep_pitch_up_steer to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, 20).
+						
+						dap:set_steer_tgt(post_sep_pitch_up_steer).
+					}
+				}
 				
+			} else {
+				//nominal and immediate sep work the same except with different timings
+				
+				if (NOT sequence_start) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) {
+					set sequence_start to true.
+					set sequence_trigger_t to surfacestate["time"].
+					
+					SET SHIP:CONTROL:TOP TO 1.
+					SET SHIP:CONTROL:FORE TO 1.
+				}
+				
+				if (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
+					set vehicle["et_sep_flag"] to true.
+					set sequence_trigger_t to surfacestate["time"].
+					
+					et_sep().
+					
+					//if immediate, pitch up 20°
+					//work out whether to translate sideways as well
+					if (et_sep_mode = "immediate") {
+						
+						set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 20).
+						dap:set_steer_tgt(post_sep_pitch_up_steer).
+					
+					}
 				}
 			}
-			
-			if (not vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
-				set vehicle["et_sep_flag"] to true.
-				set sequence_trigger_t to surfacestate["time"].
-				
-				et_sep().
-			}
-			
-			if (vehicle["et_sep_flag"]) and (surfacestate["time"] > sequence_trigger_t + translation_t) {
+		
+		} else {
+		
+			if (surfacestate["time"] > sequence_trigger_t + translation_t) {
 				set sequence_end to true.
 				set sequence_trigger_t to surfacestate["time"].
 				
@@ -763,6 +804,9 @@ function ops1_et_sep {
 	
 	close_umbilical().
 	
+	//for good measure 
+	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+	
 	//if we're in a contingency do more stuff 
 	
 	//do a re-orientation after et-sep since we might be in a weird attitude
@@ -771,15 +815,27 @@ function ops1_et_sep {
 	dap:toggle_serc(false).
 	
 	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
+	
 		dap:set_steering_free().
-		dap:set_steer_tgt(pitch_up_steer).
+		
+		local v_ang is VANG(dap:steer_refv, dap:cur_dir:forevector).
+		
+		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
+		local normv_ is VCRS(dap:steer_refv, surfv_proj).
+		local forward_steerv is rodrigues(dap:steer_refv, normv_, v_ang).
+		
+		dap:set_steer_tgt(forward_steerv).
+		
 		until false {
 			getState().
 			
 			set vehicle["roll"] to 0.
 			set dap:steer_roll to 0.
 			
-			if (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) and (dap:roll_rate < 1) {
+			if (dap:steer_pitch_delta  < 1) 
+				and (dap:steer_yaw_delta < 1) 
+				and (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) 
+				and (dap:roll_rate < 1) {
 				BREAK.
 			}
 			
@@ -801,7 +857,9 @@ function ops1_termination {
 	
 	clean_up_ops1().
 	
-	if (abort_modes["tal_active"]) {
+	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
+		//tbd
+	} else if (abort_modes["tal_active"]) {
 		RUN "0:/ops3"("tal", abort_modes["tal_tgt_site"]["site"]).
 	} else if (abort_modes["rtls_active"]) {
 		RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
