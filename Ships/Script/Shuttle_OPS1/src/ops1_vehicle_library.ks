@@ -672,7 +672,7 @@ function ascent_dap_factory {
 	
 	this:add("set_steering_med", {
 	
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.75.
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.45.
 	}).
 	
 	this:add("set_steering_low", {
@@ -1069,7 +1069,7 @@ FUNCTION ssme_staging {
 	
 	IF vehiclestate["staging_in_progress"] {RETURN.}
 	
-	if (vehicle["stages"][cur_stg]["Tstage"] <= 0.1) {
+	if (vehicle["stages"][cur_stg]["Tstage"] <= 0.5) {
 		if (cur_stg < (vehicle["stages"]:LENGTH - 1)) {
 			SET vehiclestate["staging_in_progress"] TO TRUE.
 			increment_stage().
