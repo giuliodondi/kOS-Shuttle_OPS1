@@ -1412,3 +1412,14 @@ function rtls_initialise_cont_modes {
 	
 	set abort_modes["3eo_cont_mode"] to "BLUE".
 }
+
+//2eo pitch angle to minimise fpa at meco 
+//for 2eo blue/green or rtls 2eo yellow 
+//should be called once at abort init
+function cont_2eo_outbound_theta {
+	parameter hdot_.
+	
+	local theta_ is 90 - 0.13 * hdot_.
+	
+	return clamp(theta_, 5, 85).
+}
