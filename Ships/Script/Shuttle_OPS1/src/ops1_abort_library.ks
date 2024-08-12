@@ -634,6 +634,7 @@ function abort_initialiser {
 			setup_ATO().
 		} else if (abort_modes["cont_2eo_active"]) {
 			addGUIMessage("ABORT 2EO " + abort_modes["2eo_cont_mode"]).
+			setup_2eo_contingency().
 		}
 		
 		
@@ -1422,4 +1423,47 @@ function cont_2eo_outbound_theta {
 	local theta_ is 90 - 0.13 * hdot_.
 	
 	return clamp(theta_, 5, 85).
+}
+
+function setup_2eo_contingency {
+	
+	//save the state at abort init 
+	global contingency_abort is lexicon(
+							"mode", abort_modes["2eo_cont_mode"],
+							"ve", surfacestate["surfv"]:mag,
+							"vi", orbitstate["velocity"]:mag,
+							"h", surfacestate["alt"],
+							"hdot", surfacestate["vs"],
+							"outbound_theta", cont_2eo_outbound_theta(surfacestate["vs"])
+	).
+
+}
+
+function cont_2eo_terminal_condition {
+
+	local terminal_flag is false.
+	
+	if (abort_modes["rtls_active"]) {
+		if (abort_modes["2eo_cont_mode"] = "BLUE") {
+			set terminal_flag to (surfacestate["vs"] < 0).
+		} else if (abort_modes["2eo_cont_mode"] = "YELLOW") {
+			set terminal_flag to (surfacestate["vs"] < 0)
+								and (surfacestate["eas"] >= 10).
+		} else if (abort_modes["2eo_cont_mode"] = "ORANGE") {
+			set terminal_flag to (surfacestate["vs"] < 0)
+								and (surfacestate["eas"] >= 10).
+		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
+			set terminal_flag to true.
+		}
+	} else {
+		if (abort_modes["2eo_cont_mode"] = "BLUE") {
+			set terminal_flag to (surfacestate["vs"] < 0).
+		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
+			set terminal_flag to (surfacestate["vs"] < 0)
+								and (surfacestate["eas"] >= 10).
+		}
+	}
+	
+	return terminal_flag.
+
 }

@@ -660,18 +660,50 @@ function ops1_second_stage_rtls {
 function ops1_second_stage_contingency {
 	
 	SET vehiclestate["major_mode"] TO 103.
-	set dap:steer_freeze to false.
 	
+	
+	set dap:steer_freeze to false.
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
+	//mode-dependent steering vector
+	local cont_steerv is dap:cur_dir:forevector.
+	if (abort_modes["rtls_active"] and abort_modes["2eo_cont_mode"] = "YELLOW") 
+			or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) {
+		
+		set cont_steerv to vxcl(dap:steer_refv, surfacestate["surfv"]):normalized.
+		local normv is vcrs(cont_steerv, dap:steer_refv).
+		
+		set cont_steerv to rodrigues(cont_steerv, normv, contingency_abort["outbound_theta"]).
+		
+		set dap:thrust_corr to TRUE.
+	} else {
+		set dap:thrust_corr to FALSE.
+	}
+	
+	//flags for pre-meco attitude control
+	local pitchdown_mode_flag is false.
+	local rate_sep_flag is false.
+	
+	if (abort_modes["rtls_active"] and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) 
+		or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE")) {
+		set pitchdown_mode_flag to true.
+	}
+	
+	if (abort_modes["rtls_active"] and (abort_modes["2eo_cont_mode"] = "YELLOW" or abort_modes["2eo_cont_mode"] = "ORANGE")) 
+		or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "GREEN")) {
+		set rate_sep_flag to true.
+	}
+	
+	//sequencing flags
 	local steer_vec_flag is false.
 	local heads_up_flag is false.
 	
-	//set vehicle["roll"] to 0.
-	//set dap:steer_roll to 0.
+	local quit_guid_loop is false.
 	
 	
-
+	dap:set_steer_tgt(cont_steerv).	
+	wait 0.3.
+	
 	until false {
 		if (quit_program) {
 			RETURN.
@@ -680,18 +712,71 @@ function ops1_second_stage_contingency {
 		abort_handler().
 		getState().
 		
-		if  (abort_modes["cont_3eo_active"]) {
+		if (abort_modes["cont_3eo_active"]) {
 			break.
 		}
 		
+		dap:set_steering_med().
 		
-		if (abort_modes["rtls_active"] and abort_modes["2eo_cont_mode"] = "YELLOW") 
-			or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) {
-				
-				
-				
-			}
+		if (not steer_vec_flag) and (dap:steering_null_err) {
+			set steer_vec_flag to true.
+			set vehicle["roll"] to 0.
+			set dap:steer_roll to 0.
+			wait 0.3.
+		}
+		
+		if steer_vec_flag and (not heads_up_flag) and (dap:roll_null_err) {
+			set heads_up_flag to true.
+		}
+		
+		if (steer_vec_flag and heads_up_flag and cont_2eo_terminal_condition()) {
+			break.
+		}
+		
 	}
+	
+	addGUIMessage("CONTINGENCY PITCH-DOWN").
+	
+	set dap:thrust_corr to FALSE.
+	
+	local quit_pchdn_loop is false.
+	
+	local rate_sep_pitch_rate is 3.
+	
+	//wait 3 seconds to allow the dap time to update the flags
+	LOCAL sequence_trigger_t IS surfacestate["time"].
+	local seq_end_t is 3.
+	
+	until false {
+		if (quit_program) {
+			RETURN.
+		}
+		
+		abort_handler().
+		getState().
+		
+		dap:set_steering_med().
+		
+		if (quit_pchdn_loop) or (abort_modes["cont_3eo_active"]) {
+			break.
+		}
+		
+		local t_loop_flag is (surfacestate["time"] > sequence_trigger_t + seq_end_t).
+		
+		if (rate_sep_flag) {
+			local rate_sep_steer_tgt is rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
+			dap:set_steer_tgt(rate_sep_steer_tgt).
+			
+			set quit_pchdn_loop to (dap:pitch_rate >= rate_sep_pitch_rate) and t_loop_flag.
+		} else if (pitchdown_mode_flag) {
+			dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
+			
+			set quit_pchdn_loop to dap:steering_null_err and t_loop_flag.
+		}
+	
+	}
+	
+	shutdown_ssmes().
 	
 	SET vehiclestate["major_mode"] TO 104.
 }
@@ -725,7 +810,7 @@ function ops1_et_sep {
 	local pre_sep_t is 0.
 	local translation_t is 0.
 	local rate_sep_pitch_rate is 2.
-	local rate_sep_wait_t is 5.
+	local rate_sep_wait_t is 2.
 	
 	
 	if (et_sep_mode = "nominal") {
@@ -763,7 +848,7 @@ function ops1_et_sep {
 			//rate sep is different
 			if (et_sep_mode = "rate") {
 			
-				dap:set_steering_free().
+				dap:set_steering_high().
 				
 				set vehicle["roll"] to 0.
 				set dap:steer_roll to 0.
@@ -777,13 +862,13 @@ function ops1_et_sep {
 					set rate_sep_steer_tgt to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
 					dap:set_steer_tgt(rate_sep_steer_tgt).
 					
-					if (dap:pitch_rate >= rate_sep_pitch_rate) {
+					if (not pitch_rate_flag) and (dap:pitch_rate >= rate_sep_pitch_rate) {
 						set pitch_rate_flag to true.
 						set pre_sequence_t to rate_sep_wait_t.
 						set sequence_trigger_t to surfacestate["time"].
 					}
 				
-					if (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) and (pitch_rate_flag) {
+					if (pitch_rate_flag) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t)  {
 						set sequence_start to true.
 						set sequence_trigger_t to surfacestate["time"].
 						
@@ -802,7 +887,7 @@ function ops1_et_sep {
 						
 						dap:set_steer_tgt(post_sep_pitch_up_steer).
 						
-						dap:set_steering_free().
+						dap:set_steering_high().
 					}
 				}
 				
@@ -829,7 +914,7 @@ function ops1_et_sep {
 							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
 							dap:set_steer_tgt(post_sep_pitch_up_steer).
 							
-							dap:set_steering_free().
+							dap:set_steering_high().
 						
 						}
 					}

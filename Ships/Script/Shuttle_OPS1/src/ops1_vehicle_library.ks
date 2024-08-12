@@ -327,10 +327,10 @@ function first_stage_guidance {
 
 FUNCTION roll_heads_up {
 
-	//skip if rtls is in progress
-	IF (DEFINED RTLSAbort) {
-		RETURN.
-	}
+	//skip if rtls or contingency is in progress
+	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) {
+			return.
+		}
 
 	if (vehicle["roll"] <> 0) {
 		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
@@ -452,7 +452,7 @@ function ascent_dap_factory {
 			and (abs(this:yaw_rate) < 0.5)
 			and (abs(this:pitch_rate) < 0.5).
 			
-		set this:roll_null_err to (ABS(this:steer_roll - this:cur_steer_roll) < this:steer_check_delta) 
+		set this:roll_null_err to (ABS(unfixangle(this:steer_roll - this:cur_steer_roll)) < this:steer_check_delta) 
 			and (abs(this:roll_rate) < 0.5).
 		
 		this:update_steer_tgtdir().
@@ -636,7 +636,7 @@ function ascent_dap_factory {
 	
 	this:add("serc_enabled", FALSE).
 	this:add("serc_tgt_roll_rate", 0).
-	this:add("serc_yaw_pid", PIDLOOP(0.2,0,0.6)).
+	this:add("serc_yaw_pid", PIDLOOP(0.2,0,0.8)).
 	SET this:serc_yaw_pid:SETPOINT TO 0.
 	
 	this:add("toggle_serc", {
@@ -651,7 +651,7 @@ function ascent_dap_factory {
 			return.
 		}
 		
-		set this:serc_tgt_roll_rate to -sign(this:ship_roll_delta) * MIN(0.5 * abs(this:ship_roll_delta), 5).
+		set this:serc_tgt_roll_rate to -sign(this:ship_roll_delta) * MIN(0.4 * abs(this:ship_roll_delta), 5).
 		
 		SET SHIP:CONTROL:STARBOARD TO  this:serc_yaw_pid:UPDATE(this:last_time, this:serc_tgt_roll_rate - this:roll_rate ).
 	
@@ -1831,7 +1831,7 @@ function single_engine_roll_control {
 
 	dap:set_rcs(TRUE).
 	
-	dap:set_steering_high().
+	dap:set_steering_med().
 	
 	dap:toggle_serc(true).
 	
