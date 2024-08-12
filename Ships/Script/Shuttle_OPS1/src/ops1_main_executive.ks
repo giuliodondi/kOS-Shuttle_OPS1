@@ -313,7 +313,6 @@ function ops1_first_stage {
 	//central block to handle nominal srb sep and 3eo contingency breakout to the et sep block
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.
-	set dap:steer_freeze to true.
 	
 	//save the 3eo flag so we don't mess things up if 3eo happens during the srb sep loop
 	local _3eo_et_sep is abort_modes["cont_3eo_active"].
@@ -327,8 +326,10 @@ function ops1_first_stage {
 		dap:set_rcs(TRUE).
 		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
 		set dap:thrust_corr to FALSE.
+		set dap:steer_freeze to false.
 	} else {
 		addGUIMessage("STAND-BY FOR SRB SEP").
+		set dap:steer_freeze to true.
 	}
 	
 	local break_sep_loop is false.
@@ -663,16 +664,13 @@ function ops1_second_stage_contingency {
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
+	local steer_vec_flag is false.
+	local heads_up_flag is false.
+	
 	//set vehicle["roll"] to 0.
 	//set dap:steer_roll to 0.
 	
-	//save the state at abort init 
-	local cont_init_state is lexicon(
-							"ve", surfacestate["surfv"]:mag,
-							"vi", orbitstate["velocity"]:mag,
-							"h", surfacestate["alt"],
-							"hdot", surfacestate["vs"]
-	).
+	
 
 	until false {
 		if (quit_program) {
@@ -689,7 +687,9 @@ function ops1_second_stage_contingency {
 		
 		if (abort_modes["rtls_active"] and abort_modes["2eo_cont_mode"] = "YELLOW") 
 			or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) {
-			
+				
+				
+				
 			}
 	}
 	
@@ -874,16 +874,14 @@ function ops1_et_sep {
 		
 		dap:set_steer_tgt(forward_steerv).
 		
+		set vehicle["roll"] to 0.
+		set dap:steer_roll to 0.
+		wait 0.3.
+		
 		until false {
 			getState().
 			
-			set vehicle["roll"] to 0.
-			set dap:steer_roll to 0.
-			
-			if (dap:steer_pitch_delta  < 1) 
-				and (dap:steer_yaw_delta < 1) 
-				and (ABS(dap:steer_roll - dap:cur_steer_roll) < 5) 
-				and (dap:roll_rate < 0.5) {
+			if (dap:steering_null_err and dap:roll_null_err) {
 				BREAK.
 			}
 		}

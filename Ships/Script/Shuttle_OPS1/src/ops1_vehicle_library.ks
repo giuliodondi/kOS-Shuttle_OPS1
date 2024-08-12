@@ -338,9 +338,9 @@ FUNCTION roll_heads_up {
 		set dap:steer_roll to 0.
 		dap:set_steering_med().
 		
-		//local tnext is TIME:SECONDS + 40.
+		wait 0.3.
 		
-		WHEN(ABS(dap:steer_roll - dap:cur_steer_roll) < 5) THEN {
+		WHEN(dap:roll_null_err) THEN {
 			dap:set_steering_low().
 		}
 	}
@@ -403,6 +403,10 @@ function ascent_dap_factory {
 	this:add("pitch_rate", 0).
 	this:add("yaw_rate", 0).
 	
+	this:add("steer_check_delta", 2).
+	this:add("steering_null_err", false).
+	this:add("roll_null_err", false).
+	
 	this:add("measure_refv_roll", {
 		LOCAL refv IS VXCL(this:steer_thrvec, this:steer_refv):NORMALIZED.
 		LOCAL topv IS VXCL(this:steer_thrvec, this:cur_dir:TOPVECTOR):NORMALIZED.
@@ -442,6 +446,14 @@ function ascent_dap_factory {
 		set this:roll_rate to VDOT(this:cur_dir:FOREVECTOR, angv_).
 		set this:yaw_rate to VDOT(this:cur_dir:TOPVECTOR, angv_).
 		set this:pitch_rate to VDOT(this:cur_dir:STARVECTOR, angv_).
+		
+		set this:steering_null_err to (abs(this:steer_pitch_delta)  < this:steer_check_delta) 
+			and (abs(this:steer_yaw_delta) < this:steer_check_delta) 
+			and (abs(this:yaw_rate) < 0.5)
+			and (abs(this:pitch_rate) < 0.5).
+			
+		set this:roll_null_err to (ABS(this:steer_roll - this:cur_steer_roll) < this:steer_check_delta) 
+			and (abs(this:roll_rate) < 0.5).
 		
 		this:update_steer_tgtdir().
 	}).
@@ -670,6 +682,9 @@ function ascent_dap_factory {
 		print "pitch rate: " + round(this:pitch_rate,1) + "			" at (0,line + 18).
 		print "roll rate: " + round(this:roll_rate,1) + "			" at (0,line + 19).
 		print "yaw rate: " + round(this:yaw_rate,1) + "			" at (0,line + 20).
+		
+		print "steering nulled: " + this:steering_null_err + "			" at (0,line + 22).
+		print "roll nulled: " + this:roll_null_err + "			" at (0,line + 23).
 		
 	}).
 	
