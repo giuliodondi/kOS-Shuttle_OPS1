@@ -840,7 +840,7 @@ function getShuttleStackMass {
 }
 
 FUNCTION get_TWR {
-	RETURN vehiclestate["avg_thr"]:average()/(1000*SHIP:MASS*g0).
+	RETURN vehiclestate["avg_thr"]["latest_value"]/(1000*SHIP:MASS*g0).
 }
 
 //needed for aborts 
