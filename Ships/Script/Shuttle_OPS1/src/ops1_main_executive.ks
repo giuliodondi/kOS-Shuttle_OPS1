@@ -159,6 +159,8 @@ function ops1_countdown{
 	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
 	dap:set_steering_low().
 	set dap:steer_roll to vehicle["roll"].
+	dap:set_steer_tgt(dap:cur_dir:forevector).
+	set dap:thrust_corr to FALSE.
 	
 	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
 	LOCAL monitor_rsls IS FALSE.
@@ -191,6 +193,7 @@ function ops1_countdown{
 	
 	
 	LOCK STEERING TO dap:steer_dir.
+	set dap:steer_freeze to true.
 	
 	addGUIMessage("BOOSTER IGNITION").
 	stage.
@@ -231,6 +234,8 @@ function ops1_first_stage {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		SET throt_flag TO true.
+		set dap:steer_freeze to false.
+		set dap:thrust_corr to TRUE.
 		
 		//reset throttle to maximum
 		SET dap:thr_rpl_tgt TO vehicle["nominalThrottle"].
@@ -257,12 +262,11 @@ function ops1_first_stage {
 			SET steer_flag TO FALSE.
 		}
 		
-		local aimVec is HEADING(target_orbit["launch_az"],open_loop_pitch(SHIP:VELOCITY:SURFACE:MAG)):VECTOR.
-		
-		
 		IF steer_flag {		
 			dap:set_steering_ramp().
-			dap:set_steer_tgt(aimVec).
+			dap:set_steer_tgt(
+						first_stage_guidance()
+			).
 		}
 		
 		set dap:thr_max to vehicle["maxThrottle"].
@@ -309,6 +313,7 @@ function ops1_first_stage {
 	//central block to handle nominal srb sep and 3eo contingency breakout to the et sep block
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.
+	set dap:steer_freeze to true.
 	
 	//save the 3eo flag so we don't mess things up if 3eo happens during the srb sep loop
 	local _3eo_et_sep is abort_modes["cont_3eo_active"].
@@ -394,6 +399,8 @@ function ops1_second_stage_nominal {
 	
 	SET vehiclestate["major_mode"] TO 103.
 	
+	local steer_flag is false.
+	
 	//upfg loop
 	UNTIL FALSE{
 		if (quit_program) {
@@ -428,6 +435,11 @@ function ops1_second_stage_nominal {
 			target_orbit,
 			upfgInternal
 		).
+		
+		if (not steer_flag) and upfgInternal["s_conv"] {
+			set steer_flag to true.
+			set dap:steer_freeze to false.
+		}
 		
 		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
 			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
@@ -479,6 +491,7 @@ function ops1_second_stage_rtls {
 	freeze_abort_gui(true).
 	
 	dap:set_steering_low().
+	set dap:steer_freeze to false.
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 
@@ -644,15 +657,22 @@ function ops1_second_stage_rtls {
 
 
 function ops1_second_stage_contingency {
-
-	addGUIMessage("Contingency not yet implemented, please quit program").
 	
 	SET vehiclestate["major_mode"] TO 103.
+	set dap:steer_freeze to false.
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
-	set vehicle["roll"] to 0.
-	set dap:steer_roll to 0.
+	//set vehicle["roll"] to 0.
+	//set dap:steer_roll to 0.
+	
+	//save the state at abort init 
+	local cont_init_state is lexicon(
+							"ve", surfacestate["surfv"]:mag,
+							"vi", orbitstate["velocity"]:mag,
+							"h", surfacestate["alt"],
+							"hdot", surfacestate["vs"]
+	).
 
 	until false {
 		if (quit_program) {
@@ -665,6 +685,12 @@ function ops1_second_stage_contingency {
 		if  (abort_modes["cont_3eo_active"]) {
 			break.
 		}
+		
+		
+		if (abort_modes["rtls_active"] and abort_modes["2eo_cont_mode"] = "YELLOW") 
+			or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) {
+			
+			}
 	}
 	
 	SET vehiclestate["major_mode"] TO 104.
@@ -680,6 +706,8 @@ function ops1_et_sep {
 	dap:set_rcs(TRUE).
 	switch_att_rcs().
 	dap:set_steering_med().
+	set dap:steer_freeze to false.
+	dap:set_steer_tgt(dap:cur_dir:forevector).
 	
 	shutdown_ssmes().	//for good measure
 	SET vehicle["meco_flag"] TO TRUE.
@@ -693,13 +721,12 @@ function ops1_et_sep {
 
 	local et_sep_mode is et_sep_mode_determinator().
 	
-	LOCAL sequence_trigger_t IS surfacestate["time"].
-	
 	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
 	local translation_t is 0.
 	local rate_sep_pitch_rate is 2.
 	local rate_sep_wait_t is 5.
+	
 	
 	if (et_sep_mode = "nominal") {
 		set pre_sequence_t to 2.
@@ -718,6 +745,7 @@ function ops1_et_sep {
 	LOCAL sequence_start is false.
 	LOCAL sequence_end is false.
 	local pitch_rate_flag is false.
+	LOCAL sequence_trigger_t IS surfacestate["time"].
 	
 	//calculate a pitch-up steering direction for contingencies
 	local post_sep_pitch_up_steer is dap:cur_dir:forevector.
@@ -781,27 +809,29 @@ function ops1_et_sep {
 			} else {
 				//nominal and immediate sep work the same except with different timings
 				
-				if (NOT sequence_start) and (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) {
-					set sequence_start to true.
-					set sequence_trigger_t to surfacestate["time"].
-					
-					SET SHIP:CONTROL:TOP TO 1.
-					SET SHIP:CONTROL:FORE TO 1.
-				}
-				
-				if (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
-					set vehicle["et_sep_flag"] to true.
-					set sequence_trigger_t to surfacestate["time"].
-					
-					et_sep().
-					
-					if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
+				if (NOT sequence_start)  {
+					if (surfacestate["time"] > sequence_trigger_t + pre_sequence_t) {
+						set sequence_start to true.
+						set sequence_trigger_t to surfacestate["time"].
 						
-						set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
-						dap:set_steer_tgt(post_sep_pitch_up_steer).
+						SET SHIP:CONTROL:TOP TO 1.
+						SET SHIP:CONTROL:FORE TO 1.
+					}
+				} else {
+					if (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
+						set vehicle["et_sep_flag"] to true.
+						set sequence_trigger_t to surfacestate["time"].
 						
-						dap:set_steering_free().
-					
+						et_sep().
+						
+						if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
+							
+							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
+							dap:set_steer_tgt(post_sep_pitch_up_steer).
+							
+							dap:set_steering_free().
+						
+						}
 					}
 				}
 			}

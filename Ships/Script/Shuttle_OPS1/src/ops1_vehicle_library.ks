@@ -309,9 +309,20 @@ FUNCTION open_loop_pitch {
 
 		RETURN CLAMP(pitch_prof, 0, 90).
 	}
-	
-	
 }
+
+function first_stage_guidance {
+
+	local az_err is target_orbit["launch_az"] - surfacestate["hdir"].
+	
+	local az_corr is target_orbit["launch_az"] + clamp(az_err, -2, 2).
+
+	local pitch_ is open_loop_pitch(surfacestate["surfv"]:MAG).
+
+	return HEADING(az_corr, pitch_):forevector.
+} 
+
+
 
 
 FUNCTION roll_heads_up {
@@ -352,6 +363,8 @@ function ascent_dap_factory {
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
 
 	LOCAL this IS lexicon().
+	
+	this:add("steer_freeze", false).
 	
 	this:add("steer_mode", "").
 	this:add("thr_mode", "").		//ksp 0-1 throttle value
@@ -451,6 +464,11 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("update_steer_tgtdir", {
+	
+		if (this:steer_freeze) {
+			return.
+		}
+	
 		//required for continuous pilot input across several funcion calls
 		LOCAL time_gain IS ABS(this:iteration_dt/0.2).
 		
