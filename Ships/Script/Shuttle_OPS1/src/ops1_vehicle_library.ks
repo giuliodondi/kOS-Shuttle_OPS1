@@ -403,7 +403,7 @@ function ascent_dap_factory {
 	this:add("pitch_rate", 0).
 	this:add("yaw_rate", 0).
 	
-	this:add("steer_check_delta", 2).
+	this:add("steer_check_delta", 3).
 	this:add("steering_null_err", false).
 	this:add("roll_null_err", false).
 	
