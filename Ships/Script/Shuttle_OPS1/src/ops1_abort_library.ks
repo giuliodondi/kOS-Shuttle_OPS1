@@ -428,7 +428,7 @@ function contingency_abort_region_determinator {
 			
 			if (abort_modes["3eo_cont_mode"] = "RTLS BLUE") and (RTLSAbort["pitcharound"]["triggered"]) {
 				set abort_modes["3eo_cont_mode"] to "RTLS YELLOW".
-			} else if (abort_modes["3eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {
+			} else if (abort_modes["3eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 107) {
 				set abort_modes["3eo_cont_mode"] to "RTLS ORANGE".
 			} else if (abort_modes["3eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 20) {
 				set abort_modes["3eo_cont_mode"] to "RTLS GREEN".
