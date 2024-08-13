@@ -677,7 +677,9 @@ FUNCTION update_traj_disp_title {
 	//based on abort modes
 	LOCAL str is "ASCENT".
 
-	IF (abort_modes["ato_active"]) {
+	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) {
+		SET str TO "  CONT".
+	} else IF (abort_modes["ato_active"]) {
 		SET str TO "   ATO".
 	} ELSE IF (abort_modes["tal_active"]) {
 		SET str TO "   TAL".
