@@ -609,7 +609,8 @@ function abort_initialiser {
 			set two_eo_ato_abort to false.
 		} else {
 			set two_eo_cont_abort to true.
-			set two_eo_rtls_abort to false.
+			//PRESERVE THE RTLS MODE
+			set two_eo_rtls_abort to abort_modes["rtls_active"].
 			set two_eo_tal_abort to false.
 			set two_eo_ato_abort to false.
 		}
@@ -620,7 +621,7 @@ function abort_initialiser {
 		set abort_modes["ato_active"] to two_eo_ato_abort. 
 		set abort_modes["cont_3eo_active"] to false. 
 		
-		if (abort_modes["rtls_active"]) {
+		if (abort_modes["rtls_active"] and (NOT abort_modes["cont_2eo_active"])) {
 			//setup rtls 
 			addGUIMessage("ABORT 2EO RTLS").
 			setup_RTLS().
@@ -642,7 +643,8 @@ function abort_initialiser {
 		//3eo is always a contingency even in the blank region 
 		set abort_modes["cont_3eo_active"] to true. 
 		set abort_modes["cont_2eo_active"] to false. 
-		set abort_modes["rtls_active"] to false.
+		//PRESERVE THE RTLS MODE
+		set abort_modes["rtls_active"] to abort_modes["rtls_active"].
 		set abort_modes["tal_active"] to false. 
 		set abort_modes["ato_active"] to false. 
 		
