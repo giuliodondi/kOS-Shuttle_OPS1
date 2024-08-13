@@ -397,7 +397,7 @@ function contingency_abort_region_determinator {
 			
 			if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") and (NOT contingency_2eo_blue_boundary()) {
 				set abort_modes["2eo_cont_mode"] to "RTLS YELLOW".
-			} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {	//value needs verification
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 107) {	//value needs verification
 				set abort_modes["2eo_cont_mode"] to "RTLS ORANGE".
 			} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 20) {
 				set abort_modes["2eo_cont_mode"] to "RTLS GREEN".
