@@ -432,15 +432,15 @@ function make_ascent_traj1_disp {
 	
 	GLOBAL ascent_traj_disp_cont_abort_box IS ascent_traj_disp_leftdatabox:ADDVLAYOUT().
 	SET ascent_traj_disp_cont_abort_box:STYLE:ALIGN TO "right".
-	SET ascent_traj_disp_cont_abort_box:STYLE:WIDTH TO 130.
+	SET ascent_traj_disp_cont_abort_box:STYLE:WIDTH TO 150.
     SET ascent_traj_disp_cont_abort_box:STYLE:HEIGHT TO 50.
 	set ascent_traj_disp_cont_abort_box:style:margin:h to 60.
 	
 	GLOBAL ascent_traj_cont_abort1 IS ascent_traj_disp_cont_abort_box:ADDLABEL("CONT ABORT").
 	set ascent_traj_cont_abort1:style:margin:v to -4.
-	GLOBAL ascent_traj_cont_abort2 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 2EO XXXXX").
+	GLOBAL ascent_traj_cont_abort2 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 2EO XXXXXXXXXXX").
 	set ascent_traj_cont_abort2:style:margin:v to -4.
-	GLOBAL ascent_traj_cont_abort3 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 3EO XXXXX").
+	GLOBAL ascent_traj_cont_abort3 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 3EO XXXXXXXXXXX").
 	set ascent_traj_cont_abort3:style:margin:v to -4.
 	
 	GLOBAL ascent_trajleftdata1 IS ascent_traj_disp_leftdatabox:ADDLABEL("Ḣ   xxxxxx").

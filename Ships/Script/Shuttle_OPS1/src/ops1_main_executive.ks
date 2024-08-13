@@ -667,8 +667,7 @@ function ops1_second_stage_contingency {
 	
 	//mode-dependent steering vector
 	local cont_steerv is dap:cur_dir:forevector.
-	if (abort_modes["rtls_active"] and abort_modes["2eo_cont_mode"] = "YELLOW") 
-			or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) {
+	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
 		
 		set cont_steerv to vxcl(dap:steer_refv, surfacestate["surfv"]):normalized.
 		local normv is vcrs(cont_steerv, dap:steer_refv).
@@ -684,13 +683,11 @@ function ops1_second_stage_contingency {
 	local pitchdown_mode_flag is false.
 	local rate_sep_flag is false.
 	
-	if (abort_modes["rtls_active"] and (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN")) 
-		or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "BLUE")) {
+	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
 		set pitchdown_mode_flag to true.
 	}
 	
-	if (abort_modes["rtls_active"] and (abort_modes["2eo_cont_mode"] = "YELLOW" or abort_modes["2eo_cont_mode"] = "ORANGE")) 
-		or ((not abort_modes["rtls_active"]) and (abort_modes["2eo_cont_mode"] = "GREEN")) {
+	if (abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW" or abort_modes["2eo_cont_mode"] = "RTLS ORANGE") {
 		set rate_sep_flag to true.
 	}
 	

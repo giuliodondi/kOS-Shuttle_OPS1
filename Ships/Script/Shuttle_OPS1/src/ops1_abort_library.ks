@@ -395,13 +395,13 @@ function contingency_abort_region_determinator {
 		if (abort_modes["rtls_active"]) {
 			//rtls contingency modes 
 			
-			if (abort_modes["2eo_cont_mode"] = "BLUE") and (NOT contingency_2eo_blue_boundary()) {
-				set abort_modes["2eo_cont_mode"] to "YELLOW".
-			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {	//value needs verification
-				set abort_modes["2eo_cont_mode"] to "ORANGE".
-			} else if (abort_modes["2eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
-				set abort_modes["2eo_cont_mode"] to "GREEN".
-			} else if (abort_modes["2eo_cont_mode"] = "GREEN") and (SHIP:VERTICALSPEED >= 30) {
+			if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") and (NOT contingency_2eo_blue_boundary()) {
+				set abort_modes["2eo_cont_mode"] to "RTLS YELLOW".
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {	//value needs verification
+				set abort_modes["2eo_cont_mode"] to "RTLS ORANGE".
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 20) {
+				set abort_modes["2eo_cont_mode"] to "RTLS GREEN".
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") and (SHIP:VERTICALSPEED >= 30) {
 				set abort_modes["2eo_cont_mode"] to "BLANK".
 				set abort_modes["intact_modes"]["2eo"]["rtls"] to true.
 			} 
@@ -426,12 +426,12 @@ function contingency_abort_region_determinator {
 		if (abort_modes["rtls_active"]) {
 			//rtls contingency modes 
 			
-			if (abort_modes["3eo_cont_mode"] = "BLUE") and (RTLSAbort["pitcharound"]["triggered"]) {
-				set abort_modes["3eo_cont_mode"] to "YELLOW".
-			} else if (abort_modes["3eo_cont_mode"] = "YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {
-				set abort_modes["3eo_cont_mode"] to "ORANGE".
-			} else if (abort_modes["3eo_cont_mode"] = "ORANGE") and (surfacestate["eas"] > 20) {
-				set abort_modes["3eo_cont_mode"] to "GREEN".
+			if (abort_modes["3eo_cont_mode"] = "RTLS BLUE") and (RTLSAbort["pitcharound"]["triggered"]) {
+				set abort_modes["3eo_cont_mode"] to "RTLS YELLOW".
+			} else if (abort_modes["3eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 300) {
+				set abort_modes["3eo_cont_mode"] to "RTLS ORANGE".
+			} else if (abort_modes["3eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 20) {
+				set abort_modes["3eo_cont_mode"] to "RTLS GREEN".
 			}
 			
 		} else {
@@ -609,8 +609,7 @@ function abort_initialiser {
 			set two_eo_ato_abort to false.
 		} else {
 			set two_eo_cont_abort to true.
-			//PRESERVE THE RTLS MODE
-			set two_eo_rtls_abort to abort_modes["rtls_active"].
+			set two_eo_rtls_abort to false.
 			set two_eo_tal_abort to false.
 			set two_eo_ato_abort to false.
 		}
@@ -621,7 +620,7 @@ function abort_initialiser {
 		set abort_modes["ato_active"] to two_eo_ato_abort. 
 		set abort_modes["cont_3eo_active"] to false. 
 		
-		if (abort_modes["rtls_active"] and (NOT abort_modes["cont_2eo_active"])) {
+		if (abort_modes["rtls_active"]) {
 			//setup rtls 
 			addGUIMessage("ABORT 2EO RTLS").
 			setup_RTLS().
@@ -643,8 +642,7 @@ function abort_initialiser {
 		//3eo is always a contingency even in the blank region 
 		set abort_modes["cont_3eo_active"] to true. 
 		set abort_modes["cont_2eo_active"] to false. 
-		//PRESERVE THE RTLS MODE
-		set abort_modes["rtls_active"] to abort_modes["rtls_active"].
+		set abort_modes["rtls_active"] to false.
 		set abort_modes["tal_active"] to false. 
 		set abort_modes["ato_active"] to false. 
 		
@@ -669,40 +667,32 @@ function et_sep_mode_determinator {
 	local et_sep_mode is "nominal".
 	
 	if (abort_modes["cont_3eo_active"]) {
-		if (abort_modes["rtls_active"]) {
-			if (abort_modes["3eo_cont_mode"] = "BLUE") {
-				set et_sep_mode to "rate".
-			} else if (abort_modes["3eo_cont_mode"] = "YELLOW") {
-				set et_sep_mode to "immediate".
-			} else if (abort_modes["3eo_cont_mode"] = "ORANGE") {
-				set et_sep_mode to "rate".
-			} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
-				set et_sep_mode to "nominal".
-			}
-		} else {
-			if (abort_modes["3eo_cont_mode"] = "BLUE") {
-				set et_sep_mode to "immediate".
-			} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
-				set et_sep_mode to "nominal".
-			}
+		if (abort_modes["3eo_cont_mode"] = "BLUE") {
+			set et_sep_mode to "immediate".
+		} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
+			set et_sep_mode to "nominal".
+		} else if (abort_modes["3eo_cont_mode"] = "RTLS BLUE") {
+			set et_sep_mode to "rate".
+		} else if (abort_modes["3eo_cont_mode"] = "RTLS YELLOW") {
+			set et_sep_mode to "immediate".
+		} else if (abort_modes["3eo_cont_mode"] = "RTLS ORANGE") {
+			set et_sep_mode to "rate".
+		} else if (abort_modes["3eo_cont_mode"] = "RTLS GREEN") {
+			set et_sep_mode to "nominal".
 		}
 	} else if (abort_modes["cont_2eo_active"]) {
-		if (abort_modes["rtls_active"]) {
-			if (abort_modes["2eo_cont_mode"] = "BLUE") {
-				set et_sep_mode to "nominal".
-			} else if (abort_modes["2eo_cont_mode"] = "YELLOW") {
-				set et_sep_mode to "rate".
-			} else if (abort_modes["2eo_cont_mode"] = "ORANGE") {
-				set et_sep_mode to "rate".
-			} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
-				set et_sep_mode to "nominal".
-			}
-		} else {
-			if (abort_modes["2eo_cont_mode"] = "BLUE") {
-				set et_sep_mode to "immediate".
-			} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
-				set et_sep_mode to "rate".
-			}
+		if (abort_modes["2eo_cont_mode"] = "BLUE") {
+			set et_sep_mode to "immediate".
+		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
+			set et_sep_mode to "rate".
+		} else if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") {
+			set et_sep_mode to "nominal".
+		} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
+			set et_sep_mode to "rate".
+		} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") {
+			set et_sep_mode to "rate".
+		} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
+			set et_sep_mode to "nominal".
 		}
 	}
 	
@@ -1408,12 +1398,12 @@ function contingency_2eo_blue_boundary {
 function rtls_initialise_cont_modes {
 
 	if (contingency_2eo_blue_boundary()) {
-		set abort_modes["2eo_cont_mode"] to "BLUE".
+		set abort_modes["2eo_cont_mode"] to "RTLS BLUE".
 	} else {
-		set abort_modes["2eo_cont_mode"] to "YELLOW".
+		set abort_modes["2eo_cont_mode"] to "RTLS YELLOW".
 	}
 	
-	set abort_modes["3eo_cont_mode"] to "BLUE".
+	set abort_modes["3eo_cont_mode"] to "RTLS BLUE".
 }
 
 //2eo pitch angle to minimise fpa at meco 
@@ -1447,25 +1437,21 @@ function cont_2eo_terminal_condition {
 	
 	local eas_et_sep is 7.
 	
-	if (abort_modes["rtls_active"]) {
-		if (abort_modes["2eo_cont_mode"] = "BLUE") {
-			set terminal_flag to (surfacestate["vs"] < 0).
-		} else if (abort_modes["2eo_cont_mode"] = "YELLOW") {
-			set terminal_flag to (surfacestate["vs"] < 0)
-								and (surfacestate["eas"] >= eas_et_sep).
-		} else if (abort_modes["2eo_cont_mode"] = "ORANGE") {
-			set terminal_flag to (surfacestate["vs"] < 0)
-								and (surfacestate["eas"] >= eas_et_sep).
-		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
-			set terminal_flag to true.
-		}
-	} else {
-		if (abort_modes["2eo_cont_mode"] = "BLUE") {
-			set terminal_flag to (surfacestate["vs"] < 0).
-		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
-			set terminal_flag to (surfacestate["vs"] < 0)
-								and (surfacestate["eas"] >= eas_et_sep).
-		}
+	if (abort_modes["2eo_cont_mode"] = "BLUE") {
+		set terminal_flag to (surfacestate["vs"] < 0).
+	} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
+		set terminal_flag to (surfacestate["vs"] < 0)
+							and (surfacestate["eas"] >= eas_et_sep).
+	} else if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") {
+		set terminal_flag to (surfacestate["vs"] < 0).
+	} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
+		set terminal_flag to (surfacestate["vs"] < 0)
+							and (surfacestate["eas"] >= eas_et_sep).
+	} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") {
+		set terminal_flag to (surfacestate["vs"] < 0)
+							and (surfacestate["eas"] >= eas_et_sep).
+	} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
+		set terminal_flag to true.
 	}
 	
 	return terminal_flag.
