@@ -1443,15 +1443,17 @@ function cont_2eo_terminal_condition {
 
 	local terminal_flag is false.
 	
+	local eas_et_sep is 7.
+	
 	if (abort_modes["rtls_active"]) {
 		if (abort_modes["2eo_cont_mode"] = "BLUE") {
 			set terminal_flag to (surfacestate["vs"] < 0).
 		} else if (abort_modes["2eo_cont_mode"] = "YELLOW") {
 			set terminal_flag to (surfacestate["vs"] < 0)
-								and (surfacestate["eas"] >= 10).
+								and (surfacestate["eas"] >= eas_et_sep).
 		} else if (abort_modes["2eo_cont_mode"] = "ORANGE") {
 			set terminal_flag to (surfacestate["vs"] < 0)
-								and (surfacestate["eas"] >= 10).
+								and (surfacestate["eas"] >= eas_et_sep).
 		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
 			set terminal_flag to true.
 		}
@@ -1460,7 +1462,7 @@ function cont_2eo_terminal_condition {
 			set terminal_flag to (surfacestate["vs"] < 0).
 		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
 			set terminal_flag to (surfacestate["vs"] < 0)
-								and (surfacestate["eas"] >= 10).
+								and (surfacestate["eas"] >= eas_et_sep).
 		}
 	}
 	
