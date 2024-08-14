@@ -658,6 +658,8 @@ function ops1_second_stage_rtls {
 
 
 function ops1_second_stage_contingency {
+
+	freeze_abort_gui(true).
 	
 	//preserve the major mode from wherever we came from
 	//for correct gui
@@ -807,7 +809,7 @@ function ops1_et_sep {
 	local pre_sep_t is 0.
 	local translation_t is 0.
 	local rate_sep_pitch_rate is 2.
-	local rate_sep_wait_t is 2.
+	local rate_sep_wait_t is 8.
 	
 	
 	if (et_sep_mode = "nominal") {
@@ -819,7 +821,7 @@ function ops1_et_sep {
 		set pre_sep_t to 0.3.
 		set translation_t to 7.
 	} else if (et_sep_mode = "rate") {
-		set pre_sequence_t to 3.
+		set pre_sequence_t to 0.
 		set pre_sep_t to 0.3.
 		set translation_t to 7.
 	}
@@ -845,7 +847,7 @@ function ops1_et_sep {
 			//rate sep is different
 			if (et_sep_mode = "rate") {
 			
-				dap:set_steering_high().
+				dap:set_steering_free().
 				
 				set vehicle["roll"] to 0.
 				set dap:steer_roll to 0.
@@ -859,9 +861,8 @@ function ops1_et_sep {
 					set rate_sep_steer_tgt to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
 					dap:set_steer_tgt(rate_sep_steer_tgt).
 					
-					if (not pitch_rate_flag) and (dap:pitch_rate >= rate_sep_pitch_rate) {
+					if (not pitch_rate_flag) and ((dap:pitch_rate >= rate_sep_pitch_rate) or (surfacestate["time"] > sequence_trigger_t + rate_sep_wait_t)) {
 						set pitch_rate_flag to true.
-						set pre_sequence_t to rate_sep_wait_t.
 						set sequence_trigger_t to surfacestate["time"].
 					}
 				
@@ -884,7 +885,7 @@ function ops1_et_sep {
 						
 						dap:set_steer_tgt(post_sep_pitch_up_steer).
 						
-						dap:set_steering_high().
+						dap:set_steering_med().
 					}
 				}
 				
@@ -911,7 +912,7 @@ function ops1_et_sep {
 							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
 							dap:set_steer_tgt(post_sep_pitch_up_steer).
 							
-							dap:set_steering_high().
+							dap:set_steering_med().
 						
 						}
 					}
@@ -927,7 +928,6 @@ function ops1_et_sep {
 				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 			}
 		}
-		
 	}
 	
 	close_umbilical().
@@ -938,10 +938,10 @@ function ops1_et_sep {
 	//need to wait for the dap to update the relative roll
 	wait 0.3.
 	
-	
-	//do a re-orientation after et-sep since we might be in a weird attitude
 	//after et sep set toggle serc off in the dap
 	
+	//do a re-orientation after et-sep since we might be in a weird attitude
+	//move prograde, heads-up at a maximum of 50° aoa
 	dap:toggle_serc(false).
 	
 	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"] OR abort_modes["rtls_active"]) {
@@ -951,7 +951,7 @@ function ops1_et_sep {
 		local v_ang is clamp(VANG(dap:steer_refv, dap:cur_dir:forevector), 30, 80).
 		
 		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
-		local normv_ is VCRS(dap:steer_refv, surfv_proj).
+		local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
 		local forward_steerv is rodrigues(dap:steer_refv, normv_, v_ang).
 		
 		dap:set_steer_tgt(forward_steerv).

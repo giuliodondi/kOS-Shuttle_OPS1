@@ -651,7 +651,7 @@ function ascent_dap_factory {
 			return.
 		}
 		
-		set this:serc_tgt_roll_rate to -sign(this:ship_roll_delta) * MIN(0.4 * abs(this:ship_roll_delta), 5).
+		set this:serc_tgt_roll_rate to -sign(this:ship_roll_delta) * MIN(0.35 * abs(this:ship_roll_delta), 5).
 		
 		SET SHIP:CONTROL:STARBOARD TO  this:serc_yaw_pid:UPDATE(this:last_time, this:serc_tgt_roll_rate - this:roll_rate ).
 	
