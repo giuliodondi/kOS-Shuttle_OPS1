@@ -669,7 +669,7 @@ function ops1_second_stage_contingency {
 	
 	//mode-dependent steering vector
 	local cont_steerv is dap:cur_dir:forevector.
-	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
+	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
 		
 		set cont_steerv to vxcl(dap:steer_refv, surfacestate["surfv"]):normalized.
 		local normv is vcrs(cont_steerv, dap:steer_refv).
@@ -984,7 +984,9 @@ function ops1_termination {
 	clean_up_ops1().
 	
 	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
-		//tbd
+		//ecal tbd 
+		//placeholder target site
+		RUN "0:/ops3"("cont", abort_modes["rtls_tgt_site"]["site"]).
 	} else if (abort_modes["tal_active"]) {
 		RUN "0:/ops3"("tal", abort_modes["tal_tgt_site"]["site"]).
 	} else if (abort_modes["rtls_active"]) {
