@@ -38,22 +38,20 @@ There are a few scripts you can run:
 
 # Setup  
 
-The script needs to know accurately the mass of orbiter + payload + ET + propellants for closed-loop guidance, without the mass of SRB or launch clamps. The script will measure everything automatically provided that the part tree is set up correctly in the VAB.  
-
-Take care of the following things while building the Shuttle Stack in the VAB:
+## Take care of the following things while building the Shuttle Stack in the VAB:
 - The root part must be the Space Shuttle Orbiter part you find in my fork of Space Shuttle System
 - All RCS modules on the orbiter and OMS pods must be enabled before launch
-- ~~Disable the fairings on the RCS covers as once they are jettisoned they might collide with other parts and destroy them~~ No longer relevant with the latest update of my Shuttle fork
-- right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). **Make sure you select the same version for all three SSMEs.**
+- Use the RealFuels GUI to select the appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png)). **You must select the same version for all three SSMEs.**
 - **Check that the elevons, body flap and rudder are set as required by the Entry script README**
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - Set fuel flow priority on the Orbiter lower than the External Tank, or else you won't have cryos for the fuel cells once you're in orbit
-- The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
+- The SRB decouplers must be attached to the External Tank using the snap nodes, so that all SRB-related parts are children of the ET
+- The SRBs also attach to the decouplers using snap nodes
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
 - Don't place clamps on the opposite side to where the Orbiter is because the angled SSMEs will push the stack in that direction and you may have a collision
-- If you launch from Vandenberg, you need to switch the SRB type to 'Filament-wound casing' for extra performance
+- If you launch from Vandenberg, you need to switch the SRB type to the lighter 'Filament-wound casing' for extra performance
 
-### Make sure the vessel staging is as follows (from the bottom stage upwards) :
+## Set the vessel staging as follows (from the bottom stage upwards) :
 - SSMEs and RCS staging toggles (required for aborts and MECO attiude control)
 - SRBs and any launch clamps / platform
 - SRB decouplers and separation motors (both nosecone and skirt)
@@ -62,15 +60,13 @@ Take care of the following things while building the Shuttle Stack in the VAB:
 - Tail parachute
 
 If you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the script should detect this and break during vehicle initialisation. This is intended and meant to signal to you that something is wrong.
- 
 
-## kOS configuration file
+## the kOS configuration file
 
-The mission parameters are specified in the main launch script **ops1.ks** or **ops1_3a.ks**.  **The scripts assume that the Shuttle stack has been assembled properly in the VAB, else it might fail to measure things accurately.**
+The mission parameters are specified in the main launch script **ops1.ks** or **ops1_3a.ks**. 
 
 It contains variable definitions for:
 - a "target_orbit" structure describing the shape of the desired orbit. Periapsis and cutoff altitude are standard for a Shuttle launch and shouldn't be changed. Only change the apoapsis and inclination to suit your needs.
-- a disabled variable *engine_failure_time* which you can uncomment to trigger an automatic engine failure at the specified time. More on aborts later on.
 - a variable to enable telemetry logging in the UPFG_OPS1/LOGS/ folder if you want to plot it with your own means
  
 # The main Ascent script
