@@ -41,6 +41,7 @@ There are a few scripts you can run:
 ## Take care of the following things while building the Shuttle Stack in the VAB:
 - The root part must be the Space Shuttle Orbiter part you find in my fork of Space Shuttle System
 - All RCS modules on the orbiter and OMS pods must be enabled before launch
+- Open the umbilical doors or the program will actuate them incorrectly
 - Use the RealFuels GUI to select the appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png)). **You must select the same version for all three SSMEs.**
 - **Check that the elevons, body flap and rudder are set as required by the Entry script README**
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
@@ -162,7 +163,7 @@ These are the main events durign ascent:
   - disable SSME gimballing
   - trigger ET sep
   - command an RCS vertical translation manoeuvre
-  - close the umbilical doors
+  - actuate the umbilical doors, if you find them open it means they were closed at liftoff
 - The program then prints a message in the message window, displaying the results of an orbital analysis calculating the erros with respect to the targeted orbit
 - 5 seconds after this, the program will quit itself
 - **Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
