@@ -15,7 +15,7 @@ Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted a
 
 # Installation
 
-**Required mods:**
+# Requirements
 - A complete install of RSS/Realism Overhaul with Ferram Aerospace Resarch. 
 - kOS version 1.3 at least
 - kOS Ferram, now available on CKAN
@@ -23,10 +23,8 @@ Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted a
   - if you use the latest version you will be required to also grab my Ferram Fork to use the custom aerodynamics module. Refer to the README
 - **[My OPS3 Shuttle entry program](https://github.com/giuliodondi/kOS-Shuttle-OPS3) required by RTLS and TAL aborts. Grab the latest version from its repo**
   - **no longer compatible with the older kOS-ShuttleEntrySim program**
-
-# Known Incompatibilities
-- **Not compatible with SpaceODY's original fork or any other Shuttle mod**
-- ~~RO Engines~~ It should now be compatible, but not recommended
+ 
+## Not compatible with SOCK, SpaceODY's original fork or any other Shuttle craft
 
 You will find one folder: 
 - **Script**
@@ -44,23 +42,24 @@ The script needs to know accurately the mass of orbiter + payload + ET + propell
 
 Take care of the following things while building the Shuttle Stack in the VAB:
 - The root part must be the Space Shuttle Orbiter part you find in my fork of Space Shuttle System
+- All RCS modules on the orbiter and OMS pods must be enabled before launch
+- ~~Disable the fairings on the RCS covers as once they are jettisoned they might collide with other parts and destroy them~~ No longer relevant with the latest update of my Shuttle fork
+- right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). **Make sure you select the same version for all three SSMEs.**
+- **Check that the elevons, body flap and rudder are set as required by the Entry script README**
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - Set fuel flow priority on the Orbiter lower than the External Tank, or else you won't have cryos for the fuel cells once you're in orbit
 - The SRB decouplers must be attached to the External Tank, so that all SRB-related parts are children of the ET
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
 - Don't place clamps on the opposite side to where the Orbiter is because the angled SSMEs will push the stack in that direction and you may have a collision
-- I advise you to disable the fairings on the RCS covers as once they are jettisoned they might collide with other parts and destroy them
+- If you launch from Vandenberg, you need to switch the SRB type to 'Filament-wound casing' for extra performance
 
-Make sure the vessel staging is as follows (from the bottom stage upwards) :
+### Make sure the vessel staging is as follows (from the bottom stage upwards) :
 - SSMEs and RCS staging toggles (required for aborts and MECO attiude control)
 - SRBs and any launch clamps / platform
 - SRB decouplers and separation motors (both nosecone and skirt)
 - External tank separation and OMS engines
 - Anything in the payload bay
 - Tail parachute
-- ### Don't forget to set the FAR control surface settings as required by the Entry script README.
-- right-click on the SSMEs and then open up the Real Fuels GUI. Make sure you are selecting an appropriate version of SSME (refer to [this Wikipedia table](https://en.wikipedia.org/wiki/RS-25#/media/File:SSME_Flight_History.png) if you want to select the version accurately). **Make sure you select the same version for all three SSMEs.**
-- if you do a launch from Vandenberg, switch the SRB type to 'Filament-wound casing' for extra performance
 
 If you don't use SpaceShuttleSystem parts, or if you mismatch SSME versions, the script should detect this and break during vehicle initialisation. This is intended and meant to signal to you that something is wrong.
  
