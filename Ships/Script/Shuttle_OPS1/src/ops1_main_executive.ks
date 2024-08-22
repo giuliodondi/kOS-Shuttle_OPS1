@@ -798,6 +798,10 @@ function ops1_et_sep {
 	ssme_out_safing().
 	
 	SET vehiclestate["staging_in_progress"] TO TRUE.	//so that vehicle perf calculations are skipped in getState
+	
+	//if oms dump is in progress save state but stop it for et sep
+	local trigger_oms_dump is abort_modes["oms_dump"].
+	stop_oms_dump(TRUE).
 
 	addGUIMessage("STAND-BY FOR ET SEP").
 	
@@ -810,26 +814,28 @@ function ops1_et_sep {
 	local translation_t is 0.
 	local rate_sep_pitch_rate is 2.
 	local rate_sep_wait_t is 8.
+	local et_sep_oms_t is 5.
 	
 	
 	if (et_sep_mode = "nominal") {
 		set pre_sequence_t to 2.
 		set pre_sep_t to 1.
-		set translation_t to 10.
+		set translation_t to 13.
 	} else if (et_sep_mode = "immediate") {
 		set pre_sequence_t to 1.
 		set pre_sep_t to 0.3.
-		set translation_t to 7.
+		set translation_t to 10.
 	} else if (et_sep_mode = "rate") {
 		set pre_sequence_t to 0.
 		set pre_sep_t to 0.3.
-		set translation_t to 7.
+		set translation_t to 10.
 	}
 	
 	LOCAL sequence_start is false.
 	LOCAL sequence_end is false.
 	local pitch_rate_flag is false.
 	LOCAL sequence_trigger_t IS surfacestate["time"].
+	LOCAL et_sep_t IS surfacestate["time"] + 100.	//bias in the future
 	
 	//calculate a pitch-up steering direction for contingencies
 	local post_sep_pitch_up_steer is dap:cur_dir:forevector.
@@ -878,6 +884,7 @@ function ops1_et_sep {
 					if (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
 						set vehicle["et_sep_flag"] to true.
 						set sequence_trigger_t to surfacestate["time"].
+						set et_sep_t to surfacestate["time"].
 						
 						et_sep().
 						
@@ -904,6 +911,7 @@ function ops1_et_sep {
 					if (surfacestate["time"] > sequence_trigger_t + pre_sep_t) {
 						set vehicle["et_sep_flag"] to true.
 						set sequence_trigger_t to surfacestate["time"].
+						set et_sep_t to surfacestate["time"].
 						
 						et_sep().
 						
@@ -920,6 +928,11 @@ function ops1_et_sep {
 			}
 		
 		} else {
+		
+			if (trigger_oms_dump) and (surfacestate["time"] > et_sep_t + et_sep_oms_t) {
+				set trigger_oms_dump to false.
+				start_oms_dump().
+			}
 		
 			if (surfacestate["time"] > sequence_trigger_t + translation_t) {
 				set sequence_end to true.
