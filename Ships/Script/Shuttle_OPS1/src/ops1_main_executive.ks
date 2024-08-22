@@ -381,9 +381,10 @@ function ops1_first_stage {
 				set vehicle["srb_sep_flag"] to true.
 			}
 		}
-		
-		
 	}
+	
+	//need this here so 2eo before srb sep works correctly
+	SET vehiclestate["major_mode"] TO 103.
 	
 }
 
@@ -397,8 +398,6 @@ function ops1_second_stage_nominal {
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
-	
-	SET vehiclestate["major_mode"] TO 103.
 	
 	local steer_flag is false.
 	
@@ -661,6 +660,8 @@ function ops1_second_stage_contingency {
 
 	freeze_abort_gui(true).
 	
+	addGUIMessage("CONTINGENCY 2EO GUIDANCE").
+	
 	//preserve the major mode from wherever we came from
 	//for correct gui
 	
@@ -696,6 +697,7 @@ function ops1_second_stage_contingency {
 	//sequencing flags
 	local steer_vec_flag is false.
 	local heads_up_flag is false.
+	local immediate_et_sep is false.
 	
 	local quit_guid_loop is false.
 	
@@ -711,9 +713,15 @@ function ops1_second_stage_contingency {
 		abort_handler().
 		getState().
 		
+		if (cont_2eo_immediate_sep()) {
+			set immediate_et_sep to true.
+			break.
+		}
+		
 		if (abort_modes["cont_3eo_active"]) {
 			break.
 		}
+		
 		
 		dap:set_strmgr_med().
 		
@@ -734,45 +742,59 @@ function ops1_second_stage_contingency {
 		
 	}
 	
-	addGUIMessage("CONTINGENCY PITCH-DOWN").
+	local bypass_pitchdown is false.
 	
-	set dap:thrust_corr to FALSE.
+	if (immediate_et_sep) {
+		addGUIMessage("IMMEDIATE ET SEP").
+		set bypass_pitchdown to true.
+	}
 	
-	local quit_pchdn_loop is false.
+	if (abort_modes["cont_3eo_active"]) {
+		set bypass_pitchdown to true.
+	}
 	
-	local rate_sep_pitch_rate is 3.
-	
-	//wait 3 seconds to allow the dap time to update the flags
-	LOCAL sequence_trigger_t IS surfacestate["time"].
-	local seq_end_t is 3.
-	
-	dap:set_strmgr_high().
-	
-	until false {
-		if (quit_program) {
-			RETURN.
-		}
+	if (not bypass_pitchdown) {
 		
-		abort_handler().
-		getState().
+		addGUIMessage("CONTINGENCY PITCH-DOWN").
 		
-		if (quit_pchdn_loop) or (abort_modes["cont_3eo_active"]) {
-			break.
-		}
+		set dap:thrust_corr to FALSE.
 		
-		local t_loop_flag is (surfacestate["time"] > sequence_trigger_t + seq_end_t).
+		local quit_pchdn_loop is false.
 		
-		if (rate_sep_flag) {
-			local rate_sep_steer_tgt is rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
-			dap:set_steer_tgt(rate_sep_steer_tgt).
+		local rate_sep_pitch_rate is 3.
+		
+		//wait 3 seconds to allow the dap time to update the flags
+		LOCAL sequence_trigger_t IS surfacestate["time"].
+		local seq_end_t is 3.
+		
+		dap:set_strmgr_high().
+		
+		until false {
+			if (quit_program) {
+				RETURN.
+			}
 			
-			set quit_pchdn_loop to (dap:pitch_rate >= rate_sep_pitch_rate) and t_loop_flag.
-		} else if (pitchdown_mode_flag) {
-			dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
+			abort_handler().
+			getState().
 			
-			set quit_pchdn_loop to dap:steering_null_err and t_loop_flag.
+			if (quit_pchdn_loop) or (abort_modes["cont_3eo_active"]) {
+				break.
+			}
+			
+			local t_loop_flag is (surfacestate["time"] > sequence_trigger_t + seq_end_t).
+			
+			if (rate_sep_flag) {
+				local rate_sep_steer_tgt is rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
+				dap:set_steer_tgt(rate_sep_steer_tgt).
+				
+				set quit_pchdn_loop to (dap:pitch_rate >= rate_sep_pitch_rate) and t_loop_flag.
+			} else if (pitchdown_mode_flag) {
+				dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
+				
+				set quit_pchdn_loop to dap:steering_null_err and t_loop_flag.
+			}
+		
 		}
-	
 	}
 	
 	shutdown_ssmes().

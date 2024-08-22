@@ -1459,3 +1459,7 @@ function cont_2eo_terminal_condition {
 	return terminal_flag.
 
 }
+
+function cont_2eo_immediate_sep {
+	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= 70000).
+}
