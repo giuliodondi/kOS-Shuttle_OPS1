@@ -668,9 +668,9 @@ function et_sep_mode_determinator {
 	
 	if (abort_modes["cont_3eo_active"]) {
 		if (abort_modes["3eo_cont_mode"] = "BLUE") {
-			set et_sep_mode to "rate".
+			set et_sep_mode to "immediate".
 		} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
-			set et_sep_mode to "nominal".
+			set et_sep_mode to "rate".
 		} else if (abort_modes["3eo_cont_mode"] = "RTLS BLUE") {
 			set et_sep_mode to "rate".
 		} else if (abort_modes["3eo_cont_mode"] = "RTLS YELLOW") {
