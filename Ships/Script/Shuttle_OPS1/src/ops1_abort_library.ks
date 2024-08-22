@@ -668,7 +668,7 @@ function et_sep_mode_determinator {
 	
 	if (abort_modes["cont_3eo_active"]) {
 		if (abort_modes["3eo_cont_mode"] = "BLUE") {
-			set et_sep_mode to "immediate".
+			set et_sep_mode to "rate".
 		} else if (abort_modes["3eo_cont_mode"] = "GREEN") {
 			set et_sep_mode to "nominal".
 		} else if (abort_modes["3eo_cont_mode"] = "RTLS BLUE") {
@@ -682,11 +682,11 @@ function et_sep_mode_determinator {
 		}
 	} else if (abort_modes["cont_2eo_active"]) {
 		if (abort_modes["2eo_cont_mode"] = "BLUE") {
-			set et_sep_mode to "immediate".
+			set et_sep_mode to "rate".
 		} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
 			set et_sep_mode to "rate".
 		} else if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") {
-			set et_sep_mode to "nominal".
+			set et_sep_mode to "rate".
 		} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
 			set et_sep_mode to "rate".
 		} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") {
@@ -1438,12 +1438,14 @@ function cont_2eo_terminal_condition {
 	local eas_et_sep is 7.
 	
 	if (abort_modes["2eo_cont_mode"] = "BLUE") {
-		set terminal_flag to (surfacestate["vs"] < 0).
+		set terminal_flag to (surfacestate["vs"] < 0)
+							and (surfacestate["eas"] >= eas_et_sep).
 	} else if (abort_modes["2eo_cont_mode"] = "GREEN") {
 		set terminal_flag to (surfacestate["vs"] < 0)
 							and (surfacestate["eas"] >= eas_et_sep).
 	} else if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") {
-		set terminal_flag to (surfacestate["vs"] < 0).
+		set terminal_flag to (surfacestate["vs"] < 0)
+							and (surfacestate["eas"] >= eas_et_sep).
 	} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
 		set terminal_flag to (surfacestate["vs"] < 0)
 							and (surfacestate["eas"] >= eas_et_sep).

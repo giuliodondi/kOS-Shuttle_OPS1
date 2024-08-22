@@ -685,11 +685,11 @@ function ops1_second_stage_contingency {
 	local pitchdown_mode_flag is false.
 	local rate_sep_flag is false.
 	
-	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
+	if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
 		set pitchdown_mode_flag to true.
 	}
 	
-	if (abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW" or abort_modes["2eo_cont_mode"] = "RTLS ORANGE") {
+	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW" or abort_modes["2eo_cont_mode"] = "RTLS ORANGE") {
 		set rate_sep_flag to true.
 	}
 	
@@ -746,6 +746,8 @@ function ops1_second_stage_contingency {
 	LOCAL sequence_trigger_t IS surfacestate["time"].
 	local seq_end_t is 3.
 	
+	dap:set_steering_high().
+	
 	until false {
 		if (quit_program) {
 			RETURN.
@@ -753,8 +755,6 @@ function ops1_second_stage_contingency {
 		
 		abort_handler().
 		getState().
-		
-		dap:set_steering_med().
 		
 		if (quit_pchdn_loop) or (abort_modes["cont_3eo_active"]) {
 			break.
@@ -817,7 +817,7 @@ function ops1_et_sep {
 		set pre_sep_t to 1.
 		set translation_t to 10.
 	} else if (et_sep_mode = "immediate") {
-		set pre_sequence_t to 0.
+		set pre_sequence_t to 1.
 		set pre_sep_t to 0.3.
 		set translation_t to 7.
 	} else if (et_sep_mode = "rate") {
