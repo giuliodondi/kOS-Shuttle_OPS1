@@ -336,12 +336,12 @@ FUNCTION roll_heads_up {
 		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 		set vehicle["roll"] to 0.
 		set dap:steer_roll to 0.
-		dap:set_steering_med().
+		dap:set_strmgr_med().
 		
 		wait 0.3.
 		
 		WHEN(dap:roll_null_err) THEN {
-			dap:set_steering_low().
+			dap:set_strmgr_low().
 		}
 	}
 }
@@ -363,6 +363,9 @@ function ascent_dap_factory {
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
 
 	LOCAL this IS lexicon().
+	
+	this:add("strmgr_auto", 1).
+	this:add("strmgr_css", 0.6).
 	
 	this:add("steer_freeze", false).
 	
@@ -501,6 +504,8 @@ function ascent_dap_factory {
 	this:add("steer_auto_thrvec", {
 		set this:steer_mode to "auto_thrvec".
 		
+		this:update_strmgr().
+		
 		this:measure_cur_state().
 	
 		local steer_err_tol is 0.5.
@@ -540,7 +545,7 @@ function ascent_dap_factory {
 	this:add("steer_css", {
 		set this:steer_mode to "css".
 		
-		this:set_steering_css().
+		this:update_strmgr().
 		
 		this:measure_cur_state().
 	
@@ -666,6 +671,8 @@ function ascent_dap_factory {
 		
 		print "loop dt : " + round(this:iteration_dt(),3) + "    " at (0,line + 3).
 		
+		print "steering manager : " + STEERINGMANAGER:MAXSTOPPINGTIME + "    " at (0,line + 4).
+		
 		print "cur_steer_pitch : " + round(this:cur_steer_pitch,3) + "    " at (0,line + 5).
 		print "cur_steer_roll : " + round(this:cur_steer_roll,3) + "    " at (0,line + 6).
 		print "steer_cmd_roll : " + round(this:steer_cmd_roll,3) + "    " at (0,line + 7).
@@ -688,32 +695,35 @@ function ascent_dap_factory {
 		
 	}).
 	
-	this:add("set_steering_ramp", {
+	this:add("set_strmgr_ramp", {
 		local max_steer is 1.
 		local steer_ramp_rate is max_steer/5.
 		
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
+		set this:strmgr_auto to min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
 	}).
 	
-	this:add("set_steering_free", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 6.5.
+	this:add("set_strmgr_free", {
+		set this:strmgr_auto to 6.5.
 	}).
 	
-	this:add("set_steering_high", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.5.
+	this:add("set_strmgr_high", {
+		set this:strmgr_auto to 1.5.
 	}).
 	
-	this:add("set_steering_med", {
-	
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.45.
+	this:add("set_strmgr_med", {
+	set this:strmgr_auto to 0.45.
 	}).
 	
-	this:add("set_steering_low", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.1.
+	this:add("set_strmgr_low", {
+		set this:strmgr_auto to 0.1.
 	}).
 	
-	this:add("set_steering_css", {
-		SET STEERINGMANAGER:MAXSTOPPINGTIME TO 0.6.
+	this:add("update_strmgr", {
+		if (this:steer_mode = "css") {
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO this:strmgr_css.
+		} else {
+			SET STEERINGMANAGER:MAXSTOPPINGTIME TO this:strmgr_auto.
+		}
 	}).
 	
 	this:add("set_rcs", {
@@ -1832,7 +1842,7 @@ function single_engine_roll_control {
 
 	dap:set_rcs(TRUE).
 	
-	dap:set_steering_med().
+	dap:set_strmgr_med().
 	
 	dap:toggle_serc(true).
 	
