@@ -848,7 +848,7 @@ function ops1_et_sep {
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
 	} else if (et_sep_mode = "rate") {
-		set pre_sequence_t to 0.
+		set pre_sequence_t to 1.
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
 	}
@@ -910,7 +910,7 @@ function ops1_et_sep {
 						
 						et_sep().
 						
-						set post_sep_pitch_up_steer to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, 20).
+						set post_sep_pitch_up_steer to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, 5).
 						
 						dap:set_steer_tgt(post_sep_pitch_up_steer).
 						
@@ -983,7 +983,7 @@ function ops1_et_sep {
 	
 		dap:set_strmgr_free().
 		
-		local v_ang is clamp(VANG(dap:steer_refv, dap:cur_dir:forevector), 30, 80).
+		local v_ang is clamp(VANG(dap:steer_refv, dap:cur_dir:forevector), 10, 50).
 		
 		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
 		local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
