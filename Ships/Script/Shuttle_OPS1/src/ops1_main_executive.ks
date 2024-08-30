@@ -781,6 +781,11 @@ function ops1_second_stage_contingency {
 				break.
 			}
 			
+			if (cont_2eo_immediate_sep()) {
+				set immediate_et_sep to true.
+				break.
+			}
+			
 			local t_loop_flag is (surfacestate["time"] > sequence_trigger_t + seq_end_t).
 			
 			if (rate_sep_flag) {
