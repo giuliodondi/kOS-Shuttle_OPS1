@@ -1412,9 +1412,9 @@ function rtls_initialise_cont_modes {
 function cont_2eo_outbound_theta {
 	parameter hdot_.
 	
-	local theta_ is 90 - 0.13 * hdot_.
+	local theta_ is 100 - 0.13 * hdot_.
 	
-	return clamp(theta_, 5, 85).
+	return clamp(theta_, 18, 90).
 }
 
 function setup_2eo_contingency {
@@ -1461,5 +1461,5 @@ function cont_2eo_terminal_condition {
 }
 
 function cont_2eo_immediate_sep {
-	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= 70000).
+	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= 62000).
 }

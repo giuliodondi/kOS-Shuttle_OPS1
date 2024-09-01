@@ -668,6 +668,8 @@ function ops1_second_stage_contingency {
 	set dap:steer_freeze to false.
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
+	set dap:thrust_corr to FALSE.
+	
 	//mode-dependent steering vector
 	local cont_steerv is dap:cur_dir:forevector.
 	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
@@ -676,10 +678,6 @@ function ops1_second_stage_contingency {
 		local normv is vcrs(cont_steerv, dap:steer_refv).
 		
 		set cont_steerv to rodrigues(cont_steerv, normv, contingency_abort["outbound_theta"]).
-		
-		set dap:thrust_corr to TRUE.
-	} else {
-		set dap:thrust_corr to FALSE.
 	}
 	
 	//flags for pre-meco attitude control
@@ -724,11 +722,13 @@ function ops1_second_stage_contingency {
 		
 		
 		dap:set_strmgr_med().
+		dap:set_strmgr_med().
 		
 		if (not steer_vec_flag) and (dap:steering_null_err) {
 			set steer_vec_flag to true.
 			set vehicle["roll"] to 0.
 			set dap:steer_roll to 0.
+			set dap:thrust_corr to FALSE.
 			wait 0.3.
 		}
 		
@@ -988,7 +988,7 @@ function ops1_et_sep {
 	
 		dap:set_strmgr_free().
 		
-		local v_ang is clamp(VANG(dap:steer_refv, dap:cur_dir:forevector), 10, 50).
+		local v_ang is min(VANG(dap:steer_refv, dap:cur_dir:forevector), 60).
 		
 		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
 		local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
