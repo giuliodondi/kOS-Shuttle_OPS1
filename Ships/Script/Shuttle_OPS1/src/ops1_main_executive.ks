@@ -3,7 +3,7 @@ CLEARSCREEN.
 SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
 global debug_mode is false.
-global dap_debug is true.
+global dap_debug is false.
 
 
 //	Load libraries
