@@ -970,7 +970,11 @@ function ops1_et_sep {
 		}
 	}
 	
-	close_umbilical().
+	//zero throttle unless a dump should be continued
+	if (not trigger_oms_dump) {
+		LOCK THROTTLE to 0.
+		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+	}
 	
 	//for good measure 
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
@@ -993,7 +997,7 @@ function ops1_et_sep {
 		if (new_steer_tgt) {
 			set new_steer_tgt to false.
 		
-			local v_ang is min(VANG(dap:steer_refv, dap:cur_dir:forevector), 60).
+			local v_ang is min(VANG(dap:steer_refv, dap:cur_dir:forevector), 40).
 			
 			local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
 			local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
@@ -1019,6 +1023,8 @@ function ops1_et_sep {
 
 //figure out what to do based on mode and abort modes 
 function ops1_termination {
+
+	close_umbilical().
 
 	local nominal_flag is (not abort_triggered()).
 
