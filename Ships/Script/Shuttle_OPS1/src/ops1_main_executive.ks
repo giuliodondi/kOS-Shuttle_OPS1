@@ -984,17 +984,23 @@ function ops1_et_sep {
 	//move prograde, heads-up at a maximum of 50° aoa
 	dap:toggle_serc(false).
 	
+	local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
+	
 	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"] OR abort_modes["rtls_active"]) {
 	
 		dap:set_strmgr_free().
 		
-		local v_ang is min(VANG(dap:steer_refv, dap:cur_dir:forevector), 60).
+		if (new_steer_tgt) {
+			set new_steer_tgt to false.
 		
-		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
-		local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
-		local forward_steerv is rodrigues(dap:steer_refv, normv_, v_ang).
-		
-		dap:set_steer_tgt(forward_steerv).
+			local v_ang is min(VANG(dap:steer_refv, dap:cur_dir:forevector), 60).
+			
+			local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
+			local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
+			local forward_steerv is rodrigues(dap:steer_refv, normv_, v_ang).
+			
+			dap:set_steer_tgt(forward_steerv).
+		}
 		
 		set vehicle["roll"] to 0.
 		set dap:steer_roll to 0.
