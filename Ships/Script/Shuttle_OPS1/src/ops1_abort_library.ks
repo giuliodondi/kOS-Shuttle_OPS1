@@ -1382,6 +1382,46 @@ FUNCTION setup_ATO {
 }
 
 
+//		 ECAL functions 
+
+function get_best_ecal_site {
+	
+	local best_site is "".
+	
+	local best_delaz is 1000000.
+	
+	for sname in abort_modes["ecal_candidates"] {
+		
+		LOCAL site IS ldgsiteslex[sname].
+			
+		local rwypos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set rwypos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set rwypos to site[0]["position"].
+		}
+	
+		local s_delaz is az_error(
+							orbitstate["radius"],
+							rwypos,
+							surfacestate["surfv"]
+		).
+		
+		if (abs(s_delaz) < best_delaz) {
+			set best_delaz to abs(s_delaz).
+			set best_site to sname.
+		}
+	
+	}
+	
+	if (best_site = "") {
+		set best_site to abort_modes["rtls_tgt_site"]["site"].
+	}
+	
+	return best_site.
+
+}
 
 
 
