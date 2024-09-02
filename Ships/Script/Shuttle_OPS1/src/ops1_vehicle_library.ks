@@ -1847,11 +1847,12 @@ function single_engine_roll_control {
 	dap:toggle_serc(true).
 	
 	FOR ssme IN get_ssme_parts() {
-		IF (ssme:IGNITION) {
-			set ssme:GIMBAL:roll to false.
-		}
+		set ssme:GIMBAL:roll to false.
 	}
 	
+	FOR oms IN get_oms_parts() {
+		set oms:GIMBAL:roll to false.
+	}
 
 }
 
