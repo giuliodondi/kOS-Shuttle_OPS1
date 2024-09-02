@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle OPS1 Ascent Guidance
-## Updated July 2024
+## Updated September 2024
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ops1_cover.png" width="700" >
@@ -190,13 +190,15 @@ Intact aborts mean that there always is a procedure that will take the Shuttle t
 In some regions, even a double engine failure will allow an intact abort. This is valid both for a sudden double-engine failure or a second engine failure during an ongoing abort
 
 - Intact aborts can be triggered either manually or automatically
-- **Remmebr that the abort selectors and buttons are inactive until after SRB separation**
+- **Remember that the abort selectors and buttons are inactive until after SRB separation**
 - Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
 - In case of an engine failure, you have 10 seconds to select a manual abort, after which the program will automatically activate an abort mode
   - The automatic intact abort logic is: ATO-TAL-RTLS in this order of preference, based on availability
 - You can manually activate an abort even without an engine failure, guidance will work just the same
 
-![intact_modes](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/intact_modes.png)
+<p align="center">
+  <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/intact_modes.png" width="700" >
+</p>
 
 The above chart shows the intact abort modes and their boundaries:
 - **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **NEGATIVE RETURN**
@@ -329,4 +331,20 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 
 ## Contingency aborts
 
-### Coming soon, not implemented yet
+### Work in Progress - subject to change 
+
+### ECAL and DROOP not implemented yet 
+
+Contingency aborts generally do not bring the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life).  
+All contingency aborts have a few things in common:
+
+- They do not use the PEG algorithm for guidance, rather an open-loop set of commands
+- They employ an off-nominal manoeuvre to separate from the External Tank
+- They run the OPS3 program in contingency mode
+
+|<img src="Ships/Script/Shuttle_OPS1/images/2eo_modes.png" width="450" />|<img src="Ships/Script/Shuttle_OPS1/images/3eo_modes.png" width="450" />|
+|:-:|:-:|
+
+
+|<img src="Ships/Script/Shuttle_OPS1/images/2eo_rtls_modes.png" width="450" />|<img src="Ships/Script/Shuttle_OPS1/images/3eo_rtls_modes.png" width="450" />|
+|:-:|:-:|
