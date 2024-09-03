@@ -828,6 +828,7 @@ function ops1_et_sep {
 	
 	//if oms dump is in progress save state but stop it for et sep
 	local trigger_oms_dump is abort_modes["oms_dump"].
+	local post_meco_dump is false.
 	stop_oms_dump(TRUE).
 
 	addGUIMessage("STAND-BY FOR ET SEP").
@@ -958,6 +959,7 @@ function ops1_et_sep {
 		
 			if (trigger_oms_dump) and (surfacestate["time"] > et_sep_t + et_sep_oms_t) {
 				set trigger_oms_dump to false.
+				set post_meco_dump to true.
 				start_oms_dump().
 			}
 		
@@ -971,7 +973,7 @@ function ops1_et_sep {
 	}
 	
 	//zero throttle unless a dump should be continued
-	if (not trigger_oms_dump) {
+	if (not post_meco_dump) {
 		LOCK THROTTLE to 0.
 		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 	}
