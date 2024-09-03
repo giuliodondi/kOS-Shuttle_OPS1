@@ -660,8 +660,6 @@ function ops1_second_stage_contingency {
 
 	freeze_abort_gui(true).
 	
-	addGUIMessage("CONTINGENCY 2EO GUIDANCE").
-	
 	//preserve the major mode from wherever we came from
 	//for correct gui
 	
