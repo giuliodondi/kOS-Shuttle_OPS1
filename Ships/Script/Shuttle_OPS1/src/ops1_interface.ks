@@ -87,7 +87,7 @@ FUNCTION dataViz {
 	update_abort_modes_gui().
 	
 	//do the rtls gui update 
-	IF (vehiclestate["major_mode"] = 601) {
+	IF (vehiclestate["major_mode"] >= 600) {
 	
 		gui_data:ADD("dwnrg_ve", surfacestate["horiz_dwnrg_v"]).
 		gui_data:ADD("dwnrg_pred_ve", current_horiz_dwnrg_speed(pred_simstate["latlong"], pred_simstate["surfvel"])).

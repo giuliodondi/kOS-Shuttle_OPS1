@@ -804,7 +804,8 @@ function ops1_second_stage_contingency {
 	
 	shutdown_ssmes().
 	
-	SET vehiclestate["major_mode"] TO 104.
+	//works for 103 and 601
+	SET vehiclestate["major_mode"] TO vehiclestate["major_mode"] + 1.
 }
 
 function ops1_et_sep {
