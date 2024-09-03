@@ -333,18 +333,116 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 
 ### Work in Progress - subject to change 
 
-### ECAL and DROOP not implemented yet 
+Contingency aborts generally do not bring the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life). Only in selected special cases the Shuttle is in good position to reach a runway.  
 
-Contingency aborts generally do not bring the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life).  
-All contingency aborts have a few things in common:
-
+All contingency abort modes have a few things in common:
+- There is no overlap between modes and they are always triggered automatically and immediately
+- They are labelled with colours which do not represent "danger" or anything else, just labels
 - They do not use the PEG algorithm for guidance, rather an open-loop set of commands
 - They employ an off-nominal manoeuvre to separate from the External Tank
-- They run the OPS3 program in contingency mode
+- They call the OPS3 program in contingency mode
+- **See the OPS3 manual for information on Contingency reentry**
 
-|<img src="Ships/Script/Shuttle_OPS1/images/2eo_modes.png" width="450" />|<img src="Ships/Script/Shuttle_OPS1/images/3eo_modes.png" width="450" />|
+<details>
+<summary><h2>2 Engine Out (2EO) abort modes </h2></summary>
+
+|<img src="Ships/Script/Shuttle_OPS1/images/2eo_modes.png" width="500" />|<img src="Ships/Script/Shuttle_OPS1/images/2eo_rtls_modes.png" width="500" />|
 |:-:|:-:|
 
+### Single Engine Roll Control (SERC)
 
-|<img src="Ships/Script/Shuttle_OPS1/images/2eo_rtls_modes.png" width="450" />|<img src="Ships/Script/Shuttle_OPS1/images/3eo_rtls_modes.png" width="450" />|
+With only one engine, the Shuttle cannot control roll effectively, especially as the offset engines couple it strongly with yaw. The gimbal of the single remaining engine is locked in the roll axis, and active only in pitch and yaw. Roll control is done using RCS by commanding a lateral translation, this produces a torque that effectively rolls the Shuttle around the longitudinal axis. The OMS engines are not very effective at rolling the ship around since the gimbals are not controllable directly in kOS.  
+SERC is active in all 2EO scenarios.
+
+### 2EO BLUE and 2EO RTLS BLUE
+
+This mode results invariably in bailout
+
+- Active from liftoff or until vertical speed decreases to below 400-600 m/s depending on inclination.
+- Characterised by a lofted trajectory which must be shallowed to reduce reentry G-forces
+- The Shuttle will steer in-plane and pitch mostly close to horizontal, to gain the most horizontal velocity and centrifugal force
+- When the attitude is good, the Shuttle will do the single-engine roll to heads-up 
+- When descending and when Equivalent Airspeed rises above 7kn, the External Tank separation sequence is triggered
+- The sequence is called **ET Rate Sep**: establishing a pitch-down rate, then cutting off the engine and separating. This sends the ET tumbling away from the Orbiter
+- After ET sep, the Shuttle's attitude is stabilised in the proper attitude for the OPS3 program
+- The **2EO RTLS BLUE** mode is pretty much identical to the nominal **2EO BLUE** one
+
+  If the two engines are lost before SRB sep, the Shuttle will have very little vertical speed and may not have time to roll to heads-up fully. In this case MECO is called early and an **ET Immediate Sep** is done instead.
+
+### 2EO GREEN
+
+Early in this mode, a bailout is the only outcome. Later in the mode, an ECAL or Bermuda landing might be possible
+
+- Active after **2EO BLUE** until either **2EO DROOP** or **Single-engine TAL**
+- The trajectory is less lofted and might already be descending for late aborts
+- The Shuttle will pitch up instead to delay descent as much as possible, again to reduce reentry G-forces
+- Once again a single-engine roll to heads-up and a **ET Rate Sep** are done
+- Reentries invariably entail higher heating than in the 2EO Blue case
+
+### ECAL / Bermuda aborts
+
+**Not Implemented Yet**
+
+They will be available in the later stages of **2EO GREEN** for launches out of KSC, Bermuda for 35/40° inclination and ECAL for >=52°.
+
+### 2EO DROOP
+
+**Not Implemented Yet**
+
+A non-contingency mode that will keep the Shuttle from falling in the atmosphere and then leading to a low-energy TAL.
+
+### 2EO RTLS YELLOW
+
+This mode generally results in bailout except right before Pitcharound, where an ECAL might just be possible
+
+- Active after **2EO RTLS BLUE** until **2EO RTLS ORANGE** close to the point where the motion is reversed (Vrel=0)
+- The Shuttle may or may not be already after Pitcharound and in Flyback, either way it pitches over to the same attitude as the **2EO GREEN** case
+- Again, single-engine roll to heads-up and **ET Rate Sep** are done
+- ECAL/Bermuda aborts will only be possible before Pitcharound
+
+### 2EO RTLS ORANGE
+
+This mode results invariably in bailout
+
+- Active after **2EO RTLS YELLOW** around the region of Vrel=0 where the Shuttle is reversing course
+- Trajectory is heading straight down and there is no time to do much about it on a single engine
+- Similar to **2EO RTLS YELLOW** except the Shuttle maintains whatever attitude it was in until the **ET Rate Sep**
+
+### 2EO RTLS GREEN
+
+This mode generally results in bailout except very near the end where a low-energy RTLS landing might be possible
+
+- Active after **2EO RTLS ORANGE**  until the **BLANK** region where single-engine RTLS completion is possible
+- The trajectory is stabilised and heading back to the launch site with considerable speed
+- Attitude is kept fixed like **2EO RTLS ORANGE**
+- Unlike the other 2EO modes, the ET sep sequence pitches down to prograde like normal RTLS, achieves MECO and then does an **ET Nominal Sep**
+
+
+</details>
+
+<details>
+<summary><h2>3 Engine Out (3EO) abort modes </h2></summary>
+
+  
+|<img src="Ships/Script/Shuttle_OPS1/images/3eo_modes.png" width="500" />|<img src="Ships/Script/Shuttle_OPS1/images/3eo_rtls_modes.png" width="500" />|
 |:-:|:-:|
+
+3EO modes are simpler because there is not much the Shuttle can do but separate from the ET and achieve reentry attitude
+
+### 3EO BLUE 
+
+This mode may or may not allow the Shuttle to land back at the launch site
+
+- Active before the nominal SRB sep staging sequence is initiated
+- When SRB thrust is low enough, the Shuttle pitches down close to prograde
+- When attitude is stable, **the Shuttle separates directly from the External Tank in an Immediate Sep**
+
+### 3EO GREEN
+
+Early 3EO Green aborts end in bailout, late aborts can lead to an ECAL/Bermuda landing
+
+- Active after **3EO BLUE** until orbital velocity is such that a low-energy TAL can be achieved
+- 
+
+
+</details>
