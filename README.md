@@ -328,20 +328,35 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 
 </details>
 
+<details>
+<summary><h2>Abort 2 Engine Out Droop (2EO DROOP) (Not yet implemented)</h2></summary>
+
+A 2 engine-out non-contingency mode that will keep the Shuttle from falling in the atmosphere followed by a low-energy TAL.
+
+</details>
 
 ## Contingency aborts
 
 ### Work in Progress - subject to change 
 
-Contingency aborts generally do not bring the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life). Only in selected special cases the Shuttle is in good position to reach a runway.  
+Contingency aborts are used in case of a double or triple engine failure. The engines may be lost suddenly or in sequence in a variety of combinations and thus it's hard to predict what state the Shuttle will be in. Generally it's not possible to fly the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life). Only in selected special cases the Shuttle is in good position to reach a runway.   
 
-All contingency abort modes have a few things in common:
+Contingency abort modes have a few things in common:
 - There is no overlap between modes and they are always triggered automatically and immediately
 - They are labelled with colours which do not represent "danger" or anything else, just labels
 - They do not use the PEG algorithm for guidance, rather an open-loop set of commands
-- They employ an off-nominal manoeuvre to separate from the External Tank
+- They can perform an off-nominal manoeuvre to separate from the External Tank
 - They call the OPS3 program in contingency mode
 - **See the OPS3 manual for information on Contingency reentry**
+
+### Black Zones
+
+A black zone is a dangerous situation that may only be encountered in a contingency abort:
+
+- **Unsafe ET separation**: In real life the propellant sloshing in the ET could cause it to bounce back and strike the Orbiter. In KSP the slosh dynamics are not modelled, nevertheless separating in the wrong attitude with aerodynamic forces can cause a recontact just the same. The special ET separation manoeuvres help to ensure a clean separation with no recontact
+- **High G-forces during entry**: The Orbiter reenters the upper atmosphere with high negative FPA, i.e. descending very fast. Stabilising the descent inevitably entails vertical G forces in excess of 2.5G and total aerodynamic load factor in excess of 3.5G, or both. In KSP the Shuttle will not break or shed pieces (I might work out a way to model this in SSS) while in real life you could expect things to start breaking off above 4G
+- **High dynamic pressure (Qbar)**: in other words flying very fast at too low altitude. This makes the Orbiter very difficult to pilot without losing control. The OPS3 DAP is tuned specially for the high G-forces regime encountered during a contingency reentry but it's noticeably less stable. Also the high angle of attack required to pull out of the dive reduces the rudder's authority and the high dynamic pressure might be too much for the Yaw RCS to keep stability. These effects are modelled in KSP and something you might see
+- **Centre of Gravity out of trim**: The Orbiter needs to dump OMS fuel to keep stability during reentry and in most contingency aborts there's not enough time to complete the dump before the plunge. OPS3 is programmes to keep burning the OMS engines in a contingency case. If the CG is too far back the elevons and flap will extend downwards, which make the Orbiter more unstable in yaw leading possibly to loss of control
 
 <details>
 <summary><h2>2 Engine Out (2EO) abort modes </h2></summary>
@@ -359,15 +374,21 @@ SERC is active in all 2EO scenarios.
 This mode results invariably in bailout
 
 - Active from liftoff or until vertical speed decreases to below 400-600 m/s depending on inclination.
+- OMS dumping starts right away even before SRB sep
 - Characterised by a lofted trajectory which must be shallowed to reduce reentry G-forces
-- The Shuttle will steer in-plane and pitch mostly close to horizontal, to gain the most horizontal velocity and centrifugal force
+- After SRB sep, The Shuttle will steer in-plane and pitch mostly close to horizontal, to gain the most horizontal velocity and centrifugal force
 - When the attitude is good, the Shuttle will do the single-engine roll to heads-up 
 - When descending and when Equivalent Airspeed rises above 7kn, the External Tank separation sequence is triggered
 - The sequence is called **ET Rate Sep**: establishing a pitch-down rate, then cutting off the engine and separating. This sends the ET tumbling away from the Orbiter
 - After ET sep, the Shuttle's attitude is stabilised in the proper attitude for the OPS3 program
 - The **2EO RTLS BLUE** mode is pretty much identical to the nominal **2EO BLUE** one
 
-  If the two engines are lost before SRB sep, the Shuttle will have very little vertical speed and may not have time to roll to heads-up fully. In this case MECO is called early and an **ET Immediate Sep** is done instead.
+If the two engines are lost before SRB sep, the Shuttle will have very little vertical speed and may not have time to roll to heads-up fully. In this case MECO is called early and an **ET Immediate Sep** is done instead.
+  
+**Black Zones**
+- Early in the zone there's a risk of External Tank recontact, especially if one of both engines were lost before SRB sep since the Shuttle will be low and slow.
+- Early in the zone the reentry trajectory is very steep and both G and Qbar will be very high
+- sudden 2EO right after SRB sep also incur a risk of CG out of limits
 
 ### 2EO GREEN
 
@@ -379,17 +400,15 @@ Early in this mode, a bailout is the only outcome. Later in the mode, an ECAL or
 - Once again a single-engine roll to heads-up and a **ET Rate Sep** are done
 - Reentries invariably entail higher heating than in the 2EO Blue case
 
+**Black Zones**
+- later in the zone high Gs are inevitable because of the high speed
+- reentry pitch is higher to protect from heating and there is higher risk of loss of control
+
 ### ECAL / Bermuda aborts
 
 **Not Implemented Yet**
 
-They will be available in the later stages of **2EO GREEN** for launches out of KSC, Bermuda for 35/40° inclination and ECAL for >=52°.
-
-### 2EO DROOP
-
-**Not Implemented Yet**
-
-A non-contingency mode that will keep the Shuttle from falling in the atmosphere and then leading to a low-energy TAL.
+IT's a special procedure for **2EO GREEN** for launches out of KSC, available in the later parts when velocity is high enough. Bermuda for 35/40° inclination and ECAL for >=52°.
 
 ### 2EO RTLS YELLOW
 
@@ -400,6 +419,9 @@ This mode generally results in bailout except right before Pitcharound, where an
 - Again, single-engine roll to heads-up and **ET Rate Sep** are done
 - ECAL/Bermuda aborts will only be possible before Pitcharound
 
+**Black Zones**
+- high Gs after Pitcharound
+
 ### 2EO RTLS ORANGE
 
 This mode results invariably in bailout
@@ -407,6 +429,10 @@ This mode results invariably in bailout
 - Active after **2EO RTLS YELLOW** around the region of Vrel=0 where the Shuttle is reversing course
 - Trajectory is heading straight down and there is no time to do much about it on a single engine
 - Similar to **2EO RTLS YELLOW** except the Shuttle maintains whatever attitude it was in until the **ET Rate Sep**
+
+**Black Zones**
+- Close to Vrel=0 and after ET sep, the External Tank does not float away very far even with Rate Sep and might strike the Orbiter before it can lift itself away
+- very high Gs and instability during pullout
 
 ### 2EO RTLS GREEN
 
@@ -431,18 +457,26 @@ This mode generally results in bailout except very near the end where a low-ener
 
 ### 3EO BLUE 
 
-This mode may or may not allow the Shuttle to land back at the launch site
+This mode usually ends in bailout very close to the launch site
 
 - Active before the nominal SRB sep staging sequence is initiated
+- OMS dumping starts right away
 - When SRB thrust is low enough, the Shuttle pitches down close to prograde
 - When attitude is stable, **the Shuttle separates directly from the External Tank in an Immediate Sep**
+
 
 ### 3EO GREEN
 
 Early 3EO Green aborts end in bailout, late aborts can lead to an ECAL/Bermuda landing
 
 - Active after **3EO BLUE** until orbital velocity is such that a low-energy TAL can be achieved
-- 
+- An **ET Rate Sep** is done but it's only necessary early in the zone
+- gives the least time to perform and OMS dump
 
+**Black Zones**
+- high Q or Qbar during entry
+- highest risk of CG out of limits
 
 </details>
+
+
