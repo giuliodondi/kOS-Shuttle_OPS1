@@ -223,6 +223,9 @@ function enginefailuregui{
 	}
 	
 	if (defined engine_failure_gui) {
+		set engine_failure_gui:X to main_ascent_gui:X + main_ascent_gui:STYLE:WIDTH.
+		set engine_failure_gui:Y to main_ascent_gui:Y + 42.
+		update_engfail_panel(engfailmode_b:VALUE).
 		engine_failure_gui:show().
 		return.
 	}
@@ -258,31 +261,22 @@ function enginefailuregui{
 	set engfailmode_b:onchange to {
 		parameter fail_mode.
 	
-		set abort_modes["engine_failure"]["mode"] to fail_mode.
-		
-		if (fail_mode = "TIME") {
-			engfailtime_container:SHOW().
-			make_engfailtime_panel().
-		} else {
-			engfailtime_container:clear().
-		}
+		update_engfail_panel(fail_mode).
 	}.
 	
 	
 	engfailbox:addspacing(2).
 	
-	global engfailtime_list is list().
+	global engfailtime_staging_list is list().
 	
 	global engfailtime_container is engfailbox:ADDVLAYOUT().
-	
 	
 	GLOBAL engine_failure_gui_close IS  engfailbox:ADDBUTTON("<size=16>Confirm</size>").
 	SET engine_failure_gui_close:STYLE:WIDTH TO 70.
 	SET engine_failure_gui_close:STYLE:ALIGN TO "center".
 
 	function enginefailureguiclosecheck {
-		//if (engfailmode_b:VALUE = "TIME") {
-			write_new_engfailtimes(engfailtime_list).
+		write_new_engfailtimes(engfailtime_staging_list).
 		engine_failure_gui:HIDE().
 		set eng_fail_b:pressed to false.
 	}
@@ -290,7 +284,22 @@ function enginefailuregui{
 	engine_failure_gui:SHOW().
 }
 
+function update_engfail_panel {
+	parameter fail_mode.
+	
+	set abort_modes["engine_failure"]["mode"] to fail_mode.
+	
+	if (fail_mode = "TIME") {
+		engfailtime_container:SHOW().
+		make_engfailtime_panel().
+	} else {
+		engfailtime_container:clear().
+	}
+}
+
 function make_engfailtime_panel {
+
+	engfailtime_container:clear().
 
 	global engfailtime_box is engfailtime_container:ADDVBOX().
 	SET engfailtime_box:STYLE:HEIGHT TO 31.
@@ -305,12 +314,14 @@ function make_engfailtime_panel {
 	
 	SET engfailtime_addb:ONCLICK TO {
 	
-		if (engfailtime_list:length >= vehicle["SSME"]["active"]) {
+		if (engfailtime_staging_list:length >= vehicle["SSME"]["active"]) {
 			return.
 		}
 		
 		add_engfailtime_field().
 	}.
+	
+	engfailtime_staging_list:clear().
 	
 	for eftlex in abort_modes["engine_failure"]["times"] {
 	
@@ -331,7 +342,7 @@ function add_engfailtime_field {
 	
 	engfailtime_list_box:addspacing(4).
 	LOCAL newfailtimetext IS engfailtime_list_box:addtextfield(new_time).
-	engfailtime_list:add(newfailtimetext).
+	engfailtime_staging_list:add(newfailtimetext).
 	set newfailtimetext:style:width to 65.
 	set newfailtimetext:style:height to 18. 
 }
