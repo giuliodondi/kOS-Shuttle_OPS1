@@ -20,6 +20,7 @@ GLOBAL abort_modes IS LEXICON(
 					"tal_candidates", "",
 					"1eo_tal_sites", "",
 					"2eo_tal_sites", "",
+					"3eo_tal_site", "",
 					"ecal_candidates", "",
 					"intact_modes", lexicon(
 												"1eo", lexicon(
@@ -435,12 +436,24 @@ function contingency_abort_region_determinator {
 			}
 			
 		} else {
-			if (orbitstate["velocity"]:MAG >= 6700) {
-				set abort_modes["3eo_cont_mode"] to "BLANK". 
-			} else if (vehiclestate["major_mode"] < 103) {
+			if (vehiclestate["major_mode"] < 103) {
 				set abort_modes["3eo_cont_mode"] to "BLUE". 
-			} else {
+			} else if (orbitstate["velocity"]:MAG < 6700) {
 				set abort_modes["3eo_cont_mode"] to "GREEN". 
+			} else {
+				local tal_candidate is get_3eo_tal_site_vel().
+				local ato_tgt_orbit is get_ato_tgt_orbit().
+				
+				LOCAL ato_dv IS abs(ato_tgt_orbit["velvec"]:mag - orbitstate["velocity"]:mag).
+				LOCAL tal_dv IS abs(tal_candidate["velvec"]:mag - orbitstate["velocity"]:mag).
+				
+				if (ato_dv < tal_dv) {
+					set abort_modes["3eo_cont_mode"] to "ATO". 
+				} else {
+					set abort_modes["3eo_cont_mode"] to "TAL". 
+				}
+				
+				
 			}
 		}
 	}
@@ -1515,12 +1528,58 @@ function cont_2eo_terminal_condition {
 
 }
 
+//tal site with least crossrange and meco velocity
+function get_3eo_tal_site_vel {
+
+	local tal_best_site is "".
+	local min_delaz is 10000000.
+	local tal_best_site_vel is v(0,0,0).
+
+	for sname in abort_modes["tal_candidates"] {
+		
+		LOCAL site IS ldgsiteslex[sname].
+				
+		local rwypos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set rwypos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set rwypos to site[0]["position"].
+		}
+		
+		local tal_delaz is az_error(
+							vecyz(orbitstate["radius"]),
+							rwypos,
+							surfacestate["surfv"]
+		).
+		
+		if (abs(tal_delaz) < min_delaz) {
+			set min_delaz to abs(tal_delaz).
+			set tal_best_site to sname.
+		}	
+	}
+	
+	if (tal_best_site <> "") {
+		
+		set abort_modes["3eo_tal_site"] to tal_best_site.
+	
+		LOCAL current_normal IS currentNormal().
+		local tal_meco_v is tal_predict_meco_velocity(tal_best_site, current_normal, target_orbit["radius"]).
+		
+		set tal_best_site_vel to tal_meco_v.
+	}
+	
+	return lexicon(
+				"site", tal_best_site,
+				"velvec", tal_best_site_vel
+	).	
+}
 
 function setup_3eo_contingency {
 	
 	//save the state at abort init 
 	global cont_3eo_abort is lexicon(
-							"mode", abort_modes["2eo_cont_mode"],
+							"mode", abort_modes["3eo_cont_mode"],
 							"ve", surfacestate["surfv"]:mag,
 							"vi", orbitstate["velocity"]:mag,
 							"h", surfacestate["alt"],
