@@ -1297,12 +1297,13 @@ FUNCTION setup_TAL{
 function get_ato_tgt_orbit {
 	
 	local ato_apoapsis is MIN(200, 0.8*target_orbit["apoapsis"]).
+	local ato_ap_radius is (ato_apoapsis * 1000 + SHIP:BODY:RADIUS).
 	
 	local ato_cutoff_alt is 0.98 * target_orbit["cutoff alt"].
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
 	
 	//230 m/s burn to circularise at apoapsis
-	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - ops1_parameters["ATO_circ_dv"].
+	local ato_ap_v is orbit_alt_vsat(ato_ap_radius) - ops1_parameters["ATO_circ_dv"].
 	
 	local ato_sma is 2/ato_cutoff_radius - ato_ap_v^2/BODY:MU.
 	set ato_sma to 1/ato_sma.

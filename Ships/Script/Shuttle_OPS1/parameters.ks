@@ -15,7 +15,7 @@ GLOBAL ops1_parameters is LEXICON(
 						"low_level_burnt", 5.1,
 						"RTLS_prop_frac", 0.12,
 						"OMS_prop_dump_frac", 0.3,
-						"ATO_circ_dv", 130,
+						"ATO_circ_dv", 150,
 						
 						"dummy", 0
 ).
