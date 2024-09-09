@@ -652,14 +652,34 @@ function abort_initialiser {
 		
 		
 	} else if (three_engout) {
-		//3eo is always a contingency even in the blank region 
+		//3eo is always a contingency even in the tal/ato region 
 		set abort_modes["cont_3eo_active"] to true. 
 		set abort_modes["cont_2eo_active"] to false. 
 		set abort_modes["rtls_active"] to false.
-		set abort_modes["tal_active"] to false. 
-		set abort_modes["ato_active"] to false. 
 		
 		addGUIMessage("ABORT 3EO " + abort_modes["3eo_cont_mode"]).
+		
+		//setup tal or ato if required 
+		//only change flags for flow control 
+		if (abort_modes["3eo_cont_mode"] = "ATO") {
+			set abort_modes["ato_active"] to false. 
+			set abort_modes["ato_active"] to true.
+		} else if (abort_modes["3eo_cont_mode"] = "TAL") {
+			set abort_modes["tal_active"] to true. 
+			set abort_modes["ato_active"] to false.
+			
+			set abort_modes["tal_tgt_site"] to lexicon(
+												"site", abort_modes["3eo_tal_site"]
+			).	
+			
+			addGUIMessage("SELECTED TAL SITE IS " + abort_modes["tal_tgt_site"]["site"]).
+			
+		} else {
+			set abort_modes["tal_active"] to false. 
+			set abort_modes["ato_active"] to false.
+		}
+		
+		
 		
 		setup_3eo_contingency().
 	}
@@ -1585,5 +1605,4 @@ function setup_3eo_contingency {
 							"h", surfacestate["alt"],
 							"hdot", surfacestate["vs"]
 	).
-
 }
