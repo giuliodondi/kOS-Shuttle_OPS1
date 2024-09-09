@@ -1432,11 +1432,23 @@ function get_best_ecal_site {
 
 //		CONTINGENCY functions
 
+function cont_2eo_immediate_sep {
+	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= contingency_et_sep_alt()).
+}
+
+//works both for droop and contingency immediate sep 
+function contingency_et_sep_alt {
+	
+	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"].
+
+	return clamp(et_sep_alt_ve, 62484, 80772).
+}
+
 function contingency_2eo_blue_boundary {
 	
 	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
 
-	return (SHIP:VERTICALSPEED >= boundary_hdot).
+	return (surfacestate["vs"] >= boundary_hdot).
 }
 
 //because some modes have the same name as non-rtls contingency modes 
@@ -1503,8 +1515,4 @@ function cont_2eo_terminal_condition {
 	
 	return terminal_flag.
 
-}
-
-function cont_2eo_immediate_sep {
-	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= 62000).
 }
