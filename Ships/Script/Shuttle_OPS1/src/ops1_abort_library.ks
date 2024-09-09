@@ -1052,6 +1052,9 @@ FUNCTION setup_RTLS {
 	//default percentage of full throttle for rtls upfg convergence
 	SET upfgInternal["throtset"] TO 0.96 * throt_val.
 	
+	//good measure 
+	set ops1_parameters["roll_headsup_vi"] to 100000.
+	
 }
 
 
@@ -1313,11 +1316,8 @@ FUNCTION setup_TAL{
 	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
-
-	//trigger the roll to heads-up if it hasn't already, important for reentry 
-	WHEN ( surfacestate["MET"] > (abort_modes["trigger_t"] + 40) ) THEN {
-		roll_heads_up().
-	}
+	
+	set ops1_parameters["roll_headsup_vi"] to orbitstate["velocity"]:mag + 250.
 
 }
 
@@ -1413,6 +1413,8 @@ FUNCTION setup_ATO {
 	local engines_out is get_engines_out().
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
+	
+	set ops1_parameters["roll_headsup_vi"] to orbitstate["velocity"]:mag + 250.
 	
 	//no oms dump for ato/aoa
 }
