@@ -201,13 +201,14 @@ In some regions, even a double engine failure will allow an intact abort. This i
 </p>
 
 The above chart shows the intact abort modes and their boundaries:
-- **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **NEGATIVE RETURN**
-- **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until Single-engine Press to ATO is available)
-  - late in the ascent, Single-engine TAL should become available, this also disappears when Single-engine Press to ATO is available
-- **Press to ATO** is available some time after Negative Return until Press to MECO
-  - later in the ascent, Single-engine press to ATO is available
-- **Press to MECO** is available roughly a minute after press to ATO, this is not really an abort mode
-  - later in the ascent, Single-engine press to ATO is available
+- **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **Negative Return**
+- **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until **Single-engine Press to ATO** is available)
+- **TAL** is also available for two-engine-out situations after the **Single Engine TAL** boundary and until **Single-engine Press to ATO**
+- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a nominal MECO and do a regular reentry. This leads to a low-energy TAL abort.
+- **Abort to Orbit (ATO)** is available some time after Negative Return until **Press to MECO**
+  - later in the ascent, **Single-engine ATO** is available
+- after the**Press to MECO** boundary, no abort is necessary
+  - after **Single-engine press to MECO**, no abort is necessary even in two-engine-out
 
 
 <details>
@@ -331,7 +332,9 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 <details>
 <summary><h2>Abort 2 Engine Out Droop (2EO DROOP) (Not yet implemented)</h2></summary>
 
-A 2 engine-out non-contingency mode that will keep the Shuttle from falling in the atmosphere followed by a low-energy TAL.
+The Shuttle ascent trajectory is drooped because the thrust of the SSMEs is relatively low. In case of two engines out, it's drooped so much that there's a risk of descending below 87km at high velocity, which puts the External Tank at risk of exploding.  
+After the **Single Engine OPS3** boundary, the Shuttle can use a special guidance scheme to stay above 87km and continue all the way to a "nominal" MECO. After this, regular OPS3 reentry guidance can be performes, albeit in low-energy mode.  
+Before this boundary, the Shuttle must separate early from the External Tank before falling and a contingency abort is declared.
 
 </details>
 
