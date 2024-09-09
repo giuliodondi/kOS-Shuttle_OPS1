@@ -332,8 +332,8 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 <details>
 <summary><h2>Abort 2 Engine Out Droop (2EO DROOP) (Not yet implemented)</h2></summary>
 
-The Shuttle ascent trajectory is drooped because the thrust of the SSMEs is relatively low. In case of two engines out, it's drooped so much that there's a risk of descending below 87km at high velocity, which puts the External Tank at risk of exploding.  
-After the **Single Engine OPS3** boundary, the Shuttle can use a special guidance scheme to stay above 87km and continue all the way to a "nominal" MECO. After this, regular OPS3 reentry guidance can be performes, albeit in low-energy mode.  
+The Shuttle ascent trajectory is drooped because the thrust of the SSMEs is relatively low. In case of two engines out, it's drooped so much that there's a risk of descending below 80km at high velocity, which puts the External Tank at risk of exploding.  
+After the **Single Engine OPS3** boundary, the Shuttle can use a special guidance scheme to stay above 80km and continue all the way to a "nominal" MECO. After this, regular OPS3 reentry guidance can be performes, albeit in low-energy mode.  
 Before this boundary, the Shuttle must separate early from the External Tank before falling and a contingency abort is declared.
 
 </details>
