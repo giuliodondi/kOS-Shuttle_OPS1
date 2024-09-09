@@ -54,13 +54,13 @@ function initialise_shuttle {
 						"trajectory_scale",0,
 						"roll",180,
 						"srb_sep_flag", FALSE,
+						"roll_heads_up_flag", FALSE,
 						"et_sep_flag", FALSE,
 						"meco_flag", FALSE,
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
 						"glim", 3,
 						"low_level", FALSE,
-						
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
@@ -161,7 +161,6 @@ function initialise_shuttle {
 	
 	//prepare launch triggers 
 	activate_fuel_cells().
-	add_action_event(350, roll_heads_up@ ).
 	
 }
 
@@ -317,7 +316,7 @@ function first_stage_guidance {
 
 
 
-
+//LEGACY 
 FUNCTION roll_heads_up {
 
 	//skip if rtls or contingency is in progress

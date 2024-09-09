@@ -405,6 +405,23 @@ function ops1_second_stage_nominal {
 		if (quit_program) {
 			RETURN.
 		}
+		
+		//roll to heads-up 
+		if (not vehicle["roll_heads_up_flag"]) and (orbitstate["velocity"]:mag >= ops1_parameters["roll_headsup_vi"]) {
+			if (vehicle["roll"] <> 0) {
+				addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
+				set vehicle["roll"] to 0.
+				set dap:steer_roll to 0.
+				dap:set_strmgr_med().
+				
+				wait 0.3.
+			} else {
+				if (dap:roll_null_err) {
+					dap:set_strmgr_low().
+					set vehicle["roll_heads_up_flag"] to true.
+				}
+			}
+		}
 
 		abort_handler().
 		getState().
@@ -468,7 +485,7 @@ function ops1_second_stage_nominal {
 	
 	UNTIL FALSE {
 		getState().
-		IF (SHIP:VELOCITY:ORBIT:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
+		IF (orbitstate["velocity"]:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
 			BREAK.
 		}
 	}
