@@ -736,7 +736,6 @@ function ops1_second_stage_contingency {
 		
 		
 		dap:set_strmgr_med().
-		dap:set_strmgr_med().
 		
 		if (not steer_vec_flag) and (dap:steering_null_err) {
 			set steer_vec_flag to true.
