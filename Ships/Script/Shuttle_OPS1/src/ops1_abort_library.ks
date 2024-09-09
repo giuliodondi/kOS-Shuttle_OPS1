@@ -34,6 +34,10 @@ GLOBAL abort_modes IS LEXICON(
 															"tal", false,
 															"ato", false,
 															"meco", false
+													),
+												"3eo", lexicon(
+															"tal", false,
+															"ato", false
 													)
 									),
 					"2eo_cont_mode", "XXXXX",
@@ -96,7 +100,7 @@ function abort_handler {
 	
 	contingency_abort_region_determinator().
 	
-	if (debug_mode) {
+	if (ops1_parameters["debug_mode"]) {
 		dump_abort().
 	}
 
@@ -837,7 +841,7 @@ FUNCTION RTLS_burnout_mass {
 
 	//add 2% of ssme fuel and 20% of oms fuel
 	//this NEEDs to be called after we update the final mass with the right value
-	SET vehicle["rtls_mbod"] TO m_final + 0.02 * vehicle["SSME_prop_0"] + vehicle["OMS_prop_dump_frac"] * vehicle["OMS_prop_0"].
+	SET vehicle["rtls_mbod"] TO m_final + ops1_parameters["RTLS_prop_frac"] * vehicle["SSME_prop_0"] + ops1_parameters["OMS_prop_dump_frac"] * vehicle["OMS_prop_0"].
 }
 
 FUNCTION RTLS_boundary_vel {
@@ -1298,7 +1302,7 @@ function get_ato_tgt_orbit {
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
 	
 	//230 m/s burn to circularise at apoapsis
-	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - 130.
+	local ato_ap_v is orbit_alt_vsat(ato_cutoff_radius) - ops1_parameters["ATO_circ_dv"].
 	
 	local ato_sma is 2/ato_cutoff_radius - ato_ap_v^2/BODY:MU.
 	set ato_sma to 1/ato_sma.

@@ -2,9 +2,8 @@
 CLEARSCREEN.
 SET CONFIG:IPU TO 1200.	
 GLOBAL quit_program IS FALSE.
-global debug_mode is false.
-global dap_debug is false.
 
+RUNPATH("0:/Shuttle_OPS1/parameters").
 
 //	Load libraries
 RUNPATH("0:/Shuttle_OPS3/landing_sites").
@@ -43,7 +42,7 @@ function ops1_main_exec {
 	GLOBAL dap IS ascent_dap_factory().
 	
 	GLOBAL dap_gui_executor IS loop_executor_factory(
-												0.15,
+												ops1_parameters["control_loop_dt"],
 												{
 													//protection
 													if (SAS) {
@@ -60,7 +59,7 @@ function ops1_main_exec {
 													
 													set get_stage()["Throttle"] to dap:thr_rpl_tgt.
 													
-													if (dap_debug) {
+													if (ops1_parameters["dap_debug"]) {
 														//clearscreen.
 														clearvecdraws().
 														
@@ -162,7 +161,7 @@ function ops1_countdown{
 	dap:set_steer_tgt(dap:cur_dir:forevector).
 	set dap:thrust_corr to FALSE.
 	
-	local TT IS TIME:SECONDS + 10 - vehicle["preburn"].
+	local TT IS TIME:SECONDS + 10 - ops1_parameters["preburn"].
 	LOCAL monitor_rsls IS FALSE.
 	WHEN  TIME:SECONDS>=TT  THEN {
 			addGUIMessage("GO FOR MAIN ENGINES START").
@@ -230,7 +229,7 @@ function ops1_first_stage {
 																			   
 	getState().
 	
-	WHEN (surfacestate["vs"] >= vehicle["roll_v0"]) THEN {
+	WHEN (surfacestate["vs"] >= ops1_parameters["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	
 		SET steer_flag TO true.
 		SET throt_flag TO true.
@@ -247,7 +246,7 @@ function ops1_first_stage {
 			RETURN.
 		}
 		
-		if (debug_mode) {
+		if (ops1_parameters["debug_mode"]) {
 			clearvecdraws().
 		}
 	
@@ -296,7 +295,7 @@ function ops1_first_stage {
 					}
 					set dap:thr_rpl_tgt to vehicle["qbucketThrottle"].
 				} else {
-					if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > vehicle["qbucketval"]) {
+					if (NOT vehicle["max_q_reached"]) AND (surfacestate["q"] > ops1_parameters["qbucketval"]) {
 						set vehicle["qbucket"] to TRUE.
 						addGUIMessage("THROTTLING DOWN").
 					}
@@ -344,7 +343,7 @@ function ops1_first_stage {
 			break.
 		}
 		
-		if (debug_mode) {
+		if (ops1_parameters["debug_mode"]) {
 			clearvecdraws().
 		}
 		
@@ -446,7 +445,7 @@ function ops1_second_stage_nominal {
 			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
 		}
 		
-		if (debug_mode) {
+		if (ops1_parameters["debug_mode"]) {
 			clearvecdraws().
 			arrow_ship(vecyz(upfgInternal["steering"]),"steer").
 			arrow_ship(vecyz(upfgInternal["ix"]),"ix").

@@ -274,7 +274,7 @@ FUNCTION prepare_launch {
 		} ELSE {
 			SET target_orbit["direction"] TO "north".
 		}
-		SET target_orbit["LAN"] TO LAN_orbit_overhead(target_orbit["inclination"], (target_orbit["direction"]="south"), vehicle["launchTimeAdvance"] + vehicle_countdown + 1).
+		SET target_orbit["LAN"] TO LAN_orbit_overhead(target_orbit["inclination"], (target_orbit["direction"]="south"), ops1_parameters["launchTimeAdvance"] + vehicle_countdown + 1).
 	}
 	
 	//handle nearest launch window
@@ -329,7 +329,7 @@ FUNCTION prepare_launch {
 		SET time2window TO t2w.
 	}
 	
-	SET time2window TO time2window - vehicle["launchTimeAdvance"].
+	SET time2window TO time2window - ops1_parameters["launchTimeAdvance"].
 	
 	IF (time2window < vehicle_countdown) {
 		SET time2window TO time2window + SHIP:BODY:ROTATIONPERIOD.

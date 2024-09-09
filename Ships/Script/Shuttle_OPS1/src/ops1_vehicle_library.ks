@@ -51,22 +51,16 @@ function initialise_shuttle {
 	GLOBAL vehicle IS LEXICON(
 						"name",SHIP:NAME,
 						"ign_t", 0,
-						"launchTimeAdvance", 300,
-						"roll_v0",35,
-						"pitch_v0",38.7096,
 						"trajectory_scale",0,
-						"preburn",5.1,
 						"roll",180,
 						"srb_sep_flag", FALSE,
 						"et_sep_flag", FALSE,
 						"meco_flag", FALSE,
-						"et_sep_prograde_alt", 55000,
-						"qbucketval", 0.28,
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
 						"glim", 3,
 						"low_level", FALSE,
-						"low_level_burnt", 10,
+						
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
@@ -75,7 +69,6 @@ function initialise_shuttle {
 						"SSME_prop", 0,
 						"OMS_prop_0", 0,
 						"OMS_prop", 0,
-						"OMS_prop_dump_frac", 0.3,
 						"SSME",0,
 						"OMS",0,
 						"stack_full_mass", 0,
@@ -256,7 +249,7 @@ FUNCTION first_stage_engout_lofting_bias {
 FUNCTION open_loop_pitch {
 	PARAMETER curv.	 
 
-	LOCAL v0 IS vehicle["pitch_v0"].
+	LOCAL v0 IS ops1_parameters["pitch_v0"].
 	
 	LOCAL v_match IS 110.
 	
@@ -970,7 +963,7 @@ FUNCTION getState {
 	stop_oms_dump().
 	
 	
-	if (debug_mode) {
+	if (ops1_parameters["debug_mode"]) {
 		dump_vehicle().
 	}
 }
@@ -1131,7 +1124,7 @@ FUNCTION ssme_low_level {
 	
 		local prop_left is vehicle["SSME_prop"].
 		
-		local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * vehicle["low_level_burnt"].
+		local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * ops1_parameters["low_level_burnt"].
 		
 		set vehicle["low_level"] to (prop_left <= low_level_prop).
 		
@@ -1542,7 +1535,7 @@ FUNCTION stop_oms_dump {
 		RETURN.
 	}
 
-	IF (get_oms_prop_fraction() <= vehicle["OMS_prop_dump_frac"]) OR (force) {
+	IF (get_oms_prop_fraction() <= ops1_parameters["OMS_prop_dump_frac"]) OR (force) {
 
 		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 		FOR oms IN get_oms_parts() {
