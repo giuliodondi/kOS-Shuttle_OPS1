@@ -34,10 +34,6 @@ GLOBAL abort_modes IS LEXICON(
 															"tal", false,
 															"ato", false,
 															"meco", false
-													),
-												"3eo", lexicon(
-															"tal", false,
-															"ato", false
 													)
 									),
 					"2eo_cont_mode", "XXXXX",
@@ -651,6 +647,8 @@ function abort_initialiser {
 		set abort_modes["ato_active"] to false. 
 		
 		addGUIMessage("ABORT 3EO " + abort_modes["3eo_cont_mode"]).
+		
+		setup_3eo_contingency().
 	}
 	
 	//start oms dump in any abort case except ato
@@ -1477,7 +1475,7 @@ function cont_2eo_outbound_theta {
 function setup_2eo_contingency {
 	
 	//save the state at abort init 
-	global contingency_abort is lexicon(
+	global cont_2eo_abort is lexicon(
 							"mode", abort_modes["2eo_cont_mode"],
 							"ve", surfacestate["surfv"]:mag,
 							"vi", orbitstate["velocity"]:mag,
@@ -1514,5 +1512,19 @@ function cont_2eo_terminal_condition {
 	}
 	
 	return terminal_flag.
+
+}
+
+
+function setup_3eo_contingency {
+	
+	//save the state at abort init 
+	global cont_3eo_abort is lexicon(
+							"mode", abort_modes["2eo_cont_mode"],
+							"ve", surfacestate["surfv"]:mag,
+							"vi", orbitstate["velocity"]:mag,
+							"h", surfacestate["alt"],
+							"hdot", surfacestate["vs"]
+	).
 
 }

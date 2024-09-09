@@ -691,7 +691,7 @@ function ops1_second_stage_contingency {
 		set cont_steerv to vxcl(dap:steer_refv, surfacestate["surfv"]):normalized.
 		local normv is vcrs(cont_steerv, dap:steer_refv).
 		
-		set cont_steerv to rodrigues(cont_steerv, normv, contingency_abort["outbound_theta"]).
+		set cont_steerv to rodrigues(cont_steerv, normv, cont_2eo_abort["outbound_theta"]).
 	}
 	
 	//flags for pre-meco attitude control
