@@ -264,7 +264,6 @@ function enginefailuregui{
 		update_engfail_panel(fail_mode).
 	}.
 	
-	
 	engfailbox:addspacing(2).
 	
 	global engfailtime_staging_list is list().
@@ -281,6 +280,9 @@ function enginefailuregui{
 		set eng_fail_b:pressed to false.
 	}
 	SET engine_failure_gui_close:ONCLICK TO enginefailureguiclosecheck@.
+	if (ops1_parameters["random_failures"]) {
+		set engfailmode_b:index to 1.
+	}
 	engine_failure_gui:SHOW().
 }
 

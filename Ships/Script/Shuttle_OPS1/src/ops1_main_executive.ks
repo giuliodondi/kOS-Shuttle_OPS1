@@ -177,6 +177,7 @@ function ops1_countdown{
 			RETURN FALSE.
 		}
 		IF (monitor_rsls) {
+			setup_engine_failure().
 			measure_update_engines().
 	
 			IF (vehicle["ssme_out_detected"]) {
