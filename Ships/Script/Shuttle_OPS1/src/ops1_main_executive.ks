@@ -849,8 +849,7 @@ function ops1_et_sep {
 	addGUIMessage("STAND-BY FOR ET SEP").
 	
 	//3 modes: nominal, immediate, rate-sep 
-
-	local et_sep_mode is et_sep_mode_determinator().
+	et_sep_mode_determinator().
 	
 	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
@@ -860,15 +859,15 @@ function ops1_et_sep {
 	local et_sep_oms_t is 5.
 	
 	
-	if (et_sep_mode = "nominal") {
+	if (abort_modes["et_sep_mode"] = "nominal") {
 		set pre_sequence_t to 2.
 		set pre_sep_t to 1.
 		set translation_t to 13.
-	} else if (et_sep_mode = "immediate") {
+	} else if (abort_modes["et_sep_mode"] = "immediate") {
 		set pre_sequence_t to 1.
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
-	} else if (et_sep_mode = "rate") {
+	} else if (abort_modes["et_sep_mode"] = "rate") {
 		set pre_sequence_t to 1.
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
@@ -894,7 +893,7 @@ function ops1_et_sep {
 		if (not vehicle["et_sep_flag"]) {
 		
 			//rate sep is different
-			if (et_sep_mode = "rate") {
+			if (abort_modes["et_sep_mode"] = "rate") {
 			
 				dap:set_strmgr_free().
 				
@@ -1007,7 +1006,7 @@ function ops1_et_sep {
 	
 	local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
 	
-	if (et_sep_mode <> "nominal") {
+	if (abort_modes["et_sep_mode"] <> "nominal") {
 	
 		dap:set_strmgr_free().
 		

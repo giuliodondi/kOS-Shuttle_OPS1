@@ -15,6 +15,7 @@ GLOBAL abort_modes IS LEXICON(
 					"cont_3eo_active", false,
 					"ssmes_out", list(),
 					"oms_dump",FALSE,
+					"et_sep_mode", "",
 					"rtls_tgt_site", "",
 					"tal_tgt_site", "",
 					"tal_candidates", "",
@@ -731,7 +732,7 @@ function et_sep_mode_determinator {
 		}
 	}
 	
-	return et_sep_mode.
+	set abort_modes["et_sep_mode"] to et_sep_mode.
 }
 
 
