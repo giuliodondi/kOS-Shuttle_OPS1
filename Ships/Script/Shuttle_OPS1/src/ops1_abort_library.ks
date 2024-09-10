@@ -1472,7 +1472,7 @@ function cont_2eo_immediate_sep {
 //works both for droop and contingency immediate sep 
 function contingency_et_sep_alt {
 	
-	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"].
+	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"]:mag.
 
 	return clamp(et_sep_alt_ve, 62484, 80772).
 }
