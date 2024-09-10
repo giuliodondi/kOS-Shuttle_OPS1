@@ -616,6 +616,7 @@ function ops1_second_stage_rtls {
 					SET upfgInternal["s_flyback"] TO TRUE.
 					SET upfgInternal["s_throt"] TO TRUE.
 					set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+					dap:set_strmgr_low().
 					SET RTLS_steering TO RTLSAbort["pitcharound"]["target"].
 				} else {
 					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
@@ -684,7 +685,7 @@ function ops1_second_stage_contingency {
 	
 	set dap:steer_freeze to false.
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	
+	dap:set_strmgr_med().
 	set dap:thrust_corr to FALSE.
 	
 	//mode-dependent steering vector
@@ -736,9 +737,6 @@ function ops1_second_stage_contingency {
 			break.
 		}
 		
-		
-		dap:set_strmgr_med().
-		
 		if (not steer_vec_flag) and (dap:steering_null_err) {
 			set steer_vec_flag to true.
 			set vehicle["roll"] to 0.
@@ -749,6 +747,7 @@ function ops1_second_stage_contingency {
 		
 		if steer_vec_flag and (not vehicle["roll_heads_up_flag"]) and (dap:roll_null_err) {
 			set vehicle["roll_heads_up_flag"] to true.
+			dap:set_strmgr_low().
 		}
 		
 		if (steer_vec_flag and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition()) {

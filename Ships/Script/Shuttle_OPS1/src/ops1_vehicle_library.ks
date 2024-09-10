@@ -1834,8 +1834,6 @@ function single_engine_roll_control {
 
 	dap:set_rcs(TRUE).
 	
-	dap:set_strmgr_med().
-	
 	dap:toggle_serc(true).
 	
 	FOR ssme IN get_ssme_parts() {
