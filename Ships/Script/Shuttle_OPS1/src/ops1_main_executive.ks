@@ -1008,7 +1008,7 @@ function ops1_et_sep {
 	
 	local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
 	
-	if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"] OR abort_modes["rtls_active"]) {
+	if (et_sep_mode <> "nominal") {
 	
 		dap:set_strmgr_free().
 		
