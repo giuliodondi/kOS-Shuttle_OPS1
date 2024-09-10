@@ -711,7 +711,6 @@ function ops1_second_stage_contingency {
 	
 	//sequencing flags
 	local steer_vec_flag is false.
-	local heads_up_flag is false.
 	local immediate_et_sep is false.
 	
 	local quit_guid_loop is false.
@@ -748,11 +747,11 @@ function ops1_second_stage_contingency {
 			wait 0.3.
 		}
 		
-		if steer_vec_flag and (not heads_up_flag) and (dap:roll_null_err) {
-			set heads_up_flag to true.
+		if steer_vec_flag and (not vehicle["roll_heads_up_flag"]) and (dap:roll_null_err) {
+			set vehicle["roll_heads_up_flag"] to true.
 		}
 		
-		if (steer_vec_flag and heads_up_flag and cont_2eo_terminal_condition()) {
+		if (steer_vec_flag and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition()) {
 			break.
 		}
 		
