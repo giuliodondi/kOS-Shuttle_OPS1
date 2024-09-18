@@ -59,6 +59,7 @@ function initialise_shuttle {
 						"meco_flag", FALSE,
 						"qbucket", FALSE,
 						"max_q_reached", FALSE,
+						"yaw_steering", FALSE,
 						"glim", 3,
 						"low_level", FALSE,
 						"maxThrottle",0,	

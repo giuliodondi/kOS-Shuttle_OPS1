@@ -1508,6 +1508,21 @@ function cont_2eo_outbound_theta {
 	return clamp(theta_, 18, 90).
 }
 
+//implement pitch-up, yaw steering triggering and limitations 
+//upfg.compatible for consistency
+function cont_2eo_steering {
+
+	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"]:normalized)).
+	local normv is vcrs(cont_steerv, orbitstate["radius"]).
+	set cont_steerv to rodrigues(cont_steerv, normv, cont_2eo_abort["outbound_theta"]).
+
+	if (vehicle["yaw_steering"]) {
+		
+	}
+	
+	return cont_steerv.
+}
+
 function setup_2eo_contingency {
 	
 	//save the state at abort init 

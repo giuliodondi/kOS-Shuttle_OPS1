@@ -12,6 +12,7 @@ GLOBAL ops1_parameters is LEXICON(
 						"roll_v0",35,
 						"pitch_v0",38.7,
 						"qbucketval", 0.28,
+						"yaw_steer_lim", 45,
 						"roll_headsup_vi", 3700,	//SET THIS TO >10000 TO INHIBIT
 						"low_level_burnt", 5.1,
 						"RTLS_prop_frac", 0.01,

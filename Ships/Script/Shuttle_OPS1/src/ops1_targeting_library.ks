@@ -54,6 +54,29 @@ FUNCTION currentNormal{
 	RETURN VCRS(orbitstate["radius"],orbitstate["velocity"]):NORMALIZED.
 }
 
+//limit off-plane component of steering
+//upfg-compatible steering
+function limit_yaw_steering {
+	parameter steervec.
+	parameter normvec.
+	
+	local steerproj is vxcl(normvec, steervec).
+	
+	local yaw_angle is signed_angle(
+						steerproj,
+						steervec,
+						orbitstate["radius"],
+						0
+	).
+	
+	return rodrigues(
+				steerproj,
+				orbitstate["radius"],
+				sign(yaw_angle)*min(abs(yaw_angle), ops1_parameters["yaw_steer_lim"])
+	):normalized.
+
+}
+
 
 FUNCTION nominal_cutoff_params {
 	PARAMETER tgt_orb.
