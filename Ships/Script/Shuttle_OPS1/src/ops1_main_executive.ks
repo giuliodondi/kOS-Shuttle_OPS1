@@ -444,6 +444,10 @@ function ops1_second_stage_nominal {
 			BREAK.
 		}	
 		
+		if (vehicle["meco_flag"]) {
+			break.
+		}
+		
 		IF HASTARGET = TRUE AND (TARGET:BODY = SHIP:BODY) {
 			tgt_j2_timefor(target_orbit, upfgInternal["tgo"]).
 		}
@@ -489,7 +493,7 @@ function ops1_second_stage_nominal {
 	
 	UNTIL FALSE {
 		getState().
-		IF (orbitstate["velocity"]:MAG >= target_orbit["velocity"] OR SSME_flameout()) {
+		IF (orbitstate["velocity"]:MAG >= target_orbit["velocity"]) OR vehicle["meco_flag"] {
 			BREAK.
 		}
 	}
@@ -535,6 +539,10 @@ function ops1_second_stage_rtls {
 		if (upfgInternal["s_meco"]) {
 			addGUIMessage("TERMINAL GUIDANCE").
 			BREAK.
+		}
+		
+		if (vehicle["meco_flag"]) {
+			break.
 		}
 		
 		upfg_sense_current_state(upfgInternal).
@@ -661,7 +669,7 @@ function ops1_second_stage_rtls {
 		LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
 		LOCAL tgtsurfvel IS RTLS_rvline(rng).
 		
-		IF (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel OR SSME_flameout()) {
+		IF (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel) OR vehicle["meco_flag"] {
 			BREAK.
 		}
 		
@@ -729,7 +737,7 @@ function ops1_second_stage_contingency {
 		abort_handler().
 		getState().
 		
-		if (cont_2eo_immediate_sep()) {
+		if (cont_2eo_immediate_sep()) or vehicle["meco_flag"] {
 			set immediate_et_sep to true.
 			break.
 		}
@@ -796,7 +804,7 @@ function ops1_second_stage_contingency {
 				break.
 			}
 			
-			if (cont_2eo_immediate_sep()) {
+			if (cont_2eo_immediate_sep()) or vehicle["meco_flag"] {
 				set immediate_et_sep to true.
 				break.
 			}

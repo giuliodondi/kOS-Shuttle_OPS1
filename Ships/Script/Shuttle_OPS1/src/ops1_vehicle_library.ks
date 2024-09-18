@@ -954,6 +954,7 @@ FUNCTION getState {
 			
 			ssme_staging(vehiclestate["cur_stg"]).
 			ssme_low_level(vehiclestate["cur_stg"]).
+			ssme_flameout().
 		}
 	
 	}
@@ -1806,17 +1807,22 @@ function get_engines_out {
 	return 3 - vehicle["SSME"]["active"].
 }
 
-FUNCTION SSME_flameout {
+FUNCTION ssme_flameout {
 
 	local all_ssme_flameout is true.
 	FOR ssme IN get_ssme_parts() {
 		set all_ssme_flameout to (all_ssme_flameout and (ssme:FLAMEOUT)).
 	}
-	RETURN all_ssme_flameout.
+	
+	SET vehicle["meco_flag"] TO all_ssme_flameout.
 }
 
 
 FUNCTION shutdown_ssmes {
+	if (vehicle["meco_flag"]) {
+		return.
+	}
+	
 	FOR e IN get_ssme_parts() {
 		e:shutdown.
 	}	
