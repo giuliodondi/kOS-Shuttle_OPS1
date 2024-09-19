@@ -455,6 +455,8 @@ function make_ascent_traj1_disp {
 	set ascent_traj_cont_abort2:style:margin:v to -4.
 	GLOBAL ascent_traj_cont_abort3 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" 3EO XXXXXXXXXXX").
 	set ascent_traj_cont_abort3:style:margin:v to -4.
+	GLOBAL ascent_traj_cont_abort4 IS ascent_traj_disp_cont_abort_box:ADDLABEL(" YAW STEER").
+	set ascent_traj_cont_abort4:style:margin:v to -4.
 	
 	GLOBAL ascent_trajleftdata1 IS ascent_traj_disp_leftdatabox:ADDLABEL("Ḣ   xxxxxx").
 	set ascent_trajleftdata1:style:margin:v to -4.
@@ -846,6 +848,11 @@ function update_abort_modes_gui {
 		set ascent_traj_cont_abort3:text to "<color=#" + three_eo_cont_text_color + "> 3EO " + abort_modes["3eo_cont_mode"] + "</color>". 
 	}
 	
+	if (vehicle["yaw_steering"]) {
+		set ascent_traj_cont_abort4 to "<color=#" + guitextyellowhex + "> YAW STEER</color>". 
+	} else {
+		set ascent_traj_cont_abort4 to "".
+	}
 }
 
 function get_available_abort_modes {

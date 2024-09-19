@@ -779,7 +779,6 @@ function ops1_second_stage_contingency {
 		
 		if (vehicle["yaw_steering"]) and (cont_2eo_yawsteer_off()) {
 			set vehicle["yaw_steering"] to false.
-			addGUIMessage("ECAL YAW STEERING DISABLED").
 		}
 		
 		SET target_orbit["normal"] TO currentNormal().
