@@ -1507,13 +1507,16 @@ function ecal_rv_boundaries {
 }
 
 //of all the ecal candidates, choose the closest within rv boundary
+//as fallback choose the least crossrange one 
 //leave blank if not available
 function determine_ecal_site {
 
 	local cur_pos is vecyz(orbitstate["radius"]).
 	
 	local ecal_best_site is "".
+	local ecal_lowest_dz is "".
 	local lowest_rng is 1000000000.
+	local lowest_dz is 1000000000.
 	
 	for sname in abort_modes["ecal_candidates"] {
 		
@@ -1539,15 +1542,31 @@ function determine_ecal_site {
 				).
 			}
 		}
+		
+		local ecal_delaz is az_error(
+							cur_pos,
+							rwypos,
+							surfacestate["surfv"]
+		).
+		
+		if (ecal_delaz <= lowest_dz) {
+			set lowest_dz to ecal_delaz.
+			set ecal_lowest_dz to lexicon(
+						"site", sname,
+						"position", rwypos
+			).
+		}
 	}
 	
 	if (ecal_best_site <> "") {
 		set abort_modes["ecal_tgt_site"] to ecal_best_site.
+	} else if (ecal_lowest_dz <> "") {
+		set abort_modes["ecal_tgt_site"] to ecal_lowest_dz.
 	}
 }
 
 function cont_2eo_yawsteer_off {
-	return (surfacestate["vs"] < 0) and (surfacestate["eas"] >= 5.3).
+	return (surfacestate["vs"] < 0) and (surfacestate["eas"] >= 4).
 }
 
 //2eo pitch angle to minimise fpa at meco 
@@ -1586,7 +1605,7 @@ function cont_2eo_steering {
 		
 		//alter the theta angle
 		//keep the altered theta even after yaw steering is disabled
-		local theta_anchor is 54.
+		local theta_anchor is 45.
 		set theta_angle to theta_anchor + (theta_angle - theta_anchor)*0.67.
 	}
 	
@@ -1616,7 +1635,7 @@ function cont_2eo_terminal_condition {
 
 	local terminal_flag is false.
 	
-	local eas_et_sep is 12.
+	local eas_et_sep is 7.
 	
 	if (abort_modes["2eo_cont_mode"] = "BLUE") {
 		set terminal_flag to (surfacestate["vs"] < 0)

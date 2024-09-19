@@ -773,7 +773,7 @@ function ops1_second_stage_contingency {
 			dap:set_strmgr_low().
 		}
 		
-		if (roll_headsup_trg and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition() and dap:steering_null_err and dap:roll_null_err) {
+		if (roll_headsup_trg and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition() and dap:steering_null_err) {
 			break.
 		}
 		
