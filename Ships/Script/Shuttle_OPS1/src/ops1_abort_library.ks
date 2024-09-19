@@ -681,8 +681,6 @@ function abort_initialiser {
 			set abort_modes["ato_active"] to false.
 		}
 		
-		
-		
 		setup_3eo_contingency().
 	}
 	
@@ -1508,14 +1506,14 @@ function ecal_rv_boundaries {
 	return list(lower_v, upper_v).
 }
 
-//of all the ecal candidates, choose the one within rv boundary and with least crossrange
+//of all the ecal candidates, choose the closest within rv boundary
 //leave blank if not available
 function determine_ecal_site {
 
 	local cur_pos is vecyz(orbitstate["radius"]).
 	
 	local ecal_best_site is "".
-	local lowest_dz is 10000000.
+	local lowest_rng is 1000000000.
 	
 	for sname in abort_modes["ecal_candidates"] {
 		
@@ -1529,19 +1527,12 @@ function determine_ecal_site {
 			set rwypos to site[0]["position"].
 		}
 		
-		local ecal_delaz is az_error(
-							cur_pos,
-							rwypos,
-							surfacestate["surfv"]
-		).
-		set ecal_delaz to abs(ecal_delaz).
-		
 		local ecal_rng is greatcircledist(cur_pos, rwypos).
 		local ecal_vel_b is ecal_rv_boundaries(ecal_rng).
 		
 		if (orbitstate["velocity"]:mag <= ecal_vel_b[1]) {
-			if (lowest_dz >= ecal_delaz) {
-				set lowest_dz to ecal_delaz.
+			if (lowest_rng >= ecal_rng) {
+				set lowest_rng to ecal_rng.
 				set ecal_best_site to lexicon(
 							"site", sname,
 							"position", rwypos
@@ -1707,4 +1698,6 @@ function setup_3eo_contingency {
 							"h", surfacestate["alt"],
 							"hdot", surfacestate["vs"]
 	).
+	
+	determine_ecal_site().
 }
