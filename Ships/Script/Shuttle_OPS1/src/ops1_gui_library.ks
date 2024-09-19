@@ -849,9 +849,9 @@ function update_abort_modes_gui {
 	}
 	
 	if (vehicle["yaw_steering"]) {
-		set ascent_traj_cont_abort4 to "<color=#" + guitextyellowhex + "> YAW STEER</color>". 
+		set ascent_traj_cont_abort4:text to "<color=#" + guitextyellowhex + "> YAW STEER</color>". 
 	} else {
-		set ascent_traj_cont_abort4 to "".
+		set ascent_traj_cont_abort4:text to "".
 	}
 }
 
