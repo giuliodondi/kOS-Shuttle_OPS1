@@ -466,7 +466,8 @@ function ops1_second_stage_nominal {
 		}
 		
 		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
-			dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
+			local steer_yawlim is limit_yaw_steering(upfgInternal["steering"], target_orbit["normal"]).
+			dap:set_steer_tgt(vecYZ(steer_yawlim)).
 			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
 		}
 		
@@ -638,12 +639,25 @@ function ops1_second_stage_rtls {
 			
 		} else {
 			IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
-				dap:set_steer_tgt(vecYZ(upfgInternal["steering"])).
+				local steer_yawlim is limit_yaw_steering(upfgInternal["steering"], target_orbit["normal"]).
+				dap:set_steer_tgt(vecYZ(steer_yawlim)).
 				set dap:thr_rpl_tgt to upfgInternal["throtset"].	
 			}
 		}
 	
 		SET RTLSAbort["Tc"] TO PEG_Tc.
+		
+		if (ops1_parameters["debug_mode"]) {
+			clearvecdraws().
+			arrow_ship(vecyz(upfgInternal["steering"]),"steer").
+			arrow_ship(vecyz(upfgInternal["ix"]),"ix").
+			arrow_ship(vecyz(upfgInternal["iy"]),"iy").
+			arrow_ship(vecyz(upfgInternal["iz"]),"iz").
+			
+			arrow_body(vecyz(vxcl(upfgInternal["iy"], upfgInternal["r_cur"])),"r_proj").
+			arrow_body(vecyz(upfgInternal["rd"]),"rd").
+			arrow_body(vecyz(target_orbit["normal"]),"rd").
+		}
 		
 	}
 	
@@ -694,22 +708,24 @@ function ops1_second_stage_contingency {
 	
 	set dap:steer_freeze to false.
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	dap:set_strmgr_med().
+	dap:set_steer_tgt(dap:cur_dir:forevector).	
 	set dap:thrust_corr to FALSE.
-	
-	//mode-dependent steering vector
-	local cont_steerv is dap:cur_dir:forevector.
-	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
-		
-		set cont_steerv to vxcl(dap:steer_refv, surfacestate["surfv"]):normalized.
-		local normv is vcrs(cont_steerv, dap:steer_refv).
-		
-		set cont_steerv to rodrigues(cont_steerv, normv, cont_2eo_abort["outbound_theta"]).
-	}
+	dap:set_strmgr_low().
 	
 	//flags for pre-meco attitude control
+	local active_steer_flag is false.
 	local pitchdown_mode_flag is false.
 	local rate_sep_flag is false.
+	
+	if (abort_modes["ecal_tgt_site"] <> "") and 
+		(abort_modes["2eo_cont_mode"] = "GREEN" or (abort_modes["2eo_cont_mode"] = "RTLS YELLOW" and (NOT RTLSAbort["pitcharound"]["triggered"]))) {
+		set vehicle["yaw_steering"] to true.
+		addGUIMessage("ECAL YAW STEERING TO " + abort_modes["ecal_tgt_site"]["site"]).
+	}
+	
+	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
+		set active_steer_flag to true.
+	}
 	
 	if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
 		set pitchdown_mode_flag to true.
@@ -720,13 +736,10 @@ function ops1_second_stage_contingency {
 	}
 	
 	//sequencing flags
-	local steer_vec_flag is false.
+	local roll_headsup_trg is false.
 	local immediate_et_sep is false.
-	
 	local quit_guid_loop is false.
 	
-	
-	dap:set_steer_tgt(cont_steerv).	
 	wait 0.3.
 	
 	until false {
@@ -746,23 +759,35 @@ function ops1_second_stage_contingency {
 			break.
 		}
 		
-		if (not steer_vec_flag) and (dap:steering_null_err) {
-			set steer_vec_flag to true.
+		if (not roll_headsup_trg) and (dap:steering_null_err) {
+			set roll_headsup_trg to true.
 			set vehicle["roll"] to 0.
 			set dap:steer_roll to 0.
 			set dap:thrust_corr to FALSE.
+			dap:set_strmgr_med().
 			wait 0.3.
 		}
 		
-		if steer_vec_flag and (not vehicle["roll_heads_up_flag"]) and (dap:roll_null_err) {
+		if roll_headsup_trg and (not vehicle["roll_heads_up_flag"]) and (dap:roll_null_err) {
 			set vehicle["roll_heads_up_flag"] to true.
 			dap:set_strmgr_low().
 		}
 		
-		if (steer_vec_flag and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition()) {
+		if (roll_headsup_trg and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition() and dap:steering_null_err and dap:roll_null_err) {
 			break.
 		}
 		
+		if (vehicle["yaw_steering"]) and (cont_2eo_yawsteer_off()) {
+			set vehicle["yaw_steering"] to false.
+			addGUIMessage("ECAL YAW STEERING DISABLED").
+		}
+		
+		SET target_orbit["normal"] TO currentNormal().
+		
+		if (active_steer_flag) {
+			local steer_yawlim is limit_yaw_steering(cont_2eo_steering(), target_orbit["normal"]).
+			dap:set_steer_tgt(vecYZ(steer_yawlim)).
+		}
 	}
 	
 	local bypass_pitchdown is false.
@@ -1065,9 +1090,11 @@ function ops1_termination {
 	} else if (abort_modes["rtls_active"]) {
 		RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
 	} else if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
-		//ecal tbd 
-		//placeholder target site
-		RUN "0:/ops3"("cont", abort_modes["rtls_tgt_site"]["site"]).
+		if (abort_modes["ecal_tgt_site"] <> "") {
+			RUN "0:/ops3"("ecal", abort_modes["ecal_tgt_site"]["site"]).
+		} else {
+			RUN "0:/ops3"("cont", abort_modes["rtls_tgt_site"]["site"]).
+		}
 	} 
 
 }

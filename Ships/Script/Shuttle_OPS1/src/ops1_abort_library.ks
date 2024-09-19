@@ -22,6 +22,7 @@ GLOBAL abort_modes IS LEXICON(
 					"1eo_tal_sites", "",
 					"2eo_tal_sites", "",
 					"3eo_tal_site", "",
+					"ecal_tgt_site", "",
 					"ecal_candidates", "",
 					"intact_modes", lexicon(
 												"1eo", lexicon(
@@ -77,7 +78,7 @@ function initialise_abort_sites {
 								ldgsiteslex,
 								posv,
 								velv,
-								1000,
+								500,
 								2000
 	).
 
@@ -1497,6 +1498,67 @@ function rtls_initialise_cont_modes {
 	set abort_modes["3eo_cont_mode"] to "RTLS BLUE".
 }
 
+//rv lines that define the ecal window given range in km
+function ecal_rv_boundaries {
+	parameter rng.
+	
+	local upper_v is 2.3099 * rng + 1039.4.
+	local lower_v is 1.5951 * rng + 1054.4.
+
+	return list(lower_v, upper_v).
+}
+
+//of all the ecal candidates, choose the one within rv boundary and with least crossrange
+//leave blank if not available
+function determine_ecal_site {
+
+	local cur_pos is vecyz(orbitstate["radius"]).
+	
+	local ecal_best_site is "".
+	local lowest_dz is 10000000.
+	
+	for sname in abort_modes["ecal_candidates"] {
+		
+		LOCAL site IS ldgsiteslex[sname].
+				
+		local rwypos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set rwypos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set rwypos to site[0]["position"].
+		}
+		
+		local ecal_delaz is az_error(
+							cur_pos,
+							rwypos,
+							surfacestate["surfv"]
+		).
+		set ecal_delaz to abs(ecal_delaz).
+		
+		local ecal_rng is greatcircledist(cur_pos, rwypos).
+		local ecal_vel_b is ecal_rv_boundaries(ecal_rng).
+		
+		if (orbitstate["velocity"]:mag <= ecal_vel_b[1]) {
+			if (lowest_dz >= ecal_delaz) {
+				set lowest_dz to ecal_delaz.
+				set ecal_best_site to lexicon(
+							"site", sname,
+							"position", rwypos
+				).
+			}
+		}
+	}
+	
+	if (ecal_best_site <> "") {
+		set abort_modes["ecal_tgt_site"] to ecal_best_site.
+	}
+}
+
+function cont_2eo_yawsteer_off {
+	return (surfacestate["vs"] < 0) and (surfacestate["eas"] >= 5.3).
+}
+
 //2eo pitch angle to minimise fpa at meco 
 //for 2eo blue/green or rtls 2eo yellow 
 //should be called once at abort init
@@ -1514,11 +1576,31 @@ function cont_2eo_steering {
 
 	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"]:normalized)).
 	local normv is vcrs(cont_steerv, orbitstate["radius"]).
-	set cont_steerv to rodrigues(cont_steerv, normv, cont_2eo_abort["outbound_theta"]).
-
-	if (vehicle["yaw_steering"]) {
+	
+	local yaw_steer_angle is 0.
+	local theta_angle is cont_2eo_abort["outbound_theta"].
+	
+	if (abort_modes["ecal_tgt_site"] <> "") {
+	
+		if (vehicle["yaw_steering"]) {
+			//yaw to the ecal site by a fixed amount
 		
+			local ecal_delaz is az_error(
+								vecyz(orbitstate["radius"]),
+								abort_modes["ecal_tgt_site"]["position"],
+								surfacestate["surfv"]
+			).
+			set yaw_steer_angle to -2 * ecal_delaz.
+		}
+		
+		//alter the theta angle
+		//keep the altered theta even after yaw steering is disabled
+		local theta_anchor is 54.
+		set theta_angle to theta_anchor + (theta_angle - theta_anchor)*0.67.
 	}
+	
+	set cont_steerv to rodrigues(cont_steerv, normv, theta_angle).
+	set cont_steerv to rodrigues(cont_steerv, orbitstate["radius"], yaw_steer_angle).
 	
 	return cont_steerv.
 }
@@ -1534,6 +1616,8 @@ function setup_2eo_contingency {
 							"hdot", surfacestate["vs"],
 							"outbound_theta", cont_2eo_outbound_theta(surfacestate["vs"])
 	).
+	
+	determine_ecal_site().
 
 }
 
@@ -1541,7 +1625,7 @@ function cont_2eo_terminal_condition {
 
 	local terminal_flag is false.
 	
-	local eas_et_sep is 7.
+	local eas_et_sep is 12.
 	
 	if (abort_modes["2eo_cont_mode"] = "BLUE") {
 		set terminal_flag to (surfacestate["vs"] < 0)
