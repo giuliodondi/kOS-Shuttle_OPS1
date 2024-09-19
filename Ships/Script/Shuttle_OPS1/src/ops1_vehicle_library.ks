@@ -1525,8 +1525,11 @@ FUNCTION start_oms_dump {
 	FOR oms IN get_oms_parts() {
 		oms:ACTIVATE.
 	}
-	addGUIMessage("OMS DUMP STARTED").
-	SET abort_modes["oms_dump"] TO TRUE.
+	
+	if (NOT abort_modes["oms_dump"]) {
+		addGUIMessage("OMS DUMP STARTED").
+		SET abort_modes["oms_dump"] TO TRUE.
+	}
 }
 
 FUNCTION stop_oms_dump {
