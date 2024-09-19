@@ -1075,16 +1075,18 @@ function ops1_termination {
 
 	close_umbilical().
 
-	local nominal_flag is (not abort_triggered()).
+	local nominal_termination_flag is (not abort_triggered()) or abort_modes["ato_active"].
 
-	if (nominal_flag or abort_modes["ato_active"]) {
+	if nominal_termination_flag {
 		print_ascent_report().
 		WAIT 5.
 	}
 	
 	clean_up_ops1().
 	
-	if (abort_modes["tal_active"]) {
+	if nominal_termination_flag {
+		return.
+	} else if (abort_modes["tal_active"]) {
 		RUN "0:/ops3"("tal", abort_modes["tal_tgt_site"]["site"]).
 	} else if (abort_modes["rtls_active"]) {
 		RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
