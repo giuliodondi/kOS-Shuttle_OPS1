@@ -1050,7 +1050,7 @@ function ops1_et_sep {
 			
 			local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
 			local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
-			local forward_steerv is rodrigues(dap:steer_refv, normv_, v_ang).
+			local forward_steerv is rodrigues(surfv_proj, normv_, v_ang).
 			
 			dap:set_steer_tgt(forward_steerv).
 		}
