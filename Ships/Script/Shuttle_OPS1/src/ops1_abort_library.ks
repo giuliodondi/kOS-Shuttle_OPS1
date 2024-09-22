@@ -440,7 +440,7 @@ function contingency_abort_region_determinator {
 		} else {
 			if (vehiclestate["major_mode"] < 103) {
 				set abort_modes["3eo_cont_mode"] to "BLUE". 
-			} else if (orbitstate["velocity"]:MAG < 6700) {
+			} else if (orbitstate["velocity"]:MAG < 6000) {
 				set abort_modes["3eo_cont_mode"] to "GREEN". 
 			} else {
 				local tal_candidate is get_3eo_tal_site_vel().
