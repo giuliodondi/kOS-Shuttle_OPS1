@@ -884,6 +884,9 @@ function ops1_et_sep {
 	//3 modes: nominal, immediate, rate-sep 
 	et_sep_mode_determinator().
 	
+	//one last lex dump 
+	abort_handler().
+	
 	local pre_sequence_t is 0.
 	local pre_sep_t is 0.
 	local translation_t is 0.
@@ -990,7 +993,7 @@ function ops1_et_sep {
 						
 						et_sep().
 						
-						if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
+						if (abort_modes["et_sep_mode"] <> "nominal") {
 							
 							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
 							dap:set_steer_tgt(post_sep_pitch_up_steer).
@@ -1037,12 +1040,12 @@ function ops1_et_sep {
 	//move prograde, heads-up at a maximum of 50° aoa
 	dap:toggle_serc(false).
 	
-	local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
+	dap:set_strmgr_free().
 	
 	if (abort_modes["et_sep_mode"] <> "nominal") {
 	
-		dap:set_strmgr_free().
-		
+		local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
+
 		if (new_steer_tgt) {
 			set new_steer_tgt to false.
 		
@@ -1054,17 +1057,18 @@ function ops1_et_sep {
 			
 			dap:set_steer_tgt(forward_steerv).
 		}
+	}
+	
+	set vehicle["roll"] to 0.
+	set dap:steer_roll to 0.
+	
+	wait 0.3.
+	
+	until false {
+		getState().
 		
-		set vehicle["roll"] to 0.
-		set dap:steer_roll to 0.
-		wait 0.3.
-		
-		until false {
-			getState().
-			
-			if (dap:steering_null_err and dap:roll_null_err) {
-				BREAK.
-			}
+		if (dap:steering_null_err and dap:roll_null_err) {
+			BREAK.
 		}
 	}
 

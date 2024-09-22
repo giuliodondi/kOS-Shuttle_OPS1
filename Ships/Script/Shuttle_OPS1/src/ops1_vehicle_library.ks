@@ -1742,6 +1742,10 @@ FUNCTION convert_ssme_throt_rpl {
 
 //measure running engines of both kinds and rebuild the engines LEXICON
 FUNCTION measure_update_engines {
+
+	if (vehiclestate["staging_in_progress"]) {
+		return.
+	}
 	
 	LOCAL SSMEcount_prev IS vehicle["SSME"]["active"].
 	
