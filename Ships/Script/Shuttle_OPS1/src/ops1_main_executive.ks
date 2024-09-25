@@ -486,14 +486,20 @@ function ops1_second_stage_nominal {
 	
 	//terminal loop 
 	
-	SET upfgInternal["terminal"] TO TRUE.
+	SET vehicle["terminal_flag"] TO TRUE.
 	
 	set dap:thr_rpl_tgt to dap:thr_min.
 	
 	addGUIMessage("WAITING FOR MECO").
 	
 	UNTIL FALSE {
+		if (quit_program) {
+			RETURN.
+		}
+	
+		abort_handler().
 		getState().
+		
 		IF (orbitstate["velocity"]:MAG >= target_orbit["velocity"]) OR vehicle["meco_flag"] {
 			BREAK.
 		}
@@ -663,7 +669,7 @@ function ops1_second_stage_rtls {
 	
 	//powered pitchdown
 	
-	SET upfgInternal["terminal"] TO TRUE.
+	SET vehicle["terminal_flag"] TO TRUE.
 	
 	addGUIMessage("POWERED PITCH-DOWN").
 	
@@ -673,6 +679,11 @@ function ops1_second_stage_rtls {
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	UNTIL FALSE{
+		if (quit_program) {
+			RETURN.
+		}
+	
+		abort_handler().
 		getState().
 		
 		LOCAL steervec IS surfacestate["surfv"]:NORMALIZED.

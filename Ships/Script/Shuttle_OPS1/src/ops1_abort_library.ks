@@ -472,7 +472,8 @@ function abort_initialiser {
 	local three_engout is (engines_out = 3).
 	
 	//during forst stage only initialise 2eo and 2eo
-	if (vehiclestate["major_mode"] < 103) and (zero_engout or one_engout) {
+	//also don't intialise aborts during terminal count 
+	if ((vehiclestate["major_mode"] < 103) and (zero_engout or one_engout)) or vehicle["terminal_flag"] {
 		return.
 	}
 
