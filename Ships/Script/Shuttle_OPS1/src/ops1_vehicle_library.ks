@@ -62,6 +62,7 @@ function initialise_shuttle {
 						"yaw_steering", FALSE,
 						"glim", 3,
 						"low_level", FALSE,
+						"terminal_flag", FALSE,
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
@@ -1385,9 +1386,9 @@ function get_ssme_parts {
 function get_running_ssmes {
 	local running_ssme is list().
 
-	FOR e_ IN get_ssme_parts() {
-		IF e_:IGNITION {
-			running_ssme:add(e_).
+	FOR ssme IN get_ssme_parts() {
+		IF (ssme:IGNITION) and (NOT ssme:FLAMEOUT) {
+			running_ssme:add(ssme).
 		}
 	}
 	
@@ -1815,14 +1816,9 @@ function get_engines_out {
 	return 3 - vehicle["SSME"]["active"].
 }
 
+//this should now return true if no engines are running
 FUNCTION ssme_flameout {
-
-	local all_ssme_flameout is true.
-	FOR ssme IN get_ssme_parts() {
-		set all_ssme_flameout to (all_ssme_flameout and (ssme:FLAMEOUT)).
-	}
-	
-	SET vehicle["meco_flag"] TO all_ssme_flameout.
+	SET vehicle["meco_flag"] TO (get_engines_out() = 3).
 }
 
 
@@ -1838,6 +1834,11 @@ FUNCTION shutdown_ssmes {
 
 function ssme_out_safing {
 	FOR ssme IN get_ssme_parts() {
+		if (ssme:FLAMEOUT) {
+			ssme:shutdown.
+			wait 0.
+		}
+		
 		IF (NOT ssme:IGNITION) {
 			ssme:GIMBAL:DOACTION("lock gimbal", TRUE).
 		}
