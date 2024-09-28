@@ -33,11 +33,11 @@ GLOBAL abort_modes IS LEXICON(
 													),
 												"2eo", lexicon(
 															"rtls", false,		//required for 2eo rtls completion
-															"droop", false,
 															"tal", false,
 															"ato", false,
 															"meco", false
-													)
+													),
+												"2eo_droop", false	//separate flag because 2eo tal will be active as well
 									),
 					"2eo_cont_mode", "XXXXX",
 					"3eo_cont_mode", "XXXXX"
@@ -411,7 +411,7 @@ function contingency_abort_region_determinator {
 			
 		} else {
 			//droop boundary missing
-			if (abort_modes["intact_modes"]["2eo"]["droop"]) or 
+			if (abort_modes["intact_modes"]["2eo_droop"]) or 
 				(abort_modes["intact_modes"]["2eo"]["tal"]) or 
 				(abort_modes["intact_modes"]["2eo"]["ato"]) or 
 				(abort_modes["intact_modes"]["2eo"]["meco"]) {
@@ -1466,6 +1466,10 @@ function get_best_ecal_site {
 
 //		CONTINGENCY functions
 
+function droop_min_alt {
+	return 80772.
+}
+
 function cont_2eo_immediate_sep {
 	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= contingency_et_sep_alt()).
 }
@@ -1475,7 +1479,7 @@ function contingency_et_sep_alt {
 	
 	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"]:mag.
 
-	return clamp(et_sep_alt_ve, 62484, 80772).
+	return clamp(et_sep_alt_ve, 62484, droop_min_alt()).
 }
 
 function contingency_2eo_blue_boundary {
