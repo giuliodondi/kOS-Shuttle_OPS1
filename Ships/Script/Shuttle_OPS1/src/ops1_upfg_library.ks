@@ -58,6 +58,7 @@ FUNCTION setupUPFG {
 		"tgo", 1,
 		"vgo", v(0,0,0),
 		"vgodmag", 0,
+		"tlambda", 0,
 		"lambda", V(1,0,0),
 		"lambdadot", V(0,0,0),
 		"lambdy", 0,
@@ -365,6 +366,7 @@ FUNCTION upfg {
 		SET H_ TO J_*tgoi[i] - Q_.
 	}
 	LOCAL JOL IS J_/L_.
+	set internal["tlambda"] to internal["t_cur"] + JOL.
 	LOCAL Qprime IS Q_ - S_*JOL.
 	
 	
@@ -416,7 +418,7 @@ FUNCTION upfg {
 	
 	//steering inputs update subtask
 	LOCAL steering_prev IS internal["steering"].
-	SET internal["steering"] TO  internal["lambda"] - internal["lambdadot"]*JOL.
+	SET internal["steering"] TO (internal["lambda"] + (internal["t_cur"] - internal["tlambda"]) * internal["lambdadot"]):normalized.
 	
 	//burnout state vector prediction + thrust time integrals
 	LOCAL phi IS VANG(internal["steering"], internal["lambda"]) * CONSTANT:DEGTORAD.
@@ -669,8 +671,288 @@ FUNCTION upfg {
 	
 }
 
+//		DROOP GUIDANCE
+
+GLOBAL droopInternal IS LEXICON(
+						"s_firstpass", false,
+						"n_passes", 0,
+						"pass_max", 10,
+						"tnew", 0,	//new droop predicted time
+						"t1new", 1000,	//saved droop time 
+						"rout", 0,	//droop radius
+						"s_found", false,
+						"s_min_alt", false,
+						"s_min_range", false ,
+						"s_cdroop", false ,
+						"r_cur", V(0, 0, 0),
+						"v_cur", V(0, 0, 0),
+						"alt_dbnd", 3000,
+						"alt_cur", 0,
+						"t_cur", 0,
+						"m_cur", 0,
+						"ix", V(0, 0, 0),		//unit vectors
+						"iy", V(0, 0, 0),
+						"iz", V(0, 0, 0),
+						"lam", V(1,0,0),	//last peg steering params
+						"lamd", V(0,0,0),
+						"tlam", V(0,0,0),
+						"rinit", 0,
+						"tv_max", 0,
+						"tv_vert", 0,
+						"tv_horiz", 0,
+						"mdt", 0,
+						"tmmin" , 0,
+						"tmmax" , 0,
+						"peg_att", 0,
+						"vgdix", 0, 	//local vertical componet of velocity 
+						"vgdiy", 0, 	//local out of plane comp of velocity 
+						"vgdiz", 0, 	//local downrange comp of vel 
+						"ge", 0,		//magnitude fo grav acc at altitude 
+						"gacc", 0,		//effective grav acc corrected for velocity
+						"thr_att", 0,
+						"thresh_att", 0,
+						"thr_min", 68,
+						"thr_max", 85,
+						"att_incr", 0.5,
+						"vmiss", 50,
+						
+						"dummy", 0,
+							
+).
+
+//inputs
+m			//initial mass
+tv_max 		// total thrust input to droop
+tv_vert		//vert comp of tv_max		maxv * tv_max
+tv_horiz		//tv_max horiz component 	minh * tv_max
+
+gacc		//effective grav acc corrected for velocity : ge - (vgdiy^2 + vgdiz^2)/rinit
+ge		//magnitude fo grav acc at altitude 
+mdt		//mass flow input to droop
+rinit		//pos vec mag 
+vmiss_drp		//convergence check
+
+tmmax		//max possible droop time 		m - mass_low_level / mdt
+tmmin		
 
 
+//variables
+maxv			//sin of max thrust att for DROOP	initially sin(thr_max)
+minh			//cos of max attitude for droop  	initially cos(thr_max)
+s_droop_found	//droop solution found
+s_droop_min_alt	//min alt reached - droop off indicator		//initially false
+s_droop_min_range	//false if min altitude is reached before tmin
+tval			//temp constant >:(
+tvalln		//log of tval
+tnew 		//temporary time to go to DROOP		//initially 1000
+tnext		//iterative time to DROOP
+rgrav		//vertical pos gained due to gravity 
+agrav 		//vertical accel due to gravity
+VDOT		//rate of change of vout 
+vout 		// vertical vel at minimum droop 
+vgrav 		//vertical velocity gained due to gravity 
+xk_x			//coefs 
+vgdix		//local vertical componet of velocity 
+vgdiy		//local out of plane comp of velocity 
+vgdiz 		//local downrange comp of vel 
+
+droopInternal[""]
+
+
+
+
+if (not droopInternal["s_min_alt"]) {
+			//state prameters subtask 
+			
+				//rinit and ix from current position 
+				//iy from lam_drp cross ix , iz from ix cross iy
+				//peg droop steering (internal["lam_drp"] + (surfacestate["time"] - internal["tlam_drp"]) * internal["lamd_drp"]):normalized.
+				
+				//peg pitch attitude peg_att 90 - vang(ix , steer)
+				
+				//vgdix, y, z components of vi 
+				
+				//ge and gacc 
+				
+				//tnew = t1new - dt 
+				
+				//tv_max = current thrust 
+				//mdt = current mdot 
+				//thr_att = threshold attitude -minimum droop pitch  
+			
+			//control determination subtask 
+				//tv_vert and tv_horiz from tv_max and thr_att
+				
+				//droop predictor subtask -> rout, tnew, s_found, s_min_range
+				
+				//if solution found
+					//actual droop time t1new = tnew 
+					//set att_cmd = (rout less than threshold and min_range flag)
+					
+					//if peg converged and peg_att < thr_att , peg_ok flag true to signal return of control to peg 
+					
+					//set min_alt flag = s_cdroop and (t1new < 0 or (peg_ok and rout > min_alt)) 
+
+					//set s_cdroop = (min_alt false) and (att_cmd or s_cdroop) and (n_ssme < 3)
+				
+				//else solution not found 
+					//s_cdroop false 
+				
+		}
+		
+		//if s_cdroop steering parameters subtask 
+		
+		//droop_latch true	- initialised to false, save that s_cdroop has been turned on once 
+		
+		//if rout < min_alt thr_att += att_incr
+		//else if rout > min_alt + deadband thr_att -= att_incr
+		//clamp thr_att between 60 and 84
+		
+		//other stuff??
+		
+		if (not droopInternal["s_min_alt"]) {
+			//if not s_cdroop hypotherical droop prediciton subtask 
+			//predict droop assuming 1engine and max thrust attitude 84°
+			
+				//adjust constants 
+				//droop predictor subtask -> rout, tnew, s_found, s_min_range 
+				
+				//hypothetical droop time t2new = tnew 
+			
+			
+			
+			//display output subtask
+			
+				//if droop solution found
+					//if droop_latch and (rout > min_alt), pred_alt = rout -- skip all the peg_loss stuff 
+					//else max(rout, 0)
+				//else 
+					//drop alt 0
+		}
+
+
+function droop_control {
+	if (not droopInternal["s_min_alt"]) {
+		droop_state_params().
+		
+		if (not droopInternal["s_cdroop"]) {
+			set droopInternal["thr_att"] to droopInternal["thresh_att"].
+		}
+		
+		set droopInternal["tv_vert"] to droopInternal["tv_max"] * 
+		set droopInternal["tv_horiz"] to droopInternal["tv_max"] * 
+	}
+
+}
+
+//droop state variables
+function droop_state_params {
+	if (not droopInternal["s_firstpass"]) {
+		set droopInternal["s_firstpass"] to true.
+	}
+
+	SET droopInternal["t_cur"] TO upfgInternal["t_cur"].
+	SET droopInternal["alt_cur"] TO surfacestate["alt"].
+	SET droopInternal["r_cur"] TO upfgInternal["r_cur"].
+	SET droopInternal["v_cur"] TO upfgInternal["v_cur"].
+	SET droopInternal["m_cur"] TO upfgInternal["m_cur"].
+	SET droopInternal["rinit"] TO droopInternal["r_cur"]:MAG.
+	
+	if upfgInternal["s_conv"] {
+		set droopInternal["lam"] to upfgInternal["lambda"].
+		set droopInternal["lamd"] to upfgInternal["lambdadot"].
+		set droopInternal["tlam"] to upfgInternal["tlambda"].
+	}
+	
+	set droopInternal["ix"] to droopInternal["r_cur"]:normalized.
+	set droopInternal["iy"] to vcrs(droopInternal["lam"], droopInternal["ix"]):normalized.
+	set droopInternal["iz"] to vcrs(droopInternal["ix"], droopInternal["iy"]):normalized.
+	
+	local peg_cmd is (droopInternal["lam"] + (droopInternal["t_cur"] - droopInternal["tlam"]) * droopInternal["lamd"]):normalized.
+	set droopInternal["peg_att"] to 90 - vang(droopInternal["ix"] , peg_cmd).
+	
+	set droopInternal["vgdix"] to vdot(droopInternal["v_cur"], droopInternal["ix"]).
+	set droopInternal["vgdiy"] to vdot(droopInternal["v_cur"], droopInternal["iy"]).
+	set droopInternal["vgdiz"] to vdot(droopInternal["v_cur"], droopInternal["iz"]).
+	
+	set droopInternal["ge"] to (SHIP:ORBIT:BODY:MU / droopInternal["rinit"]^2).
+	set droopInternal["gacc"] to droopInternal["ge"] - (droopInternal["vgdiy"]^2 + droopInternal["vgdiz"]^2)/droopInternal["rinit"].
+	
+	set droopInternal["tnew"] to droopInternal["t1new"] - upfgInternal["dt"].
+
+}
+
+
+//given thrust attitude and vehicle state, predict minimum droop altitude and time when it's reached
+function droop_predictor {
+	parameter perf.
+	PARAMETER internal.
+	
+	set droopInternal["s_found"] to false.
+	set droopInternal["s_min_range"] to false.
+	
+	//min droop time - time to achieve equilibrium with effective gravity at current attitude - positive acceleration 
+	set droopInternal["tmmin"] to midval((droopInternal["m_cur"] - droopInternal["tv_vert"] / droopInternal["gacc"]) / droopInternal["mdt"], 0, droopInternal["tmmax"] - 10).
+	
+	//time-independent costant of the eqns of motion
+	local xk1 is droopInternal["gacc"] - 2 * droopInternal["vgdiz"] * droopInternal["tv_horiz"] / (droopInternal["rinit"] * droopInternal["mdt"]) - 2 * droopInternal["tv_horiz"]^2 / (droopInternal["rinit"] * droopInternal["mdt"]^2).
+	local xk3 is droopInternal["tv_horiz"]^2 * droopInternal["m_cur"] / (droopInternal["rinit"] * droopInternal["mdt"]^3).
+	local xk2 is 2 * droopInternal["vgdiz"] * droopInternal["tv_horiz"] * droopInternal["m_cur"] / (droopInternal["rinit"] * droopInternal["mdt"]^2) + 2 * xk3.
+	local xk4 is (xk2 + xk3)/2.
+	
+	local tnext is 0.
+	local tval is 0.
+	local tvalln is 0.
+	
+	//newton-raphson loop to find time of minimum droop alt
+	set droopInternal["n_passes"] to 0.
+	until (droopInternal["n_passes"] > droopInternal["pass_max"]) {
+		
+		set droopInternal["n_passes"] to droopInternal["n_passes"] + 1.
+		
+		set droopInternal["tnew"] to midval(droopInternal["tmmin"], droopInternal["tnew"], droopInternal["tmmax"]).
+		
+		//time-dependent constants
+		set tval to 1 - droopInternal["mdt"] * droopInternal["tnew"] / droopInternal["m_cur"].
+		set tvalln to LN(tval).
+		
+		//deltav due to gravity
+		local vgrav is xk1 * droopInternal["tnew"] - tval * tvalln * (xk2 - xk3 * tvalln).
+		//vertical speed at time tnew
+		local vout is droopInternal["vgdix"] - (droopInternal["tv_vert"] / droopInternal["mdt"]) * tvalln - vgrav.
+		
+		if (abs(vout) < droopInternal["vmiss"]) {
+			set droopInternal["s_found"] to true.
+			break.
+		}
+		
+		local agrav is droopInternal["ge"] - (droopInternal["vgdiz"] - (droopInternal["tv_horiz"]/droopInternal["mdt"]) * tvalln)^2 / droopInternal["rinit"] - droopInternal["vgdiy"]^2 / droopInternal["rinit"].
+		//derivative of vout
+		local vdot_ is droopInternal["tv_vert"] / (droopInternal["m_cur"] * tval) - agrav.
+		
+		//new droop time
+		set tnext to droopInternal["tnew"] - vout/vdot_.
+		
+		if (tnext < droopInternal["tmmin"]) {
+			set droopInternal["s_min_range"] to false.
+			set droopInternal["s_found"] to true.
+			break.
+		} else if (tnext > droopInternal["tmmax"]) {
+			set droopInternal["s_found"] to true.
+			break.
+		}
+		
+		set droopInternal["tnew"] to tnext.
+	}
+	
+	//position change due to gravity
+	local xk5 is droopInternal["tnew"] - droopInternal["mdt"] * droopInternal["tnew"]^2 / (2*droopInternal["m_cur"]) - droopInternal["m_cur"]/(2*droopInternal["mdt"]).
+	local rgrav is tvalln^2 * xk3 * xk5 - 2*tvalln * xk4 * xk5 + xk4 * droopInternal["tnew"] + (droopInternal["tnew"]^2/2)*(xk1 - droopInternal["mdt"] * xk4 / droopInternal["m_cur"]).
+	
+	//altitude at time tnew
+	set droopInternal["rout"] to droopInternal["alt_cur"]  + droopInternal["vgdix"] * droopInternal["tnew"] + droopInternal["tv_vert"] * droopInternal["tnew"] /droopInternal["mdt"] 
+								+ (droopInternal["m_cur"]/droopInternal["mdt"] - droopInternal["tnew"])*(droopInternal["tv_vert"]/droopInternal["mdt"])*tvalln - rgrav.
+}
 
 
 
