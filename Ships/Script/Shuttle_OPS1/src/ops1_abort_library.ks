@@ -204,6 +204,7 @@ function intact_abort_region_determinator {
 		
 		local two_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
 		local one_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
+		local lowest_dz_tal is lexicon("site", "", "delaz", 10000000000).
 		
 		LOCAL current_normal IS currentNormal().
 		
@@ -219,6 +220,11 @@ function intact_abort_region_determinator {
 								orbitstate["radius"],
 								0
 			).
+			
+			if (lowest_dz_tal["delaz"] >= tal_delaz) {
+				set lowest_dz_tal["delaz"] to tal_delaz.
+				set lowest_dz_tal["site"] to s.
+			}
 			
 			//test maximum az error 
 			if (abs(tal_delaz) < 35) {
@@ -268,6 +274,8 @@ function intact_abort_region_determinator {
 			
 			}
 		}
+		
+		set abort_modes["3eo_tal_site"] to lowest_dz_tal.
 		
 		if (NOT abort_modes["intact_modes"]["1eo"]["rtls"]) {
 			// if we're not tal by negative return, force tal mode with the least bad site 

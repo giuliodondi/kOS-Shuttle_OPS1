@@ -670,31 +670,17 @@ FUNCTION upfg {
 	set internal["s_meco"] TO (guided_meco_flag OR unguided_meco_flag).
 	
 	if (ops1_parameters["debug_mode"]) {
-		upfg_dump(internal).
+		upfg_dump().
 	}
 	
 }
 
 function upfg_dump {
-	parameter internal.
-	
-	local dumplex is lexicon().
-
-	for k in internal:keys {
-		LOCAL val IS internal[k].
-		
-		IF val:ISTYPE("List") {
-			LOCAL c_ IS 0.
-			for v_ in val {
-				LOCAL v_k IS k + "_" + c_.
-				dumplex:add(v_k, v_). 
-				set c_ to c_ + 1.
-			}
-		} ELSE {
-			dumplex:add(k, val). 
-		}
+	IF EXISTS("0:/upfg_dump.txt") {
+		DELETEPATH("0:/upfg_dump.txt").
 	}
-	log_data(internal,debug_dump_files["upfg"], false).
+	
+	log upfgInternal:dump() to "0:/upfg_dump.txt".
 }
 
 //		DROOP GUIDANCE
@@ -729,7 +715,7 @@ GLOBAL droopInternal IS LEXICON(
 						"iz", V(0, 0, 0),
 						"lam", V(1,0,0),	//last peg steering params
 						"lamd", V(0,0,0),
-						"tlam", V(0,0,0),
+						"tlam", 0,
 						"steering", v(0,0,0),
 						"rinit", 0,
 						"tv_max", 0,
@@ -751,15 +737,14 @@ GLOBAL droopInternal IS LEXICON(
 						"att_incr", 0.5,
 						"vmiss", 1,
 						
-						"dummy", 0,
-							
+						"dummy", 0
 ).
 
 function droop_control {
 	if (not droopInternal["s_min_alt"]) {
 		droop_state_params().
 		
-		set droopInternal["tv_vert"] to droopInternal["tv_max"] * sin(droopInternal["thr_att"])
+		set droopInternal["tv_vert"] to droopInternal["tv_max"] * sin(droopInternal["thr_att"]).
 		set droopInternal["tv_horiz"] to droopInternal["tv_max"] * cos(droopInternal["thr_att"]).
 		
 		droop_predictor().
@@ -805,30 +790,16 @@ function droop_control {
 	}	
 	
 	if (ops1_parameters["debug_mode"]) {
-		droop_dump(droopInternal).
+		droop_dump().
 	}
 }
 
 function droop_dump {
-	parameter internal.
-	
-	local dumplex is lexicon().
-
-	for k in internal:keys {
-		LOCAL val IS internal[k].
-		
-		IF val:ISTYPE("List") {
-			LOCAL c_ IS 0.
-			for v_ in val {
-				LOCAL v_k IS k + "_" + c_.
-				dumplex:add(v_k, v_). 
-				set c_ to c_ + 1.
-			}
-		} ELSE {
-			dumplex:add(k, val). 
-		}
+	IF EXISTS("0:/droop_dump.txt") {
+		DELETEPATH("0:/droop_dump.txt").
 	}
-	log_data(internal,debug_dump_files["droop"], false).
+	
+	log droopInternal:dump() to "0:/droop_dump.txt".
 }
 
 //droop state variables
@@ -928,7 +899,7 @@ function droop_predictor {
 		//deltav due to gravity
 		local vgrav is xk1 * droopInternal["tnew"] - tval * tvalln * (xk2 - xk3 * tvalln).
 		//vertical speed at time tnew
-		local droopInternal["vout"] is droopInternal["vgdix"] - (droopInternal["tv_vert"] / droopInternal["mdt"]) * tvalln - vgrav.
+		set droopInternal["vout"] to droopInternal["vgdix"] - (droopInternal["tv_vert"] / droopInternal["mdt"]) * tvalln - vgrav.
 		
 		if (abs(droopInternal["vout"]) < droopInternal["vmiss"]) {
 			set droopInternal["s_found"] to true.
