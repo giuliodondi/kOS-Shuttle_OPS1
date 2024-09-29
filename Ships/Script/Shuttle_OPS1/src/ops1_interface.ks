@@ -194,4 +194,19 @@ FUNCTION log_telemetry {
 		log_data(loglex, "./Shuttle_OPS1/LOGS/" + vehicle["name"] + "_log").
 	}
 }
+
+
+global debug_dump_files is lexicon(
+							"vehicle", "0:/abort_modes_dump",
+							"abort", "0:/vehicle_dump",
+							"upfg", "0:/upfg_dump",
+							"droop", "0:/droop_dump"
+).
+
+for f in debug_dump_files {
+	local fname is debug_dump_files[f] + ".csv".
+	IF EXISTS(fname) {
+		DELETEPATH(fname).
+	}
+}
  
