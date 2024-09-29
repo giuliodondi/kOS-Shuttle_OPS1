@@ -842,7 +842,7 @@ function droop_control {
 		droop_state_params().
 		
 		if (not droopInternal["s_cdroop"]) {
-			set droopInternal["thr_att"] to droopInternal["thresh_att"].
+			set droopInternal["thr_att"] to droopInternal["thr_max"].
 		}
 		
 		set droopInternal["tv_vert"] to droopInternal["tv_max"] * sin(droopInternal["thr_att"])
@@ -932,6 +932,11 @@ function droop_state_params {
 	set droopInternal["tnew"] to droopInternal["t1new"] - upfgInternal["dt"].
 	
 	//missing the single engine perfomance values
+	local one_eng_perf is veh_perf_estimator(build_engines_lex(1)).
+	
+	set droopInternal["mdt"] to one_eng_perf["engines"]["flow"].
+	set droopInternal["tv_max"] to one_eng_perf["engines"]["thrust"].
+	set droopInternal["tmmax"] to one_eng_perf["time"].
 
 }
 
