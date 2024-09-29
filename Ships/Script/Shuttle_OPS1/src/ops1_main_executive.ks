@@ -169,26 +169,32 @@ function ops1_countdown{
 			stage.
 			WAIT 0.
 		}
-		
+	local break_loop is false.
 	UNTIL (	TIME:SECONDS >= vehicle["ign_t"] ) {
 		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO dap:thr_cmd.
 	
 		if (quit_program) {
-			RETURN FALSE.
+			set break_loop to true.
+			break.
 		}
 		IF (monitor_rsls) {
 			setup_engine_failure().
 			measure_update_engines().
 	
 			IF (vehicle["ssme_out_detected"]) {
-				addGUIMessage("RSLS ABORT.").
-				shutdown_all_engines().
-				LOCK THROTTLE to 0.
-				SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-				UNLOCK STEERING.
-				RETURN FALSE.
+				set break_loop to true.
+				break.
 			}
 		}
+	}
+	
+	if (break_loop) {
+		addGUIMessage("RSLS ABORT.").
+		shutdown_all_engines().
+		LOCK THROTTLE to 0.
+		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+		UNLOCK STEERING.
+		RETURN FALSE.
 	}
 	
 	
