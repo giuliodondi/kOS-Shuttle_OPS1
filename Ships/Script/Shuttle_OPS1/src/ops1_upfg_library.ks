@@ -732,10 +732,10 @@ GLOBAL droopInternal IS LEXICON(
 						"gacc", 0,		//effective grav acc corrected for velocity
 						"thr_att", 0,
 						"thresh_att", 0,
-						"thr_min", 68,
+						"thr_min", 45,
 						"thr_max", 85,
-						"att_incr", 0.5,
-						"vmiss", 1,
+						"att_incr", 1,
+						"vmiss", 0.25,
 						
 						"dummy", 0
 ).
@@ -791,6 +791,9 @@ function droop_control {
 	
 	if (ops1_parameters["debug_mode"]) {
 		droop_dump().
+		
+		print "droop rout " +  round(droopInternal["rout"]/1000, 0) + "   " at (0,32).
+		print "droop thr_att " +  round(droopInternal["thr_att"], 1) + "   " at (0,33).
 	}
 }
 
@@ -933,7 +936,7 @@ function droop_predictor {
 	set droopInternal["rout"] to droopInternal["alt_cur"]  + droopInternal["vgdix"] * droopInternal["tnew"] + droopInternal["tv_vert"] * droopInternal["tnew"] /droopInternal["mdt"] 
 								+ (droopInternal["m_cur"]/droopInternal["mdt"] - droopInternal["tnew"])*(droopInternal["tv_vert"]/droopInternal["mdt"])*tvalln - rgrav.
 
-	set droopInternal["rout"] to max(0, droopInternal["rout"]).
+	set droopInternal["rout"] to droopInternal["rout"].
 }
 
 

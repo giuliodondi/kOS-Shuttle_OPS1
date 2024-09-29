@@ -485,13 +485,12 @@ function make_ascent_traj1_disp {
 	SET ascent_traj_disp_droop_box:STYLE:WIDTH TO 125.
     SET ascent_traj_disp_droop_box:STYLE:HEIGHT TO 115.
 	
-	//re-enable these when droop is implemented
-	//GLOBAL ascent_traj_disp_centredata1 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ALT XXX").
-	//set ascent_traj_disp_centredata1:style:margin:v to -4.
-	//SET ascent_traj_disp_centredata1:STYLE:ALIGN TO "center".
-	//GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("<color=#" + guitextyellowhex + ">DROOP ENGAGED</color>").
-	//set ascent_traj_disp_centredata2:style:margin:v to -4.
-	//SET ascent_traj_disp_centredata2:STYLE:ALIGN TO "center".
+	GLOBAL ascent_traj_disp_centredata1 IS ascent_traj_disp_droop_box:ADDLABEL("DROOP ALT XXX").
+	set ascent_traj_disp_centredata1:style:margin:v to -4.
+	SET ascent_traj_disp_centredata1:STYLE:ALIGN TO "left".
+	GLOBAL ascent_traj_disp_centredata2 IS ascent_traj_disp_droop_box:ADDLABEL("<color=#" + guitextyellowhex + ">DROOP ENGAGED</color>").
+	set ascent_traj_disp_centredata2:style:margin:v to -4.
+	SET ascent_traj_disp_centredata2:STYLE:ALIGN TO "left".
 	
 	enable_box_widgets(ascent_traj_disp_droop_box, false).
 	
@@ -915,6 +914,13 @@ function update_ascent_traj_disp {
 	local upfg_text_color is guitextgreenhex.
 	if (NOT gui_data["converged"]) {
 		set upfg_text_color to guitextyellowhex.
+	}
+	
+	set ascent_traj_disp_centredata1:text to "DROOP ALT  " + floor(gui_data["droop_alt"], 0).
+	if (gui_data["droop_engaged"]) {
+		set ascent_traj_disp_centredata2:text to "<color=#" + guitextyellowhex + ">DROOP ENGAGED</color>".
+	} else {
+		set ascent_traj_disp_centredata2:text to "".
 	}
 
 	set ascent_trajupfgdata1:text to "<color=#" + upfg_text_color + ">TGO " + sectotime_simple(gui_data["tgo"]) + "</color>". 

@@ -471,6 +471,8 @@ function ops1_second_stage_nominal {
 			upfgInternal
 		).
 		
+		droop_control().
+		
 		if (not steer_flag) and upfgInternal["s_conv"] {
 			set steer_flag to true.
 			set dap:steer_freeze to false.
@@ -738,6 +740,10 @@ function ops1_second_stage_contingency {
 	dap:set_steer_tgt(dap:cur_dir:forevector).	
 	set dap:thrust_corr to FALSE.
 	dap:set_strmgr_low().
+	
+	//for correct displaying
+	set upfgInternal["s_conv"] to false.
+	set droopInternal["s_cdroop"] to false.
 	
 	//flags for pre-meco attitude control
 	local active_steer_flag is false.
