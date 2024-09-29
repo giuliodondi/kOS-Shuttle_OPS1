@@ -670,9 +670,31 @@ FUNCTION upfg {
 	set internal["s_meco"] TO (guided_meco_flag OR unguided_meco_flag).
 	
 	if (ops1_parameters["debug_mode"]) {
-		log_data(internal,debug_dump_files["upfg"], false).
+		upfg_dump(internal).
 	}
 	
+}
+
+function upfg_dump {
+	parameter internal.
+	
+	local dumplex is lexicon().
+
+	for k in internal:keys {
+		LOCAL val IS internal[k].
+		
+		IF val:ISTYPE("List") {
+			LOCAL c_ IS 0.
+			for v_ in val {
+				LOCAL v_k IS k + "_" + c_.
+				dumplex:add(v_k, v_). 
+				set c_ to c_ + 1.
+			}
+		} ELSE {
+			dumplex:add(k, val). 
+		}
+	}
+	log_data(internal,debug_dump_files["upfg"], false).
 }
 
 //		DROOP GUIDANCE
@@ -783,9 +805,30 @@ function droop_control {
 	}	
 	
 	if (ops1_parameters["debug_mode"]) {
-		log_data(droopInternal,debug_dump_files["droop"], false).
+		droop_dump(droopInternal).
 	}
+}
 
+function droop_dump {
+	parameter internal.
+	
+	local dumplex is lexicon().
+
+	for k in internal:keys {
+		LOCAL val IS internal[k].
+		
+		IF val:ISTYPE("List") {
+			LOCAL c_ IS 0.
+			for v_ in val {
+				LOCAL v_k IS k + "_" + c_.
+				dumplex:add(v_k, v_). 
+				set c_ to c_ + 1.
+			}
+		} ELSE {
+			dumplex:add(k, val). 
+		}
+	}
+	log_data(internal,debug_dump_files["droop"], false).
 }
 
 //droop state variables

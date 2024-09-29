@@ -45,7 +45,11 @@ GLOBAL abort_modes IS LEXICON(
 ).
 
 function dump_abort {
-	log_data(abort_modes,debug_dump_files["abort"], false).
+	IF EXISTS("0:/abort_modes_dump.txt") {
+		DELETEPATH("0:/abort_modes_dump.txt").
+	}
+	
+	log abort_modes:dump() to "0:/abort_modes_dump.txt".
 }
 
 function abort_triggered {

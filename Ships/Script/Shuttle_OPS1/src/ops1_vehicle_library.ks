@@ -178,7 +178,11 @@ FUNCTION debug_vehicle {
 }
 
 FUNCTION dump_vehicle {
-	log_data(abort_modes,debug_dump_files["vehicle"], false).
+	IF EXISTS("0:/vehicledump.txt") {
+		DELETEPATH("0:/vehicledump.txt").
+	}
+	
+	log vehicle:dump() to "0:/vehicledump.txt".
 }
 
 
