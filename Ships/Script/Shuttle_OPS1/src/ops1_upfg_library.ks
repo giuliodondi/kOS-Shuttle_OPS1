@@ -691,7 +691,7 @@ GLOBAL droopInternal IS LEXICON(
 						"pass_max", 10,
 						"min_droop_alt", 0,
 						"max_droop_alt", 0,
-						"alt_buf", 1000,
+						"alt_buf", 2000,
 						"alt_dbnd", 2000,
 						"tnew", 0,	//new droop predicted time
 						"t1new", 1000,	//saved droop time 
@@ -728,8 +728,8 @@ GLOBAL droopInternal IS LEXICON(
 						"ge", 0,		//magnitude fo grav acc at altitude 
 						"gacc", 0,		//effective grav acc corrected for velocity
 						"thr_att", 0,
-						"thr_min", 60,
-						"thr_max", 85,
+						"thr_min", 57,
+						"thr_max", 77,
 						"att_incr", 0.5,
 						"vmiss", 0.25,
 						
