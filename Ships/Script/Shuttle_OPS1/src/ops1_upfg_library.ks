@@ -691,8 +691,8 @@ GLOBAL droopInternal IS LEXICON(
 						"pass_max", 10,
 						"min_droop_alt", 0,
 						"max_droop_alt", 0,
-						"alt_buf", 300,
-						"alt_dbnd", 3000,
+						"alt_buf", 1000,
+						"alt_dbnd", 2000,
 						"tnew", 0,	//new droop predicted time
 						"t1new", 1000,	//saved droop time 
 						"rout", 0,	//droop radius
@@ -702,7 +702,6 @@ GLOBAL droopInternal IS LEXICON(
 						"s_min_alt", false,	//min altitude reached - droop off
 						"s_min_range", false ,	//performance within droop range
 						"s_cdroop", false ,		//droop commanding attitude
-						"s_att_cmd", false ,	//droop alt below minimum
 						"s_peg_ok", false ,		//peg solution ok to handover
 						"s_drp_latch", false ,		//latch that cdroop was turned on
 						"r_cur", V(0, 0, 0),
@@ -713,9 +712,7 @@ GLOBAL droopInternal IS LEXICON(
 						"ix", V(0, 0, 0),		//unit vectors
 						"iy", V(0, 0, 0),
 						"iz", V(0, 0, 0),
-						"lam", V(1,0,0),	//last peg steering params
-						"lamd", V(0,0,0),
-						"tlam", 0,
+						"peg_steer", v(0,0,0),
 						"steering", v(0,0,0),
 						"rinit", 0,
 						"tv_max", 0,
@@ -731,10 +728,9 @@ GLOBAL droopInternal IS LEXICON(
 						"ge", 0,		//magnitude fo grav acc at altitude 
 						"gacc", 0,		//effective grav acc corrected for velocity
 						"thr_att", 0,
-						"thresh_att", 0,
-						"thr_min", 45,
+						"thr_min", 60,
 						"thr_max", 85,
-						"att_incr", 1,
+						"att_incr", 0.5,
 						"vmiss", 0.25,
 						
 						"dummy", 0
@@ -755,9 +751,6 @@ function droop_control {
 			//signal to the ard that we're in the droop region
 			set droopInternal["s_drp_alt"] to (droopInternal["s_drp_alt"] or (droopInternal["rout"] >= droopInternal["min_droop_alt"])).
 			
-			//flag to activate droop steering
-			set droopInternal["s_att_cmd"] to (droopInternal["rout"] < droopInternal["min_droop_alt"]) and  droopInternal["s_min_range"].
-			
 			//is it ok to hand over control back to peg?
 			set droopInternal["s_peg_ok"] to (droopInternal["peg_att"] <= droopInternal["thr_att"]) and upfgInternal["s_conv"].
 			
@@ -766,7 +759,7 @@ function droop_control {
 			
 			//activate droop steering - as soon as min_alt is on this will be off and this block is disabled
 			//add check on engines out or abort mode here???
-			set droopInternal["s_cdroop"] to (not droopInternal["s_min_alt"]) and (droopInternal["s_cdroop"] or droopInternal["s_att_cmd"]) and abort_modes["intact_modes"]["2eo_droop"].
+			set droopInternal["s_cdroop"] to (not droopInternal["s_min_alt"]) and (droopInternal["s_cdroop"] or droopInternal["s_drp_alt"]) and abort_modes["droop_active"].
 
 		} else {
 			set droopInternal["s_cdroop"] to false.
@@ -791,9 +784,6 @@ function droop_control {
 	
 	if (ops1_parameters["debug_mode"]) {
 		droop_dump().
-		
-		print "droop rout " +  round(droopInternal["rout"]/1000, 0) + "   " at (0,32).
-		print "droop thr_att " +  round(droopInternal["thr_att"], 1) + "   " at (0,33).
 	}
 }
 
@@ -822,17 +812,14 @@ function droop_state_params {
 	SET droopInternal["rinit"] TO droopInternal["r_cur"]:MAG.
 	
 	if upfgInternal["s_conv"] {
-		set droopInternal["lam"] to upfgInternal["lambda"].
-		set droopInternal["lamd"] to upfgInternal["lambdadot"].
-		set droopInternal["tlam"] to upfgInternal["tlambda"].
+		set droopInternal["peg_steer"] to upfgInternal["steering"].
 	}
 	
 	set droopInternal["ix"] to droopInternal["r_cur"]:normalized.
-	set droopInternal["iy"] to vcrs(droopInternal["lam"], droopInternal["ix"]):normalized.
+	set droopInternal["iy"] to vcrs(droopInternal["peg_steer"], droopInternal["ix"]):normalized.
 	set droopInternal["iz"] to vcrs(droopInternal["ix"], droopInternal["iy"]):normalized.
 	
-	local peg_cmd is (droopInternal["lam"] + (droopInternal["t_cur"] - droopInternal["tlam"]) * droopInternal["lamd"]):normalized.
-	set droopInternal["peg_att"] to 90 - vang(droopInternal["ix"] , peg_cmd).
+	set droopInternal["peg_att"] to 90 - vang(droopInternal["ix"] , droopInternal["peg_steer"]).
 	
 	set droopInternal["vgdix"] to vdot(droopInternal["v_cur"], droopInternal["ix"]).
 	set droopInternal["vgdiy"] to vdot(droopInternal["v_cur"], droopInternal["iy"]).

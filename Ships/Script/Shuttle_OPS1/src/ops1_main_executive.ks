@@ -478,10 +478,16 @@ function ops1_second_stage_nominal {
 			set dap:steer_freeze to false.
 		}
 		
-		IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
-			local steer_yawlim is limit_yaw_steering(upfgInternal["steering"], target_orbit["normal"]).
-			dap:set_steer_tgt(vecYZ(steer_yawlim)).
-			set dap:thr_rpl_tgt to upfgInternal["throtset"].	
+		if (NOT vehiclestate["staging_in_progress"]) {
+			if (droopInternal["s_cdroop"]) {
+				local steer_yawlim is limit_yaw_steering(droopInternal["steering"], target_orbit["normal"]).
+				dap:set_steer_tgt(vecYZ(steer_yawlim)).
+				 set dap:thr_rpl_tgt to dap:thr_max.
+			} else if (upfgInternal["s_conv"]) {
+				local steer_yawlim is limit_yaw_steering(upfgInternal["steering"], target_orbit["normal"]).
+				dap:set_steer_tgt(vecYZ(steer_yawlim)).
+				set dap:thr_rpl_tgt to upfgInternal["throtset"].	
+			}
 		}
 		
 		if (ops1_parameters["debug_mode"]) {
@@ -490,6 +496,10 @@ function ops1_second_stage_nominal {
 			arrow_ship(vecyz(upfgInternal["ix"]),"ix").
 			arrow_ship(vecyz(upfgInternal["iy"]),"iy").
 			arrow_ship(vecyz(upfgInternal["iz"]),"iz").
+			
+			if (droopInternal["s_cdroop"]) {
+				arrow_ship(vecyz(droopInternal["steering"]*2),"droop").
+			}
 			
 			arrow_body(vecyz(vxcl(upfgInternal["iy"], upfgInternal["r_cur"])),"r_proj").
 			arrow_body(vecyz(upfgInternal["rd"]),"rd").
