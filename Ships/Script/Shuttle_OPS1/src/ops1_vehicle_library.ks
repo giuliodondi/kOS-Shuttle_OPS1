@@ -358,9 +358,6 @@ function ascent_dap_factory {
 
 	LOCAL this IS lexicon().
 	
-	this:add("strmgr_auto", 1).
-	this:add("strmgr_css", 0.6).
-	
 	this:add("steer_freeze", false).
 	
 	this:add("steer_mode", "").
@@ -436,7 +433,8 @@ function ascent_dap_factory {
 		
 		set this:throt_delta to this:thr_rpl_tgt - this:thr_cmd_rpl.
 		
-		set this:ship_roll_delta to signed_angle(this:steer_dir:topvector, shptv_p, this:steer_dir:forevector, 0).
+		//set this:ship_roll_delta to signed_angle(this:steer_dir:topvector, shptv_p, this:steer_dir:forevector, 0).
+		set this:ship_roll_delta to unfixangle(this:steer_roll - this:cur_steer_roll).
 		
 		local angv_ is SHIP:ANGULARVEL * constant:RadToDeg.
 		
@@ -449,7 +447,7 @@ function ascent_dap_factory {
 			and (abs(this:yaw_rate) < 0.5)
 			and (abs(this:pitch_rate) < 0.5).
 			
-		set this:roll_null_err to (ABS(unfixangle(this:steer_roll - this:cur_steer_roll)) < this:steer_check_delta) 
+		set this:roll_null_err to (ABS(this:ship_roll_delta) < this:steer_check_delta) 
 			and (abs(this:roll_rate) < 0.5).
 		
 		this:update_steer_tgtdir().
@@ -713,11 +711,39 @@ function ascent_dap_factory {
 	}).
 	
 	this:add("update_strmgr", {
+		local strmgr is STEERINGMANAGER:MAXSTOPPINGTIME.
+		
 		if (this:steer_mode = "css") {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO this:strmgr_css.
+			set strmgr to 0.6.
 		} else {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO this:strmgr_auto.
+		
+			if (vehiclestate["major_mode"] <= 101) {
+				set strmgr to 0.1.
+			} else if (vehiclestate["major_mode"] = 102) {
+				set strmgr to min(1.2, strmgr + 0.1 * this:iteration_dt).
+			} else if (vehiclestate["major_mode"] >= 103) {
+				set strmgr to 0.1.
+				
+				if (not this:roll_null_err) {
+					set strmgr to midval(abs(this:ship_roll_delta) * 0.08, strmgr, 0.5).
+					
+				}
+				
+				if (not this:steering_null_err) {
+					set strmgr to midval(strmgr + abs(this:steer_pitch_delta) * 0.08 - 0.65, strmgr, 1.5).
+				}
+				
+				if (vehicle["meco_flag"]) {
+					set strmgr to 5.
+				} else {
+					if (this:serc_enabled) {
+						set strmgr to 0.5.
+					}
+				}
+			}
 		}
+		
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO strmgr.
 	}).
 	
 	this:add("set_rcs", {

@@ -33,7 +33,7 @@ FUNCTION dataViz {
 	
 	IF (vehiclestate["major_mode"] = 102) {
 		SET sim_dt TO 7.5.
-	} else IF (vehiclestate["major_mode"] = 101) {
+	} else IF (vehiclestate["major_mode"] <= 101) {
 		SET sim_dt TO 0.
 	}
 	

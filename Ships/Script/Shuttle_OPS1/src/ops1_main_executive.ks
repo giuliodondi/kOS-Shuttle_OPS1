@@ -150,13 +150,12 @@ function ops1_countdown{
 	
 	addGUIMessage(" T MINUS 10").
 	
-	set vehiclestate["major_mode"] TO 101.
+	set vehiclestate["major_mode"] TO 100.
 	
 	set dap:thr_max to vehicle["maxThrottle"].
 	set dap:thr_min to vehicle["minThrottle"].
 	SET dap:thr_rpl_tgt TO convert_ssme_throt_rpl(1).
 	set dap:steer_refv to HEADING(target_orbit["launch_az"] + 180, 0):VECTOR.	
-	dap:set_strmgr_low().
 	set dap:steer_roll to vehicle["roll"].
 	dap:set_steer_tgt(dap:cur_dir:forevector).
 	set dap:thrust_corr to FALSE.
@@ -219,8 +218,7 @@ function ops1_countdown{
 	}
 	
 	addGUIMessage("LIFT-OFF CONFIRMED").
-	
-	set vehiclestate["major_mode"] TO 102.
+	set vehiclestate["major_mode"] TO 101.
 	
 	RETURN TRUE.
 	
@@ -238,6 +236,7 @@ function ops1_first_stage {
 	
 	WHEN (surfacestate["vs"] >= ops1_parameters["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	
+		set vehiclestate["major_mode"] TO 102.
 		SET steer_flag TO true.
 		SET throt_flag TO true.
 		set dap:steer_freeze to false.
@@ -269,7 +268,6 @@ function ops1_first_stage {
 		}
 		
 		IF steer_flag {		
-			dap:set_strmgr_ramp().
 			dap:set_steer_tgt(
 						first_stage_guidance()
 			).
@@ -328,7 +326,6 @@ function ops1_first_stage {
 	
 	if (_3eo_et_sep) {
 		addGUIMessage("EMERGENCY ET SEP").
-		dap:set_strmgr_high().
 		dap:set_rcs(TRUE).
 		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
 		set dap:thrust_corr to FALSE.
@@ -399,8 +396,6 @@ function ops1_second_stage_nominal {
 
 	freeze_abort_gui(false).
 	
-	dap:set_strmgr_low().
-	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
@@ -419,17 +414,10 @@ function ops1_second_stage_nominal {
 				addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 				set vehicle["roll"] to 0.
 				set dap:steer_roll to 0.
-				dap:set_strmgr_med().
 				
 				wait 0.3.
 			} else {
 				if (dap:roll_null_err) {
-					if (dap:serc_enabled) {
-						dap:set_strmgr_med().
-					} else {
-						dap:set_strmgr_low().
-					}
-					
 					set vehicle["roll_heads_up_flag"] to true.
 					set dap:thrust_corr to true.
 				} else {
@@ -549,7 +537,6 @@ function ops1_second_stage_rtls {
 	
 	freeze_abort_gui(true).
 	
-	dap:set_strmgr_low().
 	set dap:steer_freeze to false.
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
@@ -608,9 +595,7 @@ function ops1_second_stage_rtls {
 		LOCAL PEG_Tc IS (upfgInternal["mbo_T"] - upfgInternal["tgo"]).
 		
 		IF (NOT (RTLSAbort["flyback_flag"] AND RTLSAbort["pitcharound"]["complete"] )) {
-		
-			dap:set_strmgr_low().
-		
+
 			//force unconverged until flyback
 			SET upfgInternal["s_conv"] TO FALSE.
 			SET upfgInternal["iter_conv"] TO 0.
@@ -649,8 +634,6 @@ function ops1_second_stage_rtls {
 				//get the current thrust vector, project in the plane containing the peg vector (flyback guidance command) and C1,
 				//rotate ahead by a few degrees
 				
-				dap:set_strmgr_high().
-				
 				set vehicle["roll"] to 0.
 				set dap:steer_roll to 0.
 				set dap:max_steervec_corr to 8.
@@ -665,7 +648,6 @@ function ops1_second_stage_rtls {
 					SET upfgInternal["s_flyback"] TO TRUE.
 					SET upfgInternal["s_throt"] TO TRUE.
 					set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-					dap:set_strmgr_low().
 					SET RTLS_steering TO RTLSAbort["pitcharound"]["target"].
 				} else {
 					set dap:steer_refv to VXCL(vecYZ(RTLSAbort["pitcharound"]["refvec"]),SHIP:FACING:TOPVECTOR).
@@ -754,7 +736,6 @@ function ops1_second_stage_contingency {
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	dap:set_steer_tgt(dap:cur_dir:forevector).	
 	set dap:thrust_corr to FALSE.
-	dap:set_strmgr_low().
 	
 	//for correct displaying
 	set upfgInternal["s_conv"] to false.
@@ -812,13 +793,11 @@ function ops1_second_stage_contingency {
 			set vehicle["roll"] to 0.
 			set dap:steer_roll to 0.
 			set dap:thrust_corr to FALSE.
-			dap:set_strmgr_med().
 			wait 0.3.
 		}
 		
 		if roll_headsup_trg and (not vehicle["roll_heads_up_flag"]) and (dap:roll_null_err) {
 			set vehicle["roll_heads_up_flag"] to true.
-			//dap:set_strmgr_low().
 		}
 		
 		if (roll_headsup_trg and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition() and dap:steering_null_err) {
@@ -861,8 +840,6 @@ function ops1_second_stage_contingency {
 		//wait 3 seconds to allow the dap time to update the flags
 		LOCAL sequence_trigger_t IS surfacestate["time"].
 		local seq_end_t is 3.
-		
-		dap:set_strmgr_high().
 		
 		until false {
 			if (quit_program) {
@@ -912,7 +889,6 @@ function ops1_et_sep {
 	set dap:thrust_corr to FALSE.
 	dap:set_rcs(TRUE).
 	switch_att_rcs().
-	dap:set_strmgr_med().
 	set dap:steer_freeze to false.
 	dap:set_steer_tgt(dap:cur_dir:forevector).
 	
@@ -978,8 +954,6 @@ function ops1_et_sep {
 		
 			//rate sep is different
 			if (abort_modes["et_sep_mode"] = "rate") {
-			
-				dap:set_strmgr_free().
 				
 				set vehicle["roll"] to 0.
 				set dap:steer_roll to 0.
@@ -1017,8 +991,6 @@ function ops1_et_sep {
 						set post_sep_pitch_up_steer to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, 5).
 						
 						dap:set_steer_tgt(post_sep_pitch_up_steer).
-						
-						dap:set_strmgr_med().
 					}
 				}
 				
@@ -1045,9 +1017,6 @@ function ops1_et_sep {
 							
 							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
 							dap:set_steer_tgt(post_sep_pitch_up_steer).
-							
-							dap:set_strmgr_med().
-						
 						}
 					}
 				}
@@ -1087,8 +1056,6 @@ function ops1_et_sep {
 	//do a re-orientation after et-sep since we might be in a weird attitude
 	//move prograde, heads-up at a maximum of 50° aoa
 	dap:toggle_serc(false).
-	
-	dap:set_strmgr_free().
 	
 	if (abort_modes["et_sep_mode"] <> "nominal") {
 	
