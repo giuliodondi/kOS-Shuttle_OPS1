@@ -424,7 +424,12 @@ function ops1_second_stage_nominal {
 				wait 0.3.
 			} else {
 				if (dap:roll_null_err) {
-					dap:set_strmgr_low().
+					if (dap:serc_enabled) {
+						dap:set_strmgr_med().
+					} else {
+						dap:set_strmgr_low().
+					}
+					
 					set vehicle["roll_heads_up_flag"] to true.
 					set dap:thrust_corr to true.
 				} else {
@@ -813,7 +818,7 @@ function ops1_second_stage_contingency {
 		
 		if roll_headsup_trg and (not vehicle["roll_heads_up_flag"]) and (dap:roll_null_err) {
 			set vehicle["roll_heads_up_flag"] to true.
-			dap:set_strmgr_low().
+			//dap:set_strmgr_low().
 		}
 		
 		if (roll_headsup_trg and vehicle["roll_heads_up_flag"] and cont_2eo_terminal_condition() and dap:steering_null_err) {
