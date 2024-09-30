@@ -955,7 +955,7 @@ FUNCTION getState {
 			}
 			
 			ssme_staging(vehiclestate["cur_stg"]).
-			ssme_low_level(vehiclestate["cur_stg"]).
+			ssme_low_level().
 			ssme_flameout().
 		}
 	
@@ -1118,20 +1118,14 @@ FUNCTION ssme_staging {
 
 //returns true when we're close to depletion at minimum throttle on three engines
 FUNCTION ssme_low_level {
-	parameter cur_stg.
 	
-	IF (cur_stg = (vehicle["stages"]:LENGTH - 1)) {
-	
-		local three_eng_lex is build_engines_lex(3, 0).
-	
-		local prop_left is vehicle["SSME_prop"].
-		
-		local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * ops1_parameters["low_level_burnt"].
-		
-		set vehicle["low_level"] to (prop_left <= low_level_prop).
-		
-	}
+	local three_eng_lex is build_engines_lex(3, 0).
 
+	local prop_left is vehicle["SSME_prop"].
+	
+	local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * ops1_parameters["low_level_burnt"].
+	
+	set vehicle["low_level"] to (prop_left <= low_level_prop).
 }
 
 
