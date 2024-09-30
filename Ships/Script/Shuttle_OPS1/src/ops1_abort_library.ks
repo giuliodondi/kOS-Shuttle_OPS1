@@ -66,22 +66,22 @@ function initialise_abort_sites {
 	local posv is - SHIP:ORBIT:BODY:POSITION.
 	local velv is vcrs(posv, normv).
 	
-	//set abort_modes["tal_candidates"] to get_sites_downrange(
-	//							ldgsiteslex,
-	//							posv,
-	//							velv,
-	//							5000,
-	//							20000
-	//).
-	//
-	//
-	//set abort_modes["ecal_candidates"] to get_sites_downrange(
-	//							ldgsiteslex,
-	//							posv,
-	//							velv,
-	//							500,
-	//							2000
-	//).
+	set abort_modes["tal_candidates"] to get_sites_downrange(
+								ldgsiteslex,
+								posv,
+								velv,
+								5000,
+								20000
+	).
+	
+	
+	set abort_modes["ecal_candidates"] to get_sites_downrange(
+								ldgsiteslex,
+								posv,
+								velv,
+								500,
+								2000
+	).
 }
 
 
@@ -1496,7 +1496,7 @@ function get_best_ecal_site {
 //		CONTINGENCY functions
 
 function droop_min_alt {
-	return 90525.
+	return 91440.
 }
 
 function cont_2eo_immediate_sep {
