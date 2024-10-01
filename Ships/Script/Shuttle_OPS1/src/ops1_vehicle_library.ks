@@ -730,7 +730,7 @@ function ascent_dap_factory {
 				}
 				
 				if (not this:steering_null_err) {
-					set strmgr to midval(strmgr + abs(this:steer_pitch_delta) * 0.08 - 0.65, strmgr, 1.5).
+					set strmgr to midval(strmgr + abs(this:steer_pitch_delta) * 0.075 - 0.013, strmgr, 1.5).
 				}
 				
 				if (vehicle["meco_flag"]) {
