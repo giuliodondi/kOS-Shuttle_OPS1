@@ -37,8 +37,6 @@ function ops1_main_exec {
 	//need to have initalised the vehicle first for the vessel name
 	prepare_telemetry().
 	
-	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
-	
 	GLOBAL dap IS ascent_dap_factory().
 	
 	GLOBAL dap_gui_executor IS loop_executor_factory(

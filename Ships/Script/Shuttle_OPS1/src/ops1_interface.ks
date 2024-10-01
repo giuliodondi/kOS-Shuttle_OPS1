@@ -103,6 +103,7 @@ FUNCTION dataViz {
 	
 	} else {
 		
+		gui_data:ADD("cutv", target_orbit["velocity"]).
 		gui_data:ADD("droop_alt", max(0, droopInternal["rout"]/1000)).
 		gui_data:ADD("droop_engaged", droopInternal["s_cdroop"]).
 					

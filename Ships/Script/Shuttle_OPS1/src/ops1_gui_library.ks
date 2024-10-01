@@ -932,6 +932,7 @@ function update_ascent_traj_disp {
 	set ascent_trajrightdata5:text to "PROP   " + round(gui_data["et_prop"], 0). 
 	
 	SET cutv_slider:VALUE TO CLAMP(gui_data["vi"]/1000,cutv_slider:MIN,cutv_slider:MAX).
+	ascent_gui_set_cutv_indicator(gui_data["cutv"]).
 	
 	local xval is gui_data["ve"].
 	local xpredval is gui_data["pred_ve"].
