@@ -1483,7 +1483,7 @@ function get_best_ecal_site {
 //		CONTINGENCY functions
 
 function droop_min_alt {
-	return 91440.
+	return 86868.
 }
 
 function cont_2eo_immediate_sep {
