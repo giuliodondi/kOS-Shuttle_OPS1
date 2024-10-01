@@ -545,11 +545,6 @@ function ops1_second_stage_rtls {
 		if (quit_program) {
 			RETURN.
 		}
-		
-		if (cont_2eo_immediate_sep()) {
-			//if below the contingency altitude, force 3eo abort
-			shutdown_ssmes().
-		}	
 
 		abort_handler().
 		getState().
