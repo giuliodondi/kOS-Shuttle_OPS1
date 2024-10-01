@@ -678,6 +678,7 @@ function ops1_second_stage_rtls {
 	//powered pitchdown
 	
 	SET vehicle["terminal_flag"] TO TRUE.
+	set vehicle["pitchdown_flag"] to true.
 	
 	addGUIMessage("POWERED PITCH-DOWN").
 	
@@ -824,6 +825,8 @@ function ops1_second_stage_contingency {
 		
 		addGUIMessage("CONTINGENCY PITCH-DOWN").
 		
+		set vehicle["pitchdown_flag"] to true.
+		
 		set dap:thrust_corr to FALSE.
 		
 		local quit_pchdn_loop is false.
@@ -924,6 +927,7 @@ function ops1_et_sep {
 		set pre_sequence_t to 1.
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
+		set vehicle["pitchdown_flag"] to true.
 	}
 	
 	LOCAL sequence_start is false.

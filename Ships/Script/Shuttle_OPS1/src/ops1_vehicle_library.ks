@@ -63,6 +63,7 @@ function initialise_shuttle {
 						"glim", 3,
 						"low_level", FALSE,
 						"terminal_flag", FALSE,
+						"pitchdown_flag", FALSE,
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
@@ -687,29 +688,6 @@ function ascent_dap_factory {
 		
 	}).
 	
-	this:add("set_strmgr_ramp", {
-		local max_steer is 1.
-		local steer_ramp_rate is max_steer/5.
-		
-		set this:strmgr_auto to min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
-	}).
-	
-	this:add("set_strmgr_free", {
-		set this:strmgr_auto to 6.5.
-	}).
-	
-	this:add("set_strmgr_high", {
-		set this:strmgr_auto to 1.5.
-	}).
-	
-	this:add("set_strmgr_med", {
-	set this:strmgr_auto to 0.45.
-	}).
-	
-	this:add("set_strmgr_low", {
-		set this:strmgr_auto to 0.1.
-	}).
-	
 	this:add("update_strmgr", {
 		local strmgr is STEERINGMANAGER:MAXSTOPPINGTIME.
 		
@@ -737,8 +715,12 @@ function ascent_dap_factory {
 					set strmgr to 5.
 				} else {
 					if (this:serc_enabled) {
-						set strmgr to 0.5.
+						set strmgr to 0.15.
 					}
+				}
+				
+				if (vehicle["pitchdown_flag"]) {
+					set strmgr to max(strmgr, 0.7).
 				}
 			}
 		}
