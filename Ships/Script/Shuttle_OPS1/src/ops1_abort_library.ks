@@ -11,7 +11,6 @@ GLOBAL abort_modes IS LEXICON(
 					"rtls_active", false,
 					"tal_active", false,
 					"ato_active", false,
-					"droop_active", false,
 					"cont_2eo_active", false,
 					"cont_3eo_active", false,
 					"ssmes_out", list(),
@@ -185,10 +184,6 @@ function intact_abort_region_determinator {
 	
 	//for good measure 
 	set abort_modes["intact_modes"]["2eo"]["rtls"] to false.
-	
-	if (abort_modes["droop_active"]) {
-		return.
-	}
 	
 	if (not abort_modes["intact_modes"]["2eo_droop"]) {
 		if (droopInternal["s_drp_alt"]) {
@@ -622,7 +617,6 @@ function abort_initialiser {
 		//2eo is a contingency unless one of the intact modes is available
 		//no manual selection, only auto-
 		
-		local two_eo_droop_abort is false.
 		local two_eo_ato_abort is false.
 		local two_eo_tal_abort is false.
 		local two_eo_rtls_abort is false.
@@ -633,33 +627,31 @@ function abort_initialiser {
 			set two_eo_rtls_abort to true.
 			set two_eo_tal_abort to false.
 			set two_eo_ato_abort to false.
-			set two_eo_droop_abort to false.
 		} else if (abort_modes["intact_modes"]["2eo"]["meco"]) {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to false.
 			set two_eo_tal_abort to false.
 			set two_eo_ato_abort to false.
-			set two_eo_droop_abort to false.
 		} else if (abort_modes["intact_modes"]["2eo"]["ato"]) {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to false.
 			set two_eo_tal_abort to false.
 			set two_eo_ato_abort to true.
-			set two_eo_droop_abort to false.
 		} else if (abort_modes["intact_modes"]["2eo"]["tal"]) {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to false.
 			set two_eo_tal_abort to true.
 			set two_eo_ato_abort to false.
-			set two_eo_droop_abort to false.
 		} else if (abort_modes["intact_modes"]["2eo_droop"]) {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to false.
-			set two_eo_droop_abort to true.
-			set two_eo_ato_abort to false.
 			
 			if abort_modes["tal_active"] or (abort_modes["2eo_tal_sites"]:length > 0) {
 				set two_eo_tal_abort to true.
+				set two_eo_ato_abort to false.
+			} else {
+				set two_eo_tal_abort to false.
+				set two_eo_ato_abort to true.
 			}
 			
 		} else {
@@ -673,7 +665,6 @@ function abort_initialiser {
 		set abort_modes["rtls_active"] to two_eo_rtls_abort.
 		set abort_modes["tal_active"] to two_eo_tal_abort. 
 		set abort_modes["ato_active"] to two_eo_ato_abort. 
-		set abort_modes["droop_active"] to two_eo_droop_abort. 
 		set abort_modes["cont_3eo_active"] to false. 
 		
 		if (abort_modes["rtls_active"]) {
@@ -1343,8 +1334,6 @@ FUNCTION setup_TAL{
 	
 	SET upfgInternal["s_init"] TO FALSE.
 	
-	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
-	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
 	
 	set ops1_parameters["roll_headsup_vi"] to orbitstate["velocity"]:mag + 250.
@@ -1437,8 +1426,6 @@ FUNCTION setup_ATO {
 	set target_orbit["fpa"] to ato_tgt_orbit["fpa"].
 	
 	SET upfgInternal["s_init"] TO FALSE.
-	
-	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
 	local engines_out is get_engines_out().
 	
