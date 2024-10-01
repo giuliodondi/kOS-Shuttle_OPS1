@@ -732,6 +732,7 @@ GLOBAL droopInternal IS LEXICON(
 						"thr_max", 77,
 						"att_incr", 0.5,
 						"vmiss", 0.25,
+						"n_ssme", 1,
 						
 						"dummy", 0
 ).
@@ -759,7 +760,7 @@ function droop_control {
 			
 			//activate droop steering - as soon as min_alt is on this will be off and this block is disabled
 			//add check on engines out or abort mode here???
-			set droopInternal["s_cdroop"] to (not droopInternal["s_min_alt"]) and (droopInternal["s_cdroop"] or droopInternal["s_drp_alt"]) and abort_modes["droop_active"].
+			set droopInternal["s_cdroop"] to (not droopInternal["s_min_alt"]) and (droopInternal["s_cdroop"] or droopInternal["s_drp_alt"]) and (vehicle["SSME"]["active"] = droopInternal["n_ssme"]).
 
 		} else {
 			set droopInternal["s_cdroop"] to false.
@@ -804,11 +805,11 @@ function droop_state_params {
 		set droopInternal["s_firstpass"] to true.
 	}
 
-	SET droopInternal["t_cur"] TO upfgInternal["t_cur"].
+	SET droopInternal["t_cur"] TO surfacestate["time"].
 	SET droopInternal["alt_cur"] TO surfacestate["alt"].
-	SET droopInternal["r_cur"] TO upfgInternal["r_cur"].
-	SET droopInternal["v_cur"] TO upfgInternal["v_cur"].
-	SET droopInternal["m_cur"] TO upfgInternal["m_cur"].
+	SET droopInternal["r_cur"] TO orbitstate["radius"].
+	SET droopInternal["v_cur"] TO orbitstate["velocity"].
+	SET droopInternal["m_cur"] TO get_stage()["m_initial"].
 	SET droopInternal["rinit"] TO droopInternal["r_cur"]:MAG.
 	
 	if upfgInternal["s_conv"] {
@@ -831,7 +832,7 @@ function droop_state_params {
 	set droopInternal["tnew"] to droopInternal["t1new"] - upfgInternal["dt"].
 	
 	//missing the single engine perfomance values
-	local one_eng_perf is veh_perf_estimator(build_engines_lex(1)).
+	local one_eng_perf is veh_perf_estimator(build_engines_lex(droopInternal["n_ssme"])).	
 	
 	set droopInternal["mdt"] to one_eng_perf["engines"]["flow"].
 	set droopInternal["tv_max"] to one_eng_perf["engines"]["thrust"].
