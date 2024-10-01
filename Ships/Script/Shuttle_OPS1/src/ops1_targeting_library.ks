@@ -383,13 +383,16 @@ FUNCTION prepare_launch {
 	set cutvec to rodrigues(cutvec, target_orbit["normal"], 10).
 	local cutoff_r is cutvec:NORMALIZED * (target_orbit["cutoff alt"]*1000 + SHIP:BODY:RADIUS).
 	SET target_orbit TO nominal_cutoff_params(target_orbit, cutoff_r).
-	
-	
-	
-
 }
 
 
+function target_orbit_dump {
+	IF EXISTS("0:/upfg_dump.txt") {
+		DELETEPATH("0:/target_orbit_dump.txt").
+	}
+	
+	log target_orbit:dump() to "0:/target_orbit_dump.txt".
+}
 
 
 
