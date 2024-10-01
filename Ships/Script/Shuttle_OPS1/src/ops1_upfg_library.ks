@@ -595,21 +595,24 @@ FUNCTION upfg {
 		
 	IF (ABS(tgo_expected - internal["tgo"]) < internal["tgo_conv"]) { //first criterion for convergence
 		IF (VANG(steering_prev, internal["steering"]) < internal["steer_conv"]) { //second criterion for convergence
-			SET internal["iter_unconv"] TO 0.
-			IF (internal["iter_conv"] < 3) {
-				SET internal["iter_conv"] TO internal["iter_conv"] + 1.
-			} ELSE {
-				if (NOT internal["s_conv"]) {
-					//moved here from main executive
-					addGUIMessage("GUIDANCE CONVERGED IN " + internal["itercount"] + " ITERATIONS").
-					SET internal["s_conv"] tO TRUE.
-					SET internal["iter_conv"] TO 0.
+			IF (vdot(internal["iz"], internal["steering"]) > 0) { //third criterion for convergence
+				SET internal["iter_unconv"] TO 0.
+				IF (internal["iter_conv"] < 3) {
+					SET internal["iter_conv"] TO internal["iter_conv"] + 1.
+				} ELSE {
+					if (NOT internal["s_conv"]) {
+						//moved here from main executive
+						addGUIMessage("GUIDANCE CONVERGED IN " + internal["itercount"] + " ITERATIONS").
+						SET internal["s_conv"] tO TRUE.
+						SET internal["iter_conv"] TO 0.
+					}
 				}
 			}
-		} ELSE { //something is wrong, reset
-			resetUPFG().
-			RETURN.
 		}
+		// ELSE { //something is wrong, reset
+		// 	resetUPFG().
+		// 	RETURN.
+		// }
 	} ELSE {
 		//if we were converged and twice in a row we break the convergence criterion, go unconverged
 		IF (wasconv AND internal["iter_unconv"] < 2) {
@@ -671,6 +674,7 @@ FUNCTION upfg {
 	
 	if (ops1_parameters["debug_mode"]) {
 		upfg_dump().
+		target_orbit_dump().
 	}
 	
 }
@@ -817,8 +821,9 @@ function droop_state_params {
 	}
 	
 	set droopInternal["ix"] to droopInternal["r_cur"]:normalized.
-	set droopInternal["iy"] to vcrs(droopInternal["peg_steer"], droopInternal["ix"]):normalized.
-	set droopInternal["iz"] to vcrs(droopInternal["ix"], droopInternal["iy"]):normalized.
+	set droopInternal["iz"] to vxcl(droopInternal["ix"], droopInternal["peg_steer"]):normalized.
+	set droopInternal["iy"] to vcrs(droopInternal["iz"], droopInternal["ix"]):normalized.
+	
 	
 	set droopInternal["peg_att"] to 90 - vang(droopInternal["ix"] , droopInternal["peg_steer"]).
 	
