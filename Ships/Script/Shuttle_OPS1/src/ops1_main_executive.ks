@@ -533,8 +533,6 @@ function ops1_second_stage_rtls {
 
 	SET vehiclestate["major_mode"] TO 601.
 	
-	freeze_abort_gui(true).
-	
 	set dap:steer_freeze to false.
 	
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
@@ -720,8 +718,6 @@ function ops1_second_stage_rtls {
 
 
 function ops1_second_stage_contingency {
-
-	freeze_abort_gui(true).
 	
 	//preserve the major mode from wherever we came from
 	//for correct gui

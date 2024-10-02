@@ -508,12 +508,12 @@ function abort_initialiser {
 		//prepare for intitialisation 
 		set abort_modes["abort_initialised"] to false.
 		
-		//the abort is triggered right now except in a 1eo case if we have more than 1 mode available
+		//the abort is triggered right now except in a 1eo case if tal is available (only mode which accepts manual input)
 		//we give 10 seconds for manual abort trigger
 		//but we shouldn't wait if an abort was already triggered
 		local abort_trigger_t is -0.2.
 		
-		if (one_engout) and (get_available_abort_modes():length > 1) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
+		if (one_engout) and (abort_modes["intact_modes"]["1eo"]["tal"]) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
 			set abort_trigger_t to 10.
 		}
 		
@@ -603,6 +603,7 @@ function abort_initialiser {
 		if (abort_modes["rtls_active"]) {
 			//setup rtls	
 			addGUIMessage("ABORT RTLS").
+			freeze_abort_gui(true).
 			setup_RTLS().
 		} else if (abort_modes["tal_active"]) {
 			//setup tal 
@@ -684,6 +685,8 @@ function abort_initialiser {
 			setup_2eo_contingency().
 		}
 		
+		freeze_abort_gui(true).
+		
 		
 	} else if (three_engout) {
 		//3eo is always a contingency even in the tal/ato region 
@@ -714,6 +717,8 @@ function abort_initialiser {
 		}
 		
 		setup_3eo_contingency().
+		
+		freeze_abort_gui(true).
 	}
 	
 	//start oms dump in any abort case except ato
