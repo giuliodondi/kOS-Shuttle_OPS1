@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle OPS1 Ascent Guidance
-## Updated September 2024
+## Updated October 2024
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ops1_cover.png" width="700" >
@@ -151,19 +151,18 @@ Running the **ops1.ks** or **ops1_3a.ks** script is the only action required for
 
 These are the main events durign ascent:
 - Fuel cells are automatically activated at liftoff
-- Dynamic pressure (**Q**) is monitored throughout and SSME throttle will be reduced to 75% RPL during the Max-Q period. **If you fly CSS you have to be alert and adjust throttle**
+- Dynamic pressure (**Q**) is monitored throughout and SSME throttle will be reduced to 75% RPL during the Max-Q period.
+  - **If you fly CSS you have to be alert and adjust throttle**
 - SRB separation is thrust-dependent and usually happens around the T+02:00 mark
 - 5 seconds after SRB sep the program transitions to closed-loop guidance using the UPFG algorithm
 - It should take around 10 iterations for the algorithm to converge and in the nominal case it should stay converged throughout
-- On a nominal mission a roll to heads-up attitude is performed at T+05:50
-- About a minute before MECO, Guidance will start throttling down the engines to maintain a maximum acceleration of 3G. **Again, if you're flying CSS you need to be alert for this**
+- On a nominal mission a roll to heads-up attitude is performed at a velocity set in the **parameters.ks** file
+  - **To disable the roll to heads-up you can go to the parameters file and set 'roll_headsup_vi'=10000**
+- About a minute before MECO, Guidance will start throttling down the engines to maintain a maximum acceleration of 3G.
+  - **Again, if you're flying CSS you need to be alert for this**
 - 5 seconds before the targeted MECO the program transitions to terminal guidance at minimum throttle
   - alternatively it can happen 5 seconds before the Shuttle runs out of propellant
-- After MECO the program will automatically:
-  - disable SSME gimballing
-  - trigger ET sep
-  - command an RCS vertical translation manoeuvre
-  - actuate the umbilical doors, if you find them open it means they were closed at liftoff
+- After MECO the program will disable SSME gimballing, trigger ET sep, command an RCS vertical translation manoeuvre, close the umbilical doors
 - The program then prints a message in the message window, displaying the results of an orbital analysis calculating the erros with respect to the targeted orbit
 - 5 seconds after this, the program will quit itself
 - **Do not forget that the nominal ascent puts the shuttle on a trajectory that dips back into the atmosphere for ET disposal. You must perform manually an OMS bun to circularise.** 
@@ -192,9 +191,8 @@ In some regions, even a double engine failure will allow an intact abort. This i
 - Intact aborts can be triggered either manually or automatically
 - **Remember that the abort selectors and buttons are inactive until after SRB separation**
 - Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
-- In case of an engine failure, you have 10 seconds to select a manual abort, after which the program will automatically activate an abort mode
-  - The automatic intact abort logic is: ATO-TAL-RTLS in this order of preference, based on availability
-- You can manually activate an abort even without an engine failure, guidance will work just the same
+  - You can manually activate an abort even without an engine failure, guidance will work just the same
+- In case of an engine failure, the abort logic is automatic unless TAL is available, because it's the only mode that overlaps with others and that requires manual input to select a TAL site. You have 10 seconds to choose a site and manually activate TAL before guidance does it for you
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/intact_modes.png" width="700" >
@@ -204,7 +202,7 @@ The above chart shows the intact abort modes and their boundaries:
 - **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **Negative Return**
 - **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until **Single-engine Press to ATO** is available)
 - **TAL** is also available for two-engine-out situations after the **Single Engine TAL** boundary and until **Single-engine Press to ATO**
-- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a nominal MECO and do a regular reentry. This leads to a low-energy TAL abort.
+- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a non-contingency MECO and do an OPS3 reentry. This leads to a low-energy TAL abort.
 - **Abort to Orbit (ATO)** is available some time after Negative Return until **Press to MECO**
   - later in the ascent, **Single-engine ATO** is available
 - after the**Press to MECO** boundary, no abort is necessary
@@ -330,11 +328,10 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 </details>
 
 <details>
-<summary><h2>Abort 2 Engine Out Droop (2EO DROOP) (Not yet implemented)</h2></summary>
+<summary><h2>Abort 2 Engine Out Droop (2EO DROOP) (Not yet implemented)</h2></summary> 
 
-The Shuttle ascent trajectory is drooped because the thrust of the SSMEs is relatively low. In case of two engines out, it's drooped so much that there's a risk of descending below 80km at high velocity, which puts the External Tank at risk of exploding.  
-After the **Single Engine OPS3** boundary, the Shuttle can use a special guidance scheme to stay above 80km and continue all the way to a "nominal" MECO. After this, regular OPS3 reentry guidance can be performes, albeit in low-energy mode.  
-Before this boundary, the Shuttle must separate early from the External Tank before falling and a contingency abort is declared.
+Carrying the External Tank at high speed below 90km will overheat it, and below 83km it will explode. With two engines-out early on, it's impossible to stay aloft and so a contingency abort is declared to separate early from the ET. But after a certain boundary called **Single Engine OPS3** it is possible to keep the drooped trajectory above the limit and continue on burning propellant to MECO.
+
 
 </details>
 
