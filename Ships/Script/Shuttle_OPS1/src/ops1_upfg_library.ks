@@ -592,22 +592,29 @@ FUNCTION upfg {
 	IF (NOT internal["s_conv"]) {
 		SET internal["itercount"] TO internal["itercount"]+1.
 	}
+	
+	local tgo_conv_flag is (ABS(tgo_expected - internal["tgo"]) < internal["tgo_conv"]).
+	local steer_conv_flag is (VANG(steering_prev, internal["steering"]) < internal["steer_conv"]).
+	local steer_dwnrng_flag is (vdot(internal["iz"], internal["steering"]) > 0).
 		
-	IF (ABS(tgo_expected - internal["tgo"]) < internal["tgo_conv"]) { //first criterion for convergence
-		IF (VANG(steering_prev, internal["steering"]) < internal["steer_conv"]) { //second criterion for convergence
-			IF (vdot(internal["iz"], internal["steering"]) > 0) { //third criterion for convergence
-				SET internal["iter_unconv"] TO 0.
-				IF (internal["iter_conv"] < 3) {
-					SET internal["iter_conv"] TO internal["iter_conv"] + 1.
-				} ELSE {
-					if (NOT internal["s_conv"]) {
-						//moved here from main executive
-						addGUIMessage("GUIDANCE CONVERGED IN " + internal["itercount"] + " ITERATIONS").
-						SET internal["s_conv"] tO TRUE.
-						SET internal["iter_conv"] TO 0.
-					}
+	IF tgo_conv_flag and steer_conv_flag { 
+		IF steer_dwnrng_flag {
+			SET internal["iter_unconv"] TO 0.
+			IF (internal["iter_conv"] < 3) {
+				SET internal["iter_conv"] TO internal["iter_conv"] + 1.
+			} ELSE {
+				if (NOT internal["s_conv"]) {
+					//moved here from main executive
+					addGUIMessage("GUIDANCE CONVERGED IN " + internal["itercount"] + " ITERATIONS").
+					SET internal["s_conv"] tO TRUE.
+					SET internal["iter_conv"] TO 0.
 				}
 			}
+		} else {
+			SET internal["iter_conv"] TO 0.
+			SET internal["itercount"] TO 0.
+			SET internal["iter_unconv"] TO 0.
+			set internal["s_conv"] to false.
 		}
 		// ELSE { //something is wrong, reset
 		// 	resetUPFG().
