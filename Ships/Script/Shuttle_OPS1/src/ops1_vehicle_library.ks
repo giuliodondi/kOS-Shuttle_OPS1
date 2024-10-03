@@ -63,6 +63,7 @@ function initialise_shuttle {
 						"glim", 3,
 						"low_level", FALSE,
 						"terminal_flag", FALSE,
+						"pitchdown_flag", FALSE,
 						"maxThrottle",0,	
 						"minThrottle",0,	
 						"nominalThrottle",0,	
@@ -358,9 +359,6 @@ function ascent_dap_factory {
 
 	LOCAL this IS lexicon().
 	
-	this:add("strmgr_auto", 1).
-	this:add("strmgr_css", 0.6).
-	
 	this:add("steer_freeze", false).
 	
 	this:add("steer_mode", "").
@@ -436,7 +434,8 @@ function ascent_dap_factory {
 		
 		set this:throt_delta to this:thr_rpl_tgt - this:thr_cmd_rpl.
 		
-		set this:ship_roll_delta to signed_angle(this:steer_dir:topvector, shptv_p, this:steer_dir:forevector, 0).
+		//set this:ship_roll_delta to signed_angle(this:steer_dir:topvector, shptv_p, this:steer_dir:forevector, 0).
+		set this:ship_roll_delta to unfixangle(this:steer_roll - this:cur_steer_roll).
 		
 		local angv_ is SHIP:ANGULARVEL * constant:RadToDeg.
 		
@@ -449,7 +448,7 @@ function ascent_dap_factory {
 			and (abs(this:yaw_rate) < 0.5)
 			and (abs(this:pitch_rate) < 0.5).
 			
-		set this:roll_null_err to (ABS(unfixangle(this:steer_roll - this:cur_steer_roll)) < this:steer_check_delta) 
+		set this:roll_null_err to (ABS(this:ship_roll_delta) < this:steer_check_delta) 
 			and (abs(this:roll_rate) < 0.5).
 		
 		this:update_steer_tgtdir().
@@ -650,7 +649,7 @@ function ascent_dap_factory {
 			return.
 		}
 		
-		set this:serc_tgt_roll_rate to -sign(this:ship_roll_delta) * MIN(0.35 * abs(this:ship_roll_delta), 5).
+		set this:serc_tgt_roll_rate to sign(this:ship_roll_delta) * MIN(0.35 * abs(this:ship_roll_delta), 5).
 		
 		SET SHIP:CONTROL:STARBOARD TO  this:serc_yaw_pid:UPDATE(this:last_time, this:serc_tgt_roll_rate - this:roll_rate ).
 	
@@ -689,35 +688,44 @@ function ascent_dap_factory {
 		
 	}).
 	
-	this:add("set_strmgr_ramp", {
-		local max_steer is 1.
-		local steer_ramp_rate is max_steer/5.
-		
-		set this:strmgr_auto to min(max_steer, STEERINGMANAGER:MAXSTOPPINGTIME + steer_ramp_rate * this:iteration_dt).
-	}).
-	
-	this:add("set_strmgr_free", {
-		set this:strmgr_auto to 6.5.
-	}).
-	
-	this:add("set_strmgr_high", {
-		set this:strmgr_auto to 1.5.
-	}).
-	
-	this:add("set_strmgr_med", {
-	set this:strmgr_auto to 0.45.
-	}).
-	
-	this:add("set_strmgr_low", {
-		set this:strmgr_auto to 0.1.
-	}).
-	
 	this:add("update_strmgr", {
+		local strmgr is STEERINGMANAGER:MAXSTOPPINGTIME.
+		
 		if (this:steer_mode = "css") {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO this:strmgr_css.
+			set strmgr to 0.6.
 		} else {
-			SET STEERINGMANAGER:MAXSTOPPINGTIME TO this:strmgr_auto.
+		
+			if (vehiclestate["major_mode"] <= 101) {
+				set strmgr to 0.1.
+			} else if (vehiclestate["major_mode"] = 102) {
+				set strmgr to min(1.2, strmgr + 0.1 * this:iteration_dt).
+			} else if (vehiclestate["major_mode"] >= 103) {
+				set strmgr to 0.1.
+				
+				if (not this:roll_null_err) {
+					set strmgr to midval(abs(this:ship_roll_delta) * 0.08, strmgr, 0.5).
+					
+				}
+				
+				if (not this:steering_null_err) {
+					set strmgr to midval(strmgr + abs(this:steer_pitch_delta) * 0.075 - 0.013, strmgr, 1.5).
+				}
+				
+				if (vehicle["meco_flag"]) {
+					set strmgr to 5.
+				} else {
+					if (this:serc_enabled) {
+						set strmgr to 0.15.
+					}
+				}
+				
+				if (vehicle["pitchdown_flag"]) {
+					set strmgr to max(strmgr, 0.7).
+				}
+			}
 		}
+		
+		SET STEERINGMANAGER:MAXSTOPPINGTIME TO strmgr.
 	}).
 	
 	this:add("set_rcs", {
@@ -955,7 +963,7 @@ FUNCTION getState {
 			}
 			
 			ssme_staging(vehiclestate["cur_stg"]).
-			ssme_low_level(vehiclestate["cur_stg"]).
+			ssme_low_level().
 			ssme_flameout().
 		}
 	
@@ -1118,20 +1126,14 @@ FUNCTION ssme_staging {
 
 //returns true when we're close to depletion at minimum throttle on three engines
 FUNCTION ssme_low_level {
-	parameter cur_stg.
 	
-	IF (cur_stg = (vehicle["stages"]:LENGTH - 1)) {
-	
-		local three_eng_lex is build_engines_lex(3, 0).
-	
-		local prop_left is vehicle["SSME_prop"].
-		
-		local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * ops1_parameters["low_level_burnt"].
-		
-		set vehicle["low_level"] to (prop_left <= low_level_prop).
-		
-	}
+	local three_eng_lex is build_engines_lex(3, 0).
 
+	local prop_left is vehicle["SSME_prop"].
+	
+	local low_level_prop is three_eng_lex["flow"] * three_eng_lex["minThrottle"] * ops1_parameters["low_level_burnt"].
+	
+	set vehicle["low_level"] to (prop_left <= low_level_prop).
 }
 
 

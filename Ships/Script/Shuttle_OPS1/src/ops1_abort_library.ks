@@ -33,11 +33,11 @@ GLOBAL abort_modes IS LEXICON(
 													),
 												"2eo", lexicon(
 															"rtls", false,		//required for 2eo rtls completion
-															"droop", false,
 															"tal", false,
 															"ato", false,
 															"meco", false
-													)
+													),
+												"2eo_droop", false	//separate flag because 2eo tal might be active as well
 									),
 					"2eo_cont_mode", "XXXXX",
 					"3eo_cont_mode", "XXXXX"
@@ -81,8 +81,6 @@ function initialise_abort_sites {
 								500,
 								2000
 	).
-
-
 }
 
 
@@ -187,6 +185,14 @@ function intact_abort_region_determinator {
 	//for good measure 
 	set abort_modes["intact_modes"]["2eo"]["rtls"] to false.
 	
+	if (not abort_modes["intact_modes"]["2eo_droop"]) {
+		if (droopInternal["s_drp_alt"]) {
+			addGUIMessage("SINGLE ENGINE OPS3").
+			set abort_modes["intact_modes"]["2eo_droop"] to true.
+		}
+	}
+	
+	
 	local two_eng_lex is build_engines_lex(2).
 	local one_eng_lex is build_engines_lex(1).
 	
@@ -204,6 +210,8 @@ function intact_abort_region_determinator {
 		
 		local two_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
 		local one_eng_best_tal is lexicon("site", "", "deltav", -10000000000).
+		local lowest_dz_tal is lexicon("site", "", "deltav", -10000000000, "delaz", -10000000000).
+		local lowest_dz_sgn is -1.
 		
 		LOCAL current_normal IS currentNormal().
 		
@@ -219,6 +227,12 @@ function intact_abort_region_determinator {
 								orbitstate["radius"],
 								0
 			).
+			
+			if (lowest_dz_sgn * (lowest_dz_tal["delaz"] - abs(tal_delaz)) >= 0) {
+				set lowest_dz_tal["delaz"] to abs(tal_delaz).
+				set lowest_dz_tal["site"] to s.
+				set lowest_dz_sgn to 1.
+			}
 			
 			//test maximum az error 
 			if (abs(tal_delaz) < 35) {
@@ -258,12 +272,11 @@ function intact_abort_region_determinator {
 											"delaz", tal_delaz
 				).
 				
-				if (one_eng_tal_dv_excess > 0) {
-					tal_1e_dv:add(one_eng_tal_dv).
-				}
-				
 				if (one_eng_tal_dv_excess > one_eng_best_tal["deltav"]) {
 					set one_eng_best_tal to one_eng_tal_dv.
+					if (one_eng_best_tal["deltav"] > 0) {
+						set tal_1e_dv to list(one_eng_best_tal).
+					}
 				}
 			
 			}
@@ -272,7 +285,9 @@ function intact_abort_region_determinator {
 		if (NOT abort_modes["intact_modes"]["1eo"]["rtls"]) {
 			// if we're not tal by negative return, force tal mode with the least bad site 
 			if (tal_2e_dv:length = 0) {
-				tal_2e_dv:add(two_eng_best_tal).
+				if (lowest_dz_tal["delaz"] > 0) {
+					set tal_2e_dv to list(lowest_dz_tal).
+				}
 			}
 		}
 		
@@ -286,12 +301,16 @@ function intact_abort_region_determinator {
 		
 		
 		
-		if (not abort_modes["intact_modes"]["2eo"]["tal"]) {
+		if (not (abort_modes["intact_modes"]["2eo"]["tal"])) {
 			if (tal_1e_dv:length > 0) { 
 				addGUIMessage("SINGLE ENGINE TAL").
 				set abort_modes["intact_modes"]["2eo"]["tal"] to true.
+			} else if (lowest_dz_tal["delaz"] > 0) {
+				set tal_1e_dv to list(lowest_dz_tal).
 			}
 		}
+		
+		set abort_modes["3eo_tal_site"] to lowest_dz_tal.
 		
 	}
 	
@@ -410,8 +429,7 @@ function contingency_abort_region_determinator {
 			} 
 			
 		} else {
-			//droop boundary missing
-			if (abort_modes["intact_modes"]["2eo"]["droop"]) or 
+			if (abort_modes["intact_modes"]["2eo_droop"]) or 
 				(abort_modes["intact_modes"]["2eo"]["tal"]) or 
 				(abort_modes["intact_modes"]["2eo"]["ato"]) or 
 				(abort_modes["intact_modes"]["2eo"]["meco"]) {
@@ -440,22 +458,24 @@ function contingency_abort_region_determinator {
 		} else {
 			if (vehiclestate["major_mode"] < 103) {
 				set abort_modes["3eo_cont_mode"] to "BLUE". 
-			} else if (orbitstate["velocity"]:MAG < 6000) {
-				set abort_modes["3eo_cont_mode"] to "GREEN". 
 			} else {
-				local tal_candidate is get_3eo_tal_site_vel().
+				local vmag is orbitstate["velocity"]:mag.
 				local ato_tgt_orbit is get_ato_tgt_orbit().
+				LOCAL ato_dv IS vmag - ato_tgt_orbit["velvec"]:mag.
 				
-				LOCAL ato_dv IS abs(ato_tgt_orbit["velvec"]:mag - orbitstate["velocity"]:mag).
-				LOCAL tal_dv IS abs(tal_candidate["velvec"]:mag - orbitstate["velocity"]:mag).
+				local tal_3eo_vmag is get_3eo_tal_site_vel():mag.
+				local tal_dv is vmag - tal_3eo_vmag.
 				
-				if (ato_dv < tal_dv) {
+				local tal_3eo_v_flag is (tal_dv >= -1000).
+				local ato_3eo_v_flag is (ato_dv >= -100).
+				
+				if ato_3eo_v_flag or (tal_3eo_v_flag and (abs(ato_dv) < abs(tal_dv))) {
 					set abort_modes["3eo_cont_mode"] to "ATO". 
-				} else {
+				} else if tal_3eo_v_flag	{
 					set abort_modes["3eo_cont_mode"] to "TAL". 
-				}
-				
-				
+				} else {
+					set abort_modes["3eo_cont_mode"] to "GREEN". 
+				}				
 			}
 		}
 	}
@@ -488,12 +508,12 @@ function abort_initialiser {
 		//prepare for intitialisation 
 		set abort_modes["abort_initialised"] to false.
 		
-		//the abort is triggered right now except in a 1eo case if we have more than 1 mode available
+		//the abort is triggered right now except in a 1eo case if tal is available (only mode which accepts manual input)
 		//we give 10 seconds for manual abort trigger
 		//but we shouldn't wait if an abort was already triggered
 		local abort_trigger_t is -0.2.
 		
-		if (one_engout) and (get_available_abort_modes():length > 1) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
+		if (one_engout) and (abort_modes["intact_modes"]["1eo"]["tal"]) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
 			set abort_trigger_t to 10.
 		}
 		
@@ -583,6 +603,7 @@ function abort_initialiser {
 		if (abort_modes["rtls_active"]) {
 			//setup rtls	
 			addGUIMessage("ABORT RTLS").
+			freeze_abort_gui(true).
 			setup_RTLS().
 		} else if (abort_modes["tal_active"]) {
 			//setup tal 
@@ -602,7 +623,6 @@ function abort_initialiser {
 		local two_eo_rtls_abort is false.
 		local two_eo_cont_abort is false.
 		
-		//droop still missing
 		if (abort_modes["intact_modes"]["2eo"]["rtls"]) {
 			set two_eo_cont_abort to false.
 			set two_eo_rtls_abort to true.
@@ -623,6 +643,18 @@ function abort_initialiser {
 			set two_eo_rtls_abort to false.
 			set two_eo_tal_abort to true.
 			set two_eo_ato_abort to false.
+		} else if (abort_modes["intact_modes"]["2eo_droop"]) {
+			set two_eo_cont_abort to false.
+			set two_eo_rtls_abort to false.
+			
+			if abort_modes["tal_active"] or (abort_modes["2eo_tal_sites"]:length > 0) {
+				set two_eo_tal_abort to true.
+				set two_eo_ato_abort to false.
+			} else {
+				set two_eo_tal_abort to false.
+				set two_eo_ato_abort to true.
+			}
+			
 		} else {
 			set two_eo_cont_abort to true.
 			set two_eo_rtls_abort to false.
@@ -652,6 +684,8 @@ function abort_initialiser {
 			addGUIMessage("ABORT 2EO " + abort_modes["2eo_cont_mode"]).
 			setup_2eo_contingency().
 		}
+		
+		freeze_abort_gui(true).
 		
 		
 	} else if (three_engout) {
@@ -683,6 +717,8 @@ function abort_initialiser {
 		}
 		
 		setup_3eo_contingency().
+		
+		freeze_abort_gui(true).
 	}
 	
 	//start oms dump in any abort case except ato
@@ -1279,19 +1315,8 @@ FUNCTION setup_TAL{
 			}
 			
 		} else {
-			//if 2eo choose the least DV site of the 2eo sites
-			local tal_best_sdv is lexicon(
-									"site", "", 
-									"deltav", -10000000000
-			).
-			
-			for sdv in abort_modes["2eo_tal_sites"] {
-				if (tal_best_sdv["deltav"] < sdv["deltav"]) {
-					set tal_best_sdv to sdv.
-				}
-			}
-			
-			set selected_tal_site to tal_best_sdv["site"].
+			//if 2eo choose the first 2eo site, there should be only one 
+			set selected_tal_site to abort_modes["2eo_tal_sites"][0]["site"].
 		}
 		
 		local tal_tgtvec_ is TAL_tgt_vec(selected_tal_site, orbitstate["radius"]).
@@ -1313,8 +1338,6 @@ FUNCTION setup_TAL{
 	SET target_orbit TO TAL_cutoff_params(target_orbit, orbitstate["radius"], target_orbit["radius"]).
 	
 	SET upfgInternal["s_init"] TO FALSE.
-	
-	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
 	
@@ -1409,8 +1432,6 @@ FUNCTION setup_ATO {
 	
 	SET upfgInternal["s_init"] TO FALSE.
 	
-	ascent_gui_set_cutv_indicator(target_orbit["velocity"]).
-	
 	local engines_out is get_engines_out().
 	
 	set upfgInternal["throtset"] to get_stage()["Throttle"].
@@ -1466,6 +1487,10 @@ function get_best_ecal_site {
 
 //		CONTINGENCY functions
 
+function droop_min_alt {
+	return 86868.
+}
+
 function cont_2eo_immediate_sep {
 	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= contingency_et_sep_alt()).
 }
@@ -1475,7 +1500,7 @@ function contingency_et_sep_alt {
 	
 	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"]:mag.
 
-	return clamp(et_sep_alt_ve, 62484, 80772).
+	return clamp(et_sep_alt_ve, 62484, droop_min_alt()).
 }
 
 function contingency_2eo_blue_boundary {
@@ -1664,48 +1689,11 @@ function cont_2eo_terminal_condition {
 //tal site with least crossrange and meco velocity
 function get_3eo_tal_site_vel {
 
-	local tal_best_site is "".
-	local min_delaz is 10000000.
-	local tal_best_site_vel is v(0,0,0).
-
-	for sname in abort_modes["tal_candidates"] {
-		
-		LOCAL site IS ldgsiteslex[sname].
-				
-		local rwypos is 0.
-		
-		IF (site:ISTYPE("LEXICON")) {
-			set rwypos to site["position"].
-		} ELSE IF (site:ISTYPE("LIST")) {
-			set rwypos to site[0]["position"].
-		}
-		
-		local tal_delaz is az_error(
-							vecyz(orbitstate["radius"]),
-							rwypos,
-							surfacestate["surfv"]
-		).
-		
-		if (abs(tal_delaz) < min_delaz) {
-			set min_delaz to abs(tal_delaz).
-			set tal_best_site to sname.
-		}	
+	if (abort_modes["3eo_tal_site"]["site"] <> "") {
+		return tal_predict_meco_velocity(abort_modes["3eo_tal_site"]["site"], currentNormal(), target_orbit["radius"]).
 	}
 	
-	if (tal_best_site <> "") {
-		
-		set abort_modes["3eo_tal_site"] to tal_best_site.
-	
-		LOCAL current_normal IS currentNormal().
-		local tal_meco_v is tal_predict_meco_velocity(tal_best_site, current_normal, target_orbit["radius"]).
-		
-		set tal_best_site_vel to tal_meco_v.
-	}
-	
-	return lexicon(
-				"site", tal_best_site,
-				"velvec", tal_best_site_vel
-	).	
+	 return v(10000000, 0, 0).
 }
 
 function setup_3eo_contingency {

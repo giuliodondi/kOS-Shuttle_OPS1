@@ -33,7 +33,7 @@ FUNCTION dataViz {
 	
 	IF (vehiclestate["major_mode"] = 102) {
 		SET sim_dt TO 7.5.
-	} else IF (vehiclestate["major_mode"] = 101) {
+	} else IF (vehiclestate["major_mode"] <= 101) {
 		SET sim_dt TO 0.
 	}
 	
@@ -103,6 +103,9 @@ FUNCTION dataViz {
 	
 	} else {
 		
+		gui_data:ADD("cutv", target_orbit["velocity"]).
+		gui_data:ADD("droop_alt", max(0, droopInternal["rout"]/1000)).
+		gui_data:ADD("droop_engaged", droopInternal["s_cdroop"]).
 					
 		update_ascent_traj_disp(gui_data).
 	
@@ -194,4 +197,5 @@ FUNCTION log_telemetry {
 		log_data(loglex, "./Shuttle_OPS1/LOGS/" + vehicle["name"] + "_log").
 	}
 }
- 
+
+
