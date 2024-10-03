@@ -412,6 +412,8 @@ function intact_abort_region_determinator {
 
 function contingency_abort_region_determinator {
 
+	determine_ecal_site().
+
 	//if 2eo is not active, update the mode 
 	if (not abort_modes["cont_2eo_active"]) {
 		if (abort_modes["rtls_active"]) {
@@ -1526,14 +1528,13 @@ function rtls_initialise_cont_modes {
 function ecal_rv_boundaries {
 	parameter rng.
 	
-	local upper_v is 2.3099 * rng + 1039.4.
-	local lower_v is 1.5951 * rng + 1054.4.
+	local upper_v is 2.3099 * rng + 889.4.
+	local lower_v is 1.5951 * rng + 904.4.
 
 	return list(lower_v, upper_v).
 }
 
-//of all the ecal candidates, choose the closest within rv boundary
-//as fallback choose the least crossrange one 
+//of all the ecal candidates, choose the lowest delaz within rv boundary
 //leave blank if not available
 function determine_ecal_site {
 
@@ -1541,7 +1542,7 @@ function determine_ecal_site {
 	
 	local ecal_best_site is "".
 	local ecal_lowest_dz is "".
-	local lowest_rng is 1000000000.
+	local lowest_dz_vel is 1000000000.
 	local lowest_dz is 1000000000.
 	
 	for sname in abort_modes["ecal_candidates"] {
@@ -1559,36 +1560,39 @@ function determine_ecal_site {
 		local ecal_rng is greatcircledist(cur_pos, rwypos).
 		local ecal_vel_b is ecal_rv_boundaries(ecal_rng).
 		
-		if (orbitstate["velocity"]:mag <= ecal_vel_b[1]) {
-			if (lowest_rng >= ecal_rng) {
-				set lowest_rng to ecal_rng.
-				set ecal_best_site to lexicon(
-							"site", sname,
-							"position", rwypos
-				).
-			}
-		}
-		
 		local ecal_delaz is az_error(
 							cur_pos,
 							rwypos,
 							surfacestate["surfv"]
 		).
 		
-		if (ecal_delaz <= lowest_dz) {
-			set lowest_dz to ecal_delaz.
+		if (orbitstate["velocity"]:mag <= ecal_vel_b[1]) and (orbitstate["velocity"]:mag >= ecal_vel_b[0]) {
+			if (abs(ecal_delaz) <= lowest_dz_vel) {
+				set lowest_dz_vel to abs(ecal_delaz).
+				set ecal_best_site to lexicon(
+							"site", sname,
+							"position", rwypos,
+							"delaz", ecal_delaz
+				).
+			}
+		}
+		
+		if (abs(ecal_delaz) <= lowest_dz) {
+			set lowest_dz to abs(ecal_delaz).
 			set ecal_lowest_dz to lexicon(
 						"site", sname,
-						"position", rwypos
+						"position", rwypos,
+						"delaz", ecal_delaz
 			).
 		}
 	}
 	
 	if (ecal_best_site <> "") {
 		set abort_modes["ecal_tgt_site"] to ecal_best_site.
-	} else if (ecal_lowest_dz <> "") {
-		set abort_modes["ecal_tgt_site"] to ecal_lowest_dz.
 	}
+	//else if (ecal_lowest_dz <> "") {
+	//	set abort_modes["ecal_tgt_site"] to ecal_lowest_dz.
+	//}
 }
 
 function cont_2eo_yawsteer_off {
@@ -1652,9 +1656,6 @@ function setup_2eo_contingency {
 							"hdot", surfacestate["vs"],
 							"outbound_theta", cont_2eo_outbound_theta(surfacestate["vs"])
 	).
-	
-	determine_ecal_site().
-
 }
 
 function cont_2eo_terminal_condition {
@@ -1706,6 +1707,4 @@ function setup_3eo_contingency {
 							"h", surfacestate["alt"],
 							"hdot", surfacestate["vs"]
 	).
-	
-	determine_ecal_site().
 }
