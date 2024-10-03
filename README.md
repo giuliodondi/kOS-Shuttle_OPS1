@@ -119,6 +119,7 @@ These two displays show useful data and trajectory printouts:
   - **_TGO_** is the guidance-calculated time to MECO
   - **_VGO_** is the guidance-calculated delta-V to gain to MECO
   - the numbers will be yellow when the algorithm is unconverged, green upon convergence
+- On the TRAJ2 display, in the bottom centre, you have the **_DROOP ALT_** indicator. In a 2 engine-out scenario, this indicates the minimum altitude before you start climbing again. More about this in te Droop abort section
 
 
 ## Meaning of Rated Power Level and the THROT indicator
@@ -202,7 +203,7 @@ The above chart shows the intact abort modes and their boundaries:
 - **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **Negative Return**
 - **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until **Single-engine Press to ATO** is available)
 - **TAL** is also available for two-engine-out situations after the **Single Engine TAL** boundary and until **Single-engine Press to ATO**
-- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a non-contingency MECO and do an OPS3 reentry. This leads to a low-energy TAL abort.
+- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a non-contingency MECO with the Droop procedure and do an OPS3 reentry. This leads to a TAL abort.
 - **Abort to Orbit (ATO)** is available some time after Negative Return until **Press to MECO**
   - later in the ascent, **Single-engine ATO** is available
 - after the**Press to MECO** boundary, no abort is necessary
@@ -328,9 +329,15 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 </details>
 
 <details>
-<summary><h2>Abort 2 Engine Out Droop (2EO DROOP) (Not yet implemented)</h2></summary> 
+<summary><h2>Abort 2 Engine Out Droop (2EO DROOP)</h2></summary> 
 
-Carrying the External Tank at high speed below 90km will overheat it, and below 83km it will explode. With two engines-out early on, it's impossible to stay aloft and so a contingency abort is declared to separate early from the ET. But after a certain boundary called **Single Engine OPS3** it is possible to keep the drooped trajectory above the limit and continue on burning propellant to MECO.
+Carrying the External Tank at high speed below 90km will overheat it, and below 83km it will explode. With two engines-out early on, it's impossible to stay aloft and so a contingency abort is declared to separate early from the ET. But after a certain boundary called **Single Engine OPS3** it is possible to keep the drooped trajectory above the limit and continue on burning propellant to MECO. 
+
+![droop_display](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/droop_display.png)
+
+This is the TRAJ2 display in a Droop scenario. The Droop alt will read zero for most of the early ascent, at about the Press to MECO time it will start to rise. When it's above a safety limit, you cross the **Single Engine OPS3** boundary. If you lose two engines at this point, a 2 Engine Out TAL abort will be declared and UPFG will keep running with new targets. However, Droop guidance will override steering, adjusting pitch to keep the predicted droop altitude above the limit until you start climbing again. When the time is right, control will be handed back over to UPFG and Droop guidance will never run again.
+
+Droop aborts right after the boundary may result in a low energy TAL condition, but it's not too severe.
 
 
 </details>
@@ -476,6 +483,11 @@ Early 3EO Green aborts end in bailout, late aborts can lead to an ECAL/Bermuda l
 **Black Zones**
 - high Q or Qbar during entry
 - highest risk of CG out of limits
+
+### 3EO TAL/ATO
+
+After you achieve a velocity of 6000m/s, the program will not hand over to OPS3 in contignency mode anymore because it's better to use regular TAL guidance. Nominal TAL velocity depends on distance to the site but it's usually 6900/7100 m/s, if you have a significant underspeed you will not reach the target and eventually bailout.  
+IF you're above the TAL velocity and actually closer to the ATO velocity, the mode will switch to ATO and the program will not invoke OPS3 at all, letting you do an OMS burn to try and circularise which is better than a high-energy TAL.
 
 </details>
 
