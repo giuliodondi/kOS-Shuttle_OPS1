@@ -799,10 +799,15 @@ function ops1_second_stage_contingency {
 		}
 		
 		SET target_orbit["normal"] TO currentNormal().
-		
+		local steer_yawlim is v(0,0,0).
 		if (active_steer_flag) {
-			local steer_yawlim is limit_yaw_steering(cont_2eo_steering(), target_orbit["normal"]).
+			set steer_yawlim to limit_yaw_steering(cont_2eo_steering(), target_orbit["normal"]).
 			dap:set_steer_tgt(vecYZ(steer_yawlim)).
+		}
+		
+		if (ops1_parameters["debug_mode"]) {
+			clearvecdraws().
+			arrow_ship(vecYZ(steer_yawlim),"steer").
 		}
 	}
 	
