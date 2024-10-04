@@ -1536,7 +1536,14 @@ function ecal_rv_boundaries {
 
 //of all the ecal candidates, choose the lowest delaz within rv boundary
 //leave blank if not available
+//force disabled for rtls 
 function determine_ecal_site {
+	
+	set abort_modes["ecal_tgt_site"] to "".
+	
+	if (abort_modes["rtls_active"]) and (RTLSAbort["pitcharound"]["triggered"]) {
+		return.
+	}
 
 	local cur_pos is vecyz(orbitstate["radius"]).
 	
