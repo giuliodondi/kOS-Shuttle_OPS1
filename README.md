@@ -193,7 +193,7 @@ In some regions, even a double engine failure will allow an intact abort. This i
 - **Remember that the abort selectors and buttons are inactive until after SRB separation**
 - Manually, you can select an available mode from the GUI menu and then press the red _ABORT_ button to activate it
   - You can manually activate an abort even without an engine failure, guidance will work just the same
-- In case of an engine failure, the abort logic is automatic unless TAL is available, because it's the only mode that overlaps with others and that requires manual input to select a TAL site. You have 10 seconds to choose a site and manually activate TAL before guidance does it for you
+- In case of an engine failure, the abort logic is automatic unless the TAL mode is available, because it's the only mode that overlaps with others and that requires manual input to select a TAL site. You have 10 seconds to choose a site and manually activate TAL before guidance does it for you
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/intact_modes.png" width="700" >
@@ -203,7 +203,7 @@ The above chart shows the intact abort modes and their boundaries:
 - **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **Negative Return**
 - **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until **Single-engine Press to ATO** is available)
 - **TAL** is also available for two-engine-out situations after the **Single Engine TAL** boundary and until **Single-engine Press to ATO**
-- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a non-contingency MECO with the Droop procedure and do an OPS3 reentry. This leads to a TAL abort.
+- The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a non-contingency MECO with the Droop procedure and do an OPS3 reentry. This also leads to a TAL abort.
 - **Abort to Orbit (ATO)** is available some time after Negative Return until **Press to MECO**
   - later in the ascent, **Single-engine ATO** is available
 - after the**Press to MECO** boundary, no abort is necessary
@@ -308,6 +308,18 @@ If the TAL abort downmodes to single-engine TAL because of a second engien failu
 Either way, there isn't much difference from a normal ascent, save for the automatic OMS dump and the roll to heads-up attitude which happens earlier.   
 After MECO and separation the Shuttle will be around 120km and about to descend. The script will quit itself and automatically call the **OPS3** reentry script.
 **Please read carefully the OPS3 documentation for more about TAL reentries**
+</details>
+
+<details>
+<summary><h2>Abort 2 Engine Out Droop (2EO DROOP)</h2></summary> 
+
+Carrying the External Tank at high speed below 90km will overheat it, and below 83km it will explode. With two engines-out early on, it's impossible to stay aloft and so a contingency abort is declared to separate early from the ET. But after a certain boundary called **Single Engine OPS3** it is possible to keep the drooped trajectory above the limit and continue on burning propellant to MECO and a TAL abort. 
+
+![droop_display](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/droop_display.png)
+
+This is the TRAJ2 display in a Droop scenario. The Droop alt will read zero for most of the early ascent, at about T+5:30 it will start to rise. When it's above a safety limit, you cross the **Single Engine OPS3** boundary. If you lose two engines at this point, a 2 Engine Out TAL abort will be declared and the PEG algorithm will keep running with new targets. However, Droop guidance will override steering, adjusting pitch to keep the predicted droop altitude above the limit since PEG will not do it. The message **DROOP ENGAGED** will signal that Droop guidance is in control. When the predicted droop altitude rises again and Droop pitch is lower than the PEG one, Droop will hand back over control.
+
+Droop aborts right after the boundary may result in a low energy TAL condition, but it's not too severe.
 
 
 </details>
@@ -328,25 +340,9 @@ For Vandenberg launches, AoA back to Vandenberg is your only option
 
 </details>
 
-<details>
-<summary><h2>Abort 2 Engine Out Droop (2EO DROOP)</h2></summary> 
-
-Carrying the External Tank at high speed below 90km will overheat it, and below 83km it will explode. With two engines-out early on, it's impossible to stay aloft and so a contingency abort is declared to separate early from the ET. But after a certain boundary called **Single Engine OPS3** it is possible to keep the drooped trajectory above the limit and continue on burning propellant to MECO. 
-
-![droop_display](https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/droop_display.png)
-
-This is the TRAJ2 display in a Droop scenario. The Droop alt will read zero for most of the early ascent, at about the Press to MECO time it will start to rise. When it's above a safety limit, you cross the **Single Engine OPS3** boundary. If you lose two engines at this point, a 2 Engine Out TAL abort will be declared and UPFG will keep running with new targets. However, Droop guidance will override steering, adjusting pitch to keep the predicted droop altitude above the limit until you start climbing again. When the time is right, control will be handed back over to UPFG and Droop guidance will never run again.
-
-Droop aborts right after the boundary may result in a low energy TAL condition, but it's not too severe.
-
-
-</details>
-
 ## Contingency aborts
 
-### Work in Progress - subject to change 
-
-Contingency aborts are used in case of a double or triple engine failure. The engines may be lost suddenly or in sequence in a variety of combinations and thus it's hard to predict what state the Shuttle will be in. Generally it's not possible to fly the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life). Only in selected special cases the Shuttle is in good position to reach a runway.   
+Contingency aborts are used whenever an intact mode is not available, usually in case of a double or triple engine failure. The engines may be lost suddenly or in sequence in a variety of combinations and thus it's hard to predict what state the Shuttle will be in. Generally it's not possible to fly the Shuttle back to a runway for landing, forcing a bailout or a water ditching (which was not survivable in real life). Only in selected special cases the Shuttle is in good position to reach a runway.   
 
 Contingency abort modes have a few things in common:
 - There is no overlap between modes and they are always triggered automatically and immediately
@@ -375,6 +371,14 @@ A black zone is a dangerous situation that may only be encountered in a continge
 
 With only one engine, the Shuttle cannot control roll effectively, especially as the offset engines couple it strongly with yaw. The gimbal of the single remaining engine is locked in the roll axis, and active only in pitch and yaw. Roll control is done using RCS by commanding a lateral translation, this produces a torque that effectively rolls the Shuttle around the longitudinal axis. The OMS engines are not very effective at rolling the ship around since the gimbals are not controllable directly in kOS.  
 SERC is active in all 2EO scenarios.
+
+### ECAL (East Coast Abort Landing) 
+
+If you launch from KSC on inclinations 35° and above, you fly close enough to landmasses that may provide an emergency landing site. There are a few sites along the Eastern Seaboard plus Bermuda island. The ECAL site will be chosen in a 2 Engine-out case depending if the current velocity is within a set range. If there is an ECAL site available, the program will steer the Shuttle in that direction and you'll see a message **YAW STEER** on the TRAJ2 display. Yaw steering reduces crossrange a bit and it's disabled when you start descending to prepare for MECO.
+
+In RTLS contingency scenarios, ECAL is only available in **RTLS 2EO YELLOW** before powered-pitcharound.
+
+
 
 ### 2EO BLUE and 2EO RTLS BLUE
 
@@ -410,12 +414,6 @@ Early in this mode, a bailout is the only outcome. Later in the mode, an ECAL or
 **Black Zones**
 - later in the zone high Gs are inevitable because of the high speed
 - reentry pitch is higher to protect from heating and there is higher risk of loss of control
-
-### ECAL / Bermuda aborts
-
-**Not Implemented Yet**
-
-IT's a special procedure for **2EO GREEN** for launches out of KSC, available in the later parts when velocity is high enough. Bermuda for 35/40° inclination and ECAL for >=52°.
 
 ### 2EO RTLS YELLOW
 
