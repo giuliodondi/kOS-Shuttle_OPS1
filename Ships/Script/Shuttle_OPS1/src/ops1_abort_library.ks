@@ -412,10 +412,11 @@ function intact_abort_region_determinator {
 
 function contingency_abort_region_determinator {
 
-	determine_ecal_site().
-
 	//if 2eo is not active, update the mode 
 	if (not abort_modes["cont_2eo_active"]) {
+		
+		determine_ecal_site().
+	
 		if (abort_modes["rtls_active"]) {
 			//rtls contingency modes 
 			
@@ -1446,84 +1447,6 @@ FUNCTION setup_ATO {
 
 //		 ECAL functions 
 
-function get_best_ecal_site {
-	
-	local best_site is "".
-	
-	local best_delaz is 1000000.
-	
-	for sname in abort_modes["ecal_candidates"] {
-		
-		LOCAL site IS ldgsiteslex[sname].
-			
-		local rwypos is 0.
-		
-		IF (site:ISTYPE("LEXICON")) {
-			set rwypos to site["position"].
-		} ELSE IF (site:ISTYPE("LIST")) {
-			set rwypos to site[0]["position"].
-		}
-	
-		local s_delaz is az_error(
-							orbitstate["radius"],
-							rwypos,
-							surfacestate["surfv"]
-		).
-		
-		if (abs(s_delaz) < best_delaz) {
-			set best_delaz to abs(s_delaz).
-			set best_site to sname.
-		}
-	
-	}
-	
-	if (best_site = "") {
-		set best_site to abort_modes["rtls_tgt_site"]["site"].
-	}
-	
-	return best_site.
-
-}
-
-
-
-//		CONTINGENCY functions
-
-function droop_min_alt {
-	return 86868.
-}
-
-function cont_2eo_immediate_sep {
-	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= contingency_et_sep_alt()).
-}
-
-//works both for droop and contingency immediate sep 
-function contingency_et_sep_alt {
-	
-	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"]:mag.
-
-	return clamp(et_sep_alt_ve, 62484, droop_min_alt()).
-}
-
-function contingency_2eo_blue_boundary {
-	
-	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
-
-	return (surfacestate["vs"] >= boundary_hdot).
-}
-
-//because some modes have the same name as non-rtls contingency modes 
-function rtls_initialise_cont_modes {
-
-	if (contingency_2eo_blue_boundary()) {
-		set abort_modes["2eo_cont_mode"] to "RTLS BLUE".
-	} else {
-		set abort_modes["2eo_cont_mode"] to "RTLS YELLOW".
-	}
-	
-	set abort_modes["3eo_cont_mode"] to "RTLS BLUE".
-}
-
 //rv lines that define the ecal window given range in km
 function ecal_rv_boundaries {
 	parameter rng.
@@ -1574,7 +1497,7 @@ function determine_ecal_site {
 		).
 		
 		if (orbitstate["velocity"]:mag <= ecal_vel_b[1]) and (orbitstate["velocity"]:mag >= ecal_vel_b[0]) {
-			if (abs(ecal_delaz) <= lowest_dz_vel) {
+			if (abs(ecal_delaz) <= lowest_dz_vel) and (abs(ecal_delaz) <= ops1_parameters["ECAL_dz_lim"]) {
 				set lowest_dz_vel to abs(ecal_delaz).
 				set ecal_best_site to lexicon(
 							"site", sname,
@@ -1584,7 +1507,7 @@ function determine_ecal_site {
 			}
 		}
 		
-		if (abs(ecal_delaz) <= lowest_dz) {
+		if (abs(ecal_delaz) <= lowest_dz) and (abs(ecal_delaz) <= ops1_parameters["ECAL_dz_lim"]) {
 			set lowest_dz to abs(ecal_delaz).
 			set ecal_lowest_dz to lexicon(
 						"site", sname,
@@ -1600,6 +1523,44 @@ function determine_ecal_site {
 	//else if (ecal_lowest_dz <> "") {
 	//	set abort_modes["ecal_tgt_site"] to ecal_lowest_dz.
 	//}
+}
+
+
+//		CONTINGENCY functions
+
+function droop_min_alt {
+	return 86868.
+}
+
+function cont_2eo_immediate_sep {
+	return (surfacestate["vs"] < 0) and (surfacestate["alt"] <= contingency_et_sep_alt()).
+}
+
+//works both for droop and contingency immediate sep 
+function contingency_et_sep_alt {
+	
+	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"]:mag.
+
+	return clamp(et_sep_alt_ve, 62484, droop_min_alt()).
+}
+
+function contingency_2eo_blue_boundary {
+	
+	local boundary_hdot is 220.7 + 6.583 * ABS(target_orbit["inclination"]) .
+
+	return (surfacestate["vs"] >= boundary_hdot).
+}
+
+//because some modes have the same name as non-rtls contingency modes 
+function rtls_initialise_cont_modes {
+
+	if (contingency_2eo_blue_boundary()) {
+		set abort_modes["2eo_cont_mode"] to "RTLS BLUE".
+	} else {
+		set abort_modes["2eo_cont_mode"] to "RTLS YELLOW".
+	}
+	
+	set abort_modes["3eo_cont_mode"] to "RTLS BLUE".
 }
 
 function cont_2eo_yawsteer_off {
