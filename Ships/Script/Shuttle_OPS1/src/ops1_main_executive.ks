@@ -1035,6 +1035,11 @@ function ops1_et_sep {
 				SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 			}
 		}
+		
+		if (ops1_parameters["debug_mode"]) {
+			clearvecdraws().
+			arrow_ship(post_sep_pitch_up_steer,"steer").
+		}
 	}
 	
 	//zero throttle unless a dump should be continued
@@ -1054,7 +1059,7 @@ function ops1_et_sep {
 	//do a re-orientation after et-sep since we might be in a weird attitude
 	//move prograde, heads-up at a maximum of 50° aoa
 	dap:toggle_serc(false).
-	
+	local forward_steerv is dap:cur_dir:forevector.
 	if (abort_modes["et_sep_mode"] <> "nominal") {
 	
 		local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
@@ -1066,9 +1071,14 @@ function ops1_et_sep {
 			
 			local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
 			local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
-			local forward_steerv is rodrigues(surfv_proj, normv_, v_ang).
+			set forward_steerv to rodrigues(surfv_proj, normv_, v_ang).
 			
 			dap:set_steer_tgt(forward_steerv).
+		}
+		
+		if (ops1_parameters["debug_mode"]) {
+			clearvecdraws().
+			arrow_ship(forward_steerv,"steer").
 		}
 	}
 	

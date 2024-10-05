@@ -4,7 +4,7 @@
 
 GLOBAL ops1_parameters is LEXICON(
 						"dap_debug", false,
-						"debug_mode", true,
+						"debug_mode", false,
 						"random_failures", false,
 						"control_loop_dt",0.15,	//DO NOT CHANGE
 						"launchTimeAdvance", 300,
