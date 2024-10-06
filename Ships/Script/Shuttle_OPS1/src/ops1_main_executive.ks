@@ -1062,7 +1062,7 @@ function ops1_et_sep {
 	local forward_steerv is dap:cur_dir:forevector.
 	if (abort_modes["et_sep_mode"] <> "nominal") {
 	
-		local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 70).
+		local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 90).
 
 		if (new_steer_tgt) {
 			set new_steer_tgt to false.
