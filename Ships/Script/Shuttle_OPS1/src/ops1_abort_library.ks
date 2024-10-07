@@ -1451,8 +1451,8 @@ FUNCTION setup_ATO {
 function ecal_rv_boundaries {
 	parameter rng.
 	
-	local upper_v is 2.3099 * rng + 889.4.
-	local lower_v is 1.5951 * rng + 904.4.
+	local upper_v is 1.85 * rng + 1005.
+	local lower_v is 1.59 * rng + 905.
 
 	return list(lower_v, upper_v).
 }
