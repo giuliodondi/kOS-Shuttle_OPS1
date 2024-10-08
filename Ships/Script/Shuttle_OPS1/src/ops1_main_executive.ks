@@ -726,6 +726,7 @@ function ops1_second_stage_contingency {
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	dap:set_steer_tgt(dap:cur_dir:forevector).	
 	set dap:thrust_corr to FALSE.
+	set dap:thr_rpl_tgt to dap:thr_max.
 	
 	//for correct displaying
 	set upfgInternal["s_conv"] to false.
@@ -758,6 +759,8 @@ function ops1_second_stage_contingency {
 	local roll_headsup_trg is false.
 	local immediate_et_sep is false.
 	local quit_guid_loop is false.
+	
+	SET target_orbit["normal"] TO currentNormal().
 	
 	wait 0.3.
 	
@@ -798,16 +801,18 @@ function ops1_second_stage_contingency {
 			set vehicle["yaw_steering"] to false.
 		}
 		
-		SET target_orbit["normal"] TO currentNormal().
-		local steer_yawlim is v(0,0,0).
+		local steer_v is cont_2eo_steering().
 		if (active_steer_flag) {
-			set steer_yawlim to limit_yaw_steering(cont_2eo_steering(), target_orbit["normal"]).
-			dap:set_steer_tgt(vecYZ(steer_yawlim)).
+			if vehicle["yaw_steering"] {
+				set steer_v to limit_yaw_steering(steer_v, target_orbit["normal"]).
+			}
+			dap:set_steer_tgt(vecYZ(steer_v)).
 		}
 		
 		if (ops1_parameters["debug_mode"]) {
 			clearvecdraws().
-			arrow_ship(vecYZ(steer_yawlim),"steer").
+			arrow_ship(vecYZ(steer_v),"steer").
+			arrow_ship(vecyz(target_orbit["normal"]),"iy").
 		}
 	}
 	
@@ -821,6 +826,8 @@ function ops1_second_stage_contingency {
 	if (abort_modes["cont_3eo_active"]) {
 		set bypass_pitchdown to true.
 	}
+	
+	set dap:thr_rpl_tgt to dap:thr_min.
 	
 	if (not bypass_pitchdown) {
 		
@@ -861,7 +868,7 @@ function ops1_second_stage_contingency {
 				local rate_sep_steer_tgt is rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
 				dap:set_steer_tgt(rate_sep_steer_tgt).
 				
-				set quit_pchdn_loop to (dap:pitch_rate >= rate_sep_pitch_rate) and t_loop_flag.
+				set quit_pchdn_loop to (dap:pitch_rate >= rate_sep_pitch_rate) and t_loop_flag and (dap:cur_steer_pitch < 30).
 			} else if (pitchdown_mode_flag) {
 				dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
 				
@@ -1013,7 +1020,7 @@ function ops1_et_sep {
 						
 						if (abort_modes["et_sep_mode"] <> "nominal") {
 							
-							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 25).
+							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 5).
 							dap:set_steer_tgt(post_sep_pitch_up_steer).
 						}
 					}
@@ -1055,26 +1062,23 @@ function ops1_et_sep {
 	wait 0.3.
 	
 	//after et sep set toggle serc off in the dap
-	
-	//do a re-orientation after et-sep since we might be in a weird attitude
-	//move prograde, heads-up at a maximum of 50° aoa
 	dap:toggle_serc(false).
 	local forward_steerv is dap:cur_dir:forevector.
 	if (abort_modes["et_sep_mode"] <> "nominal") {
-	
-		local new_steer_tgt is (VANG(surfacestate["surfv"]:NORMALIZED, dap:cur_dir:forevector) >= 90).
-
-		if (new_steer_tgt) {
-			set new_steer_tgt to false.
+		//do a re-orientation after et-sep since we might be in a weird attitude
+		//take component of steering along velocity, if negative, flip to the other side 
 		
-			local v_ang is min(VANG(dap:steer_refv, dap:cur_dir:forevector), 40).
-			
-			local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
-			local normv_ is VCRS(dap:steer_refv, surfacestate["surfv"]).
-			set forward_steerv to rodrigues(surfv_proj, normv_, v_ang).
-			
-			dap:set_steer_tgt(forward_steerv).
+		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
+		local normv_ is VCRS(dap:steer_refv, surfv_proj):normalized.
+		set forward_steerv to vxcl(normv_, forward_steerv).
+		
+		local steer_prog is vdot(forward_steerv, surfv_proj).
+		
+		if (steer_prog < 0) {
+			set forward_steerv to (forward_steerv + 2*abs(steer_prog) * surfv_proj):normalized.
 		}
+		
+		dap:set_steer_tgt(forward_steerv).
 		
 		if (ops1_parameters["debug_mode"]) {
 			clearvecdraws().

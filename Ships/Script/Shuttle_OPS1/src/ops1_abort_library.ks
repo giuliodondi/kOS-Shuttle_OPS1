@@ -964,9 +964,11 @@ FUNCTION setup_RTLS {
 	local engines_out is get_engines_out().
 	
 	local throt_val is vehicle["maxThrottle"].
+	local upfg_throt is 0.96 * vehicle["maxThrottle"].
 	
 	if (engines_out < 1) {
 		set throt_val to 0.7 * vehicle["maxThrottle"].
+		set upfg_throt to throt_val.
 	}
 	
 	set dap:thr_rpl_tgt to throt_val.
@@ -1091,7 +1093,7 @@ FUNCTION setup_RTLS {
 	}
 	
 	//default percentage of full throttle for rtls upfg convergence
-	SET upfgInternal["throtset"] TO 0.96 * throt_val.
+	SET upfgInternal["throtset"] TO upfg_throt.
 	
 	//good measure 
 	set ops1_parameters["roll_headsup_vi"] to 100000.
@@ -1583,8 +1585,8 @@ function cont_2eo_outbound_theta {
 //upfg.compatible for consistency
 function cont_2eo_steering {
 
-	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"]:normalized)).
-	local normv is vcrs(cont_steerv, orbitstate["radius"]).
+	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"])):normalized.
+	local normv is vcrs(cont_steerv, orbitstate["radius"]):normalized.
 	
 	local yaw_steer_angle is 0.
 	local theta_angle is cont_2eo_abort["outbound_theta"].

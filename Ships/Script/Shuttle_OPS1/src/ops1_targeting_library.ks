@@ -60,7 +60,7 @@ function limit_yaw_steering {
 	parameter steervec.
 	parameter normvec.
 	
-	local steerproj is vxcl(normvec, steervec).
+	local steerproj is vxcl(normvec, steervec):normalized.
 	
 	local yaw_angle is signed_angle(
 						steerproj,
