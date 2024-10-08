@@ -696,9 +696,9 @@ function ascent_dap_factory {
 		} else {
 		
 			if (vehiclestate["major_mode"] <= 101) {
-				set strmgr to 0.1.
+				set strmgr to 0.001.
 			} else if (vehiclestate["major_mode"] = 102) {
-				set strmgr to min(1.2, strmgr + 0.1 * this:iteration_dt).
+				set strmgr to min(1.2, strmgr + 0.75 * sqrt(strmgr) * this:iteration_dt).
 			} else if (vehiclestate["major_mode"] >= 103) {
 				set strmgr to 0.1.
 				
@@ -712,7 +712,7 @@ function ascent_dap_factory {
 				}
 				
 				if (vehicle["meco_flag"]) {
-					set strmgr to 5.
+					set strmgr to 4.
 				} else {
 					if (this:serc_enabled) {
 						set strmgr to 0.15.
