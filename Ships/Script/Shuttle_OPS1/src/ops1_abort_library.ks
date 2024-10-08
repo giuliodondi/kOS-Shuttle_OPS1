@@ -44,6 +44,26 @@ GLOBAL abort_modes IS LEXICON(
 							
 ).
 
+GLOBAL RTLSAbort IS LEXICON (
+					"active", false,
+					"t_abort", 0,
+					"theta_C1", 0,
+					"C1", v(0,0,0),
+					"Tc", 0,
+					"pitcharound",LEXICON(
+										"refvec", v(0,0,0),
+										"dt", 0,
+										"triggered",FALSE,
+										"complete",FALSE,
+										"target", v(0,0,0)
+										
+									),
+					"flyback_range_lockout", 100,
+					"flyback_iter", -2,
+					"flyback_conv", -2,
+					"flyback_flag", FALSE
+).
+
 function dump_abort {
 	IF EXISTS("0:/abort_modes_dump.txt") {
 		DELETEPATH("0:/abort_modes_dump.txt").
@@ -417,7 +437,7 @@ function contingency_abort_region_determinator {
 		
 		determine_ecal_site().
 	
-		if (abort_modes["rtls_active"]) {
+		if (RTLSAbort["active"]) {
 			//rtls contingency modes 
 			
 			if (abort_modes["2eo_cont_mode"] = "RTLS BLUE") and (NOT contingency_2eo_blue_boundary()) {
@@ -447,7 +467,7 @@ function contingency_abort_region_determinator {
 	
 	//if 3eo is not active, update the mode 
 	if (not abort_modes["cont_3eo_active"]) {
-		if (abort_modes["rtls_active"]) {
+		if (RTLSAbort["active"]) {
 			//rtls contingency modes 
 			
 			if (abort_modes["3eo_cont_mode"] = "RTLS BLUE") and (RTLSAbort["pitcharound"]["triggered"]) {
@@ -976,7 +996,8 @@ FUNCTION setup_RTLS {
 	LOCAL cur_stg IS get_stage().
 	
 	// only do this on the first rtls initialisation
-	if (NOT (DEFINED RTLSAbort)) {
+	if (NOT RTLSAbort["active"]) {
+		set RTLSAbort["active"] to true.
 	
 		rtls_initialise_cont_modes().
 	
@@ -1010,7 +1031,7 @@ FUNCTION setup_RTLS {
 		SET target_orbit TO LEXICON(
 								"mode", 5,
 								"normal", cur_norm,
-								"Inclination", VANG(-cur_norm,v(0,0,1)),
+								"inclination", VANG(-cur_norm,v(0,0,1)),
 								"radius", cut_r,
 								"velocity", 2200,
 								"fpa", cutoff_fpa,
@@ -1019,27 +1040,7 @@ FUNCTION setup_RTLS {
 								"rtheta", rng,
 								"rtls_tgt", shifted_tgtsitevec
 		).
-												
-		//abort control lexicon
-		
-		GLOBAL RTLSAbort IS LEXICON (
-									"t_abort", 0,
-									"theta_C1", 0,
-									"C1", v(0,0,0),
-									"Tc", 0,
-									"pitcharound",LEXICON(
-														"refvec", v(0,0,0),
-														"dt", 10,
-														"triggered",FALSE,
-														"complete",FALSE,
-														"target", v(0,0,0)
-														
-													),
-									"flyback_range_lockout", 100,
-									"flyback_iter", -2,
-									"flyback_conv", -2,
-									"flyback_flag", FALSE
-		).
+										
 		
 		//prepare upfg
 		resetUPFG().
