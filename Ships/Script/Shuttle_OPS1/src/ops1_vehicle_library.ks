@@ -319,40 +319,6 @@ function first_stage_guidance {
 
 
 
-//LEGACY 
-FUNCTION roll_heads_up {
-
-	//skip if rtls or contingency is in progress
-	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) {
-			return.
-		}
-
-	if (vehicle["roll"] <> 0) {
-		addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
-		set vehicle["roll"] to 0.
-		set dap:steer_roll to 0.
-		dap:set_strmgr_med().
-		
-		wait 0.3.
-		
-		WHEN(dap:roll_null_err) THEN {
-			dap:set_strmgr_low().
-		}
-	}
-}
-
-
-//for terminal guidance, fix the throttle at minimum
-FUNCTION fix_minimum_throttle {
-	local stg IS get_stage().
-
-	set vehicle["maxThrottle"] to stg["engines"]["minThrottle"].
-
-}
-
-
-
-
 function ascent_dap_factory {
 
 	SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.

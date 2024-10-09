@@ -680,7 +680,6 @@ function ops1_second_stage_rtls {
 	
 	addGUIMessage("POWERED PITCH-DOWN").
 	
-	dap:set_strmgr_high().
 	set dap:thrust_corr to FALSE.
 		
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
