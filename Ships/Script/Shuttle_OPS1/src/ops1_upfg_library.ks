@@ -739,8 +739,8 @@ GLOBAL droopInternal IS LEXICON(
 						"ge", 0,		//magnitude fo grav acc at altitude 
 						"gacc", 0,		//effective grav acc corrected for velocity
 						"thr_att", 0,
-						"thr_min", 57,
-						"thr_max", 77,
+						"thr_min", 52,
+						"thr_max", 74,
 						"att_incr", 0.5,
 						"vmiss", 0.25,
 						"n_ssme", 1,

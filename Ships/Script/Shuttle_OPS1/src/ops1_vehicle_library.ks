@@ -600,7 +600,7 @@ function ascent_dap_factory {
 	
 	this:add("serc_enabled", FALSE).
 	this:add("serc_tgt_roll_rate", 0).
-	this:add("serc_yaw_pid", PIDLOOP(0.2,0,0.8)).
+	this:add("serc_yaw_pid", PIDLOOP(0.4,0,0.8)).
 	SET this:serc_yaw_pid:SETPOINT TO 0.
 	
 	this:add("toggle_serc", {
@@ -615,7 +615,7 @@ function ascent_dap_factory {
 			return.
 		}
 		
-		set this:serc_tgt_roll_rate to sign(this:ship_roll_delta) * MIN(0.35 * abs(this:ship_roll_delta), 5).
+		set this:serc_tgt_roll_rate to sign(this:ship_roll_delta) * MIN(0.5 * abs(this:ship_roll_delta), 5).
 		
 		SET SHIP:CONTROL:STARBOARD TO  this:serc_yaw_pid:UPDATE(this:last_time, this:serc_tgt_roll_rate - this:roll_rate ).
 	

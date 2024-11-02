@@ -394,8 +394,6 @@ function ops1_second_stage_nominal {
 
 	freeze_abort_gui(false).
 	
-	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
-	
 	SET target_orbit["normal"] TO upfg_normal(target_orbit["inclination"], target_orbit["LAN"]).
 	
 	local steer_flag is false.
@@ -406,8 +404,10 @@ function ops1_second_stage_nominal {
 			RETURN.
 		}
 		
+		set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+		
 		//roll to heads-up 
-		if (not vehicle["roll_heads_up_flag"]) and (orbitstate["velocity"]:mag >= ops1_parameters["roll_headsup_vi"]) {
+		if (not vehicle["roll_heads_up_flag"]) and ((orbitstate["velocity"]:mag >= ops1_parameters["roll_headsup_vi"]) or dap:serc_enabled) {
 			if (vehicle["roll"] <> 0) {
 				addGUIMessage("ROLL TO HEADS-UP ATTITUDE").
 				set vehicle["roll"] to 0.
@@ -417,9 +417,6 @@ function ops1_second_stage_nominal {
 			} else {
 				if (dap:roll_null_err) {
 					set vehicle["roll_heads_up_flag"] to true.
-					set dap:thrust_corr to true.
-				} else {
-					set dap:thrust_corr to (NOT dap:serc_enabled).
 				}
 			}
 		}
@@ -650,6 +647,8 @@ function ops1_second_stage_rtls {
 			dap:set_steer_tgt(vecYZ(RTLS_steering)).
 			
 		} else {
+			set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
+		
 			IF (upfgInternal["s_conv"] AND NOT vehiclestate["staging_in_progress"]) {
 				local steer_yawlim is limit_yaw_steering(upfgInternal["steering"], target_orbit["normal"]).
 				dap:set_steer_tgt(vecYZ(steer_yawlim)).
@@ -722,7 +721,6 @@ function ops1_second_stage_contingency {
 	//for correct gui
 	
 	set dap:steer_freeze to false.
-	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	dap:set_steer_tgt(dap:cur_dir:forevector).	
 	set dap:thrust_corr to FALSE.
 	set dap:thr_rpl_tgt to dap:thr_max.
@@ -767,6 +765,8 @@ function ops1_second_stage_contingency {
 		if (quit_program) {
 			RETURN.
 		}
+		
+		set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 		
 		abort_handler().
 		getState().
