@@ -187,6 +187,8 @@ FUNCTION upfg {
 	PARAMETER tgt_orb.
 	PARAMETER internal.
 	
+	local debug_dump is (not internal["s_init"]).
+	
 	LOCAL s_mode Is tgt_orb["mode"].
 	
 	LOCAL g0 IS 9.80665. 
@@ -680,18 +682,16 @@ FUNCTION upfg {
 	set internal["s_meco"] TO (guided_meco_flag OR unguided_meco_flag).
 	
 	if (ops1_parameters["debug_mode"]) {
-		upfg_dump().
+		upfg_dump(debug_dump).
 		target_orbit_dump().
 	}
 	
 }
 
 function upfg_dump {
-	IF EXISTS("0:/upfg_dump.txt") {
-		DELETEPATH("0:/upfg_dump.txt").
-	}
+	parameter overwrite.
 	
-	log upfgInternal:dump() to "0:/upfg_dump.txt".
+	log_data(lex2dump(upfgInternal),"0:/Shuttle_OPS1/LOGS/upfg_dump", overwrite).
 }
 
 //		DROOP GUIDANCE
@@ -749,6 +749,9 @@ GLOBAL droopInternal IS LEXICON(
 ).
 
 function droop_control {
+	
+	local dump_overwrite is (not droopInternal["s_firstpass"]).
+
 	if (not droopInternal["s_min_alt"]) {
 		droop_state_params().
 		
@@ -795,16 +798,14 @@ function droop_control {
 	}	
 	
 	if (ops1_parameters["debug_mode"]) {
-		droop_dump().
+		droop_dump(dump_overwrite).
 	}
 }
 
 function droop_dump {
-	IF EXISTS("0:/droop_dump.txt") {
-		DELETEPATH("0:/droop_dump.txt").
-	}
+	parameter overwrite.
 	
-	log droopInternal:dump() to "0:/droop_dump.txt".
+	log_data(lex2dump(droopInternal),"0:/Shuttle_OPS1/LOGS/droop_dump", overwrite).
 }
 
 //droop state variables

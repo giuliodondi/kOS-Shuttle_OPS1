@@ -147,20 +147,13 @@ function initialise_shuttle {
 						vehicle["nominalThrottle"]
 	).
 	
-	//test vehicle init
-	//set vehicle["SSME"]["active"] to 2.
-	//set engines_lex to build_engines_lex().
-	//setup_shuttle_stages(
-	//					140000,
-	//					vehicle["stack_empty_mass"],
-	//					engines_lex,
-	//					vehicle["SSME"]["maxThrottle"]
-	//).
-	//
-	
 	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
 	
 	//debug_vehicle().
+	
+	if (ops1_parameters["debug_mode"]) {
+		dump_vehicle().
+	}
 	
 	//prepare launch triggers 
 	activate_fuel_cells().
@@ -179,10 +172,10 @@ FUNCTION debug_vehicle {
 }
 
 FUNCTION dump_vehicle {
-	IF EXISTS("0:/vehicledump.txt") {
-		DELETEPATH("0:/vehicledump.txt").
-	}
 	
+	IF EXISTS("0:/vehicledump.txt") {
+			DELETEPATH("0:/vehicledump.txt").
+	}
 	log vehicle:dump() to "0:/vehicledump.txt".
 }
 
