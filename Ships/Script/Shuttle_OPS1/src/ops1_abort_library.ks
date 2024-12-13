@@ -729,7 +729,7 @@ function abort_initialiser {
 			set abort_modes["ato_active"] to false.
 			
 			set abort_modes["tal_tgt_site"] to lexicon(
-												"site", abort_modes["3eo_tal_site"]
+												"site", abort_modes["3eo_tal_site"]["site"]
 			).	
 			
 			addGUIMessage("SELECTED TAL SITE IS " + abort_modes["tal_tgt_site"]["site"]).
