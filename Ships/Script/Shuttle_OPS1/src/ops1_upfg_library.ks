@@ -27,6 +27,7 @@ FUNCTION setupUPFG {
 	LOCAL min_throt IS stg["engines"]["minThrottle"].
 
 	SET upfgInternal TO  LEXICON(
+		"n_stg", 0,
 		"r_cur", V(0, 0, 0),
 		"v_cur", V(0, 0, 0),
 		"ve_cur", V(0, 0, 0),
@@ -40,8 +41,8 @@ FUNCTION setupUPFG {
 		"iter_unconv", 0,
 		"itercount", 0,
 		"terminal_time", 5,
-		"tgo_conv", 1,
-		"steer_conv", 45,
+		"tgo_conv", 0.5,
+		"steer_conv", 20,
 		"constraint_release_t", 40,
 		"rbias", V(0, 0, 0),
 		"rd", V(0, 0, 0),
@@ -194,7 +195,10 @@ FUNCTION upfg {
 	LOCAL g0 IS 9.80665. 
 	
 	//	measure vehicle parameters
-	LOCAL n IS vehicle:LENGTH.
+	//store previous vehicle length
+	local n_stg_p is internal["n_stg"].
+	set internal["n_stg"] to vehicle:LENGTH.
+	local n is internal["n_stg"].
 	LOCAL SM IS LIST().
 	LOCAL aL IS LIST().
 	LOCAL mT IS LIST().
@@ -598,8 +602,10 @@ FUNCTION upfg {
 	local tgo_conv_flag is (ABS(tgo_expected - internal["tgo"]) < internal["tgo_conv"]).
 	local steer_conv_flag is (VANG(steering_prev, internal["steering"]) < internal["steer_conv"]).
 	local steer_dwnrng_flag is (vdot(internal["iz"], internal["steering"]) > 0).
+	
+	local stg_change_flag is (n_stg_p <> internal["n_stg"]).
 		
-	IF tgo_conv_flag and steer_conv_flag { 
+	IF tgo_conv_flag and steer_conv_flag and (not stg_change_flag) { 
 		IF steer_dwnrng_flag {
 			SET internal["iter_unconv"] TO 0.
 			IF (internal["iter_conv"] < 3) {
@@ -624,7 +630,8 @@ FUNCTION upfg {
 		// }
 	} ELSE {
 		//if we were converged and twice in a row we break the convergence criterion, go unconverged
-		IF (wasconv AND internal["iter_unconv"] < 2) {
+		//modification - force unconverged upon staging
+		IF (wasconv AND internal["iter_unconv"] < 2) and (not stg_change_flag) {
 			SET internal["iter_unconv"] TO internal["iter_unconv"] + 1.
 		} ELSE {
 			SET internal["iter_conv"] TO 0.
