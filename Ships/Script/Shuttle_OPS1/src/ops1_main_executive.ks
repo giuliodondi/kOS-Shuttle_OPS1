@@ -551,7 +551,7 @@ function ops1_second_stage_rtls {
 			BREAK.
 		}
 		
-		if (upfgInternal["s_meco"]) {
+		if (upfgInternal["s_meco"] or RTLS_rvline_terminal_check(TRUE)) {
 			addGUIMessage("TERMINAL GUIDANCE").
 			BREAK.
 		}
@@ -696,13 +696,9 @@ function ops1_second_stage_rtls {
 		
 		dap:set_steer_tgt(steervec).
 
-		LOCAL rng IS downrangedist(launchpad,SHIP:GEOPOSITION )*1000.
-		LOCAL tgtsurfvel IS RTLS_rvline(rng).
-		
-		IF (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel) OR vehicle["meco_flag"] {
+		IF (RTLS_rvline_terminal_check() OR vehicle["meco_flag"]) {
 			BREAK.
 		}
-		
 	}
 	
 	//stop oms dump for intact aborts

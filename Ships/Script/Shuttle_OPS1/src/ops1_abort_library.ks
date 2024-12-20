@@ -927,6 +927,22 @@ FUNCTION RTLS_rvline {
 	RETURN coefs[0] * rng + coefs[1].
 }
 
+// rtls rv-line terminal condition check, with optional pitchdown bias
+function RTLS_rvline_terminal_check {
+	parameter ppd_bias_f is false.
+	
+	local ppd_bias is 250.
+	
+	LOCAL rng IS downrangedist(launchpad, SHIP:GEOPOSITION)*1000.
+	LOCAL tgtsurfvel IS RTLS_rvline(rng).
+	
+	if (ppd_bias_f){
+		set tgtsurfvel to tgtsurfvel - ppd_bias.
+	}
+	
+	return (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel).
+}
+
 FUNCTION RTLS_burnout_mass {
 	parameter m_final.
 
