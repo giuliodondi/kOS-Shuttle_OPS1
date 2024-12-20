@@ -78,7 +78,8 @@ function initialise_shuttle {
 						"stack_empty_mass", 0,
 						"stages",LIST(),
 						"ssme_out_detected", FALSE,
-						"rtls_mbod", 0
+						"rtls_mbod", 0,
+						"ssme_cant_angle", 13
 	).
 	
 	SET vehicle["SSME"] TO parse_ssme().

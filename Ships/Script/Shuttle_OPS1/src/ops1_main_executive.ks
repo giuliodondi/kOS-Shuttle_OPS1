@@ -496,7 +496,7 @@ function ops1_second_stage_nominal {
 	}
 	
 	//terminal loop 
-	
+	SET upfgInternal["s_meco"] to TRUE.
 	SET vehicle["terminal_flag"] TO TRUE.
 	
 	set dap:thr_rpl_tgt to dap:thr_min.
@@ -673,14 +673,14 @@ function ops1_second_stage_rtls {
 	}
 	
 	//powered pitchdown
-	
+	SET upfgInternal["s_meco"] to TRUE.
 	SET vehicle["terminal_flag"] TO TRUE.
 	set vehicle["pitchdown_flag"] to true.
 	
 	addGUIMessage("POWERED PITCH-DOWN").
 	
 	set dap:thrust_corr to FALSE.
-		
+	set dap:thr_rpl_tgt to dap:thr_min.
 	set dap:steer_refv to -SHIP:ORBIT:BODY:POSITION:NORMALIZED.
 	
 	UNTIL FALSE{
@@ -726,6 +726,7 @@ function ops1_second_stage_contingency {
 	set droopInternal["s_cdroop"] to false.
 	
 	//flags for pre-meco attitude control
+	local cont_mode5_guid is false.
 	local active_steer_flag is false.
 	local pitchdown_mode_flag is false.
 	local rate_sep_flag is false.
@@ -736,11 +737,15 @@ function ops1_second_stage_contingency {
 		addGUIMessage("ECAL YAW STEERING TO " + abort_modes["ecal_tgt_site"]["site"]).
 	}
 	
-	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW") {
+	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW" or abort_modes["2eo_cont_mode"] = "RTLS RED") {
 		set active_steer_flag to true.
 	}
 	
-	if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
+	if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
+		set cont_mode5_guid to true.
+	}
+	
+	if (abort_modes["2eo_cont_mode"] = "RTLS GREEN" or abort_modes["2eo_cont_mode"] = "RTLS RED") {
 		set pitchdown_mode_flag to true.
 	}
 	
@@ -766,6 +771,11 @@ function ops1_second_stage_contingency {
 		
 		abort_handler().
 		getState().
+		
+		if (vehicle["low_level"]) {
+			addGUIMessage("LOW LEVEL").
+			BREAK.
+		}
 		
 		if (cont_2eo_immediate_sep()) or vehicle["meco_flag"] {
 			set immediate_et_sep to true.
@@ -797,6 +807,7 @@ function ops1_second_stage_contingency {
 		}
 		
 		local steer_v is cont_2eo_steering().
+
 		if (active_steer_flag) {
 			if vehicle["yaw_steering"] {
 				set steer_v to limit_yaw_steering(steer_v, target_orbit["normal"]).

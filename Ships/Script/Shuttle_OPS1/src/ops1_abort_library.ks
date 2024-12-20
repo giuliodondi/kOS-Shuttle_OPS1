@@ -444,11 +444,11 @@ function contingency_abort_region_determinator {
 				set abort_modes["2eo_cont_mode"] to "RTLS YELLOW".
 			} else if (abort_modes["2eo_cont_mode"] = "RTLS YELLOW") and (surfacestate["horiz_dwnrg_v"] < 107) {	//value needs verification
 				set abort_modes["2eo_cont_mode"] to "RTLS ORANGE".
-			} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 20) {
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 7) {
 				set abort_modes["2eo_cont_mode"] to "RTLS GREEN".
-			} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") and (SHIP:VERTICALSPEED >= 30) {
-				set abort_modes["2eo_cont_mode"] to "BLANK".
-				set abort_modes["intact_modes"]["2eo"]["rtls"] to true.
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") and (SHIP:VERTICALSPEED >= 0) {
+				set abort_modes["2eo_cont_mode"] to "RTLS RED".
+				//set abort_modes["intact_modes"]["2eo"]["rtls"] to true.
 			} 
 			
 		} else {
@@ -788,6 +788,8 @@ function et_sep_mode_determinator {
 			set et_sep_mode to "rate".
 		} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
 			set et_sep_mode to "nominal".
+		} else if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
+			set et_sep_mode to "nominal".
 		}
 	}
 	
@@ -931,13 +933,19 @@ FUNCTION RTLS_rvline {
 function RTLS_rvline_terminal_check {
 	parameter ppd_bias_f is false.
 	
-	local ppd_bias is 250.
-	
 	LOCAL rng IS downrangedist(launchpad, SHIP:GEOPOSITION)*1000.
 	LOCAL tgtsurfvel IS RTLS_rvline(rng).
 	
 	if (ppd_bias_f){
-		set tgtsurfvel to tgtsurfvel - ppd_bias.
+	
+		//ppd_bias calculated as delta-v achieved in 15s at min throttle
+		local ppd_dt_margin is 15.
+		
+		local stg_ is get_stage().
+		local engines_lex is stg_["engines"].
+		local ppd_dv_bias is engines_lex["isp"] * g0 * ln(stg_["m_initial"]/(stg_["m_initial"] - engines_lex["flow"] * vehicle["minThrottle"] * ppd_dt_margin)).
+
+		set tgtsurfvel to tgtsurfvel - ppd_dv_bias.
 	}
 	
 	return (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel).
@@ -1592,7 +1600,7 @@ function cont_2eo_yawsteer_off {
 function cont_2eo_outbound_theta {
 	parameter hdot_.
 	
-	local theta_ is 100 - 0.13 * hdot_.
+	local theta_ is vehicle["ssme_cant_angle"] + 86 - 0.13 * hdot_.
 	
 	return clamp(theta_, 18, 90).
 }
@@ -1600,12 +1608,19 @@ function cont_2eo_outbound_theta {
 //implement pitch-up, yaw steering triggering and limitations 
 //upfg.compatible for consistency
 function cont_2eo_steering {
+	
 
 	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"])):normalized.
 	local normv is vcrs(cont_steerv, orbitstate["radius"]):normalized.
 	
 	local yaw_steer_angle is 0.
-	local theta_angle is cont_2eo_abort["outbound_theta"].
+	local theta_angle is 0.
+	
+	if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
+		set theta_angle to cont_mode5_guidance().
+	} else {
+		set theta_angle to cont_2eo_abort["outbound_theta"].
+	}
 	
 	if (abort_modes["ecal_tgt_site"] <> "") {
 	
@@ -1668,10 +1683,25 @@ function cont_2eo_terminal_condition {
 							and (surfacestate["eas"] >= eas_et_sep).
 	} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
 		set terminal_flag to true.
+	} else if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
+		set terminal_flag to RTLS_rvline_terminal_check(true) or (upfgInternal["tgo"] <= 10).
 	}
 	
 	return terminal_flag.
 
+}
+
+function cont_mode5_guidance {
+
+	local one_eng_perf is veh_perf_estimator(build_engines_lex(droopInternal["n_ssme"])).
+
+	local delta_vs is upfgInternal["vd_ix"] - surfacestate["vs"].
+	
+	local theta_ is vehicle["ssme_cant_angle"] + 86 - 0.13 * hdot_.
+	
+	set theta_ to theta_ + vehicle["ssme_cant_angle"].
+	
+	return clamp(theta_, vehicle["ssme_cant_angle"], 75).
 }
 
 //tal site with least crossrange and meco velocity

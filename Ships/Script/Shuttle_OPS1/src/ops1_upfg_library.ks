@@ -49,6 +49,7 @@ FUNCTION setupUPFG {
 		"rdmag", 0,
 		"vd", V(0, 0, 0),
 		"v", V(0, 0, 0),
+		"vd_ix", 0,
 		"ix", V(0, 0, 0),
 		"iy", V(0, 0, 0),
 		"iy_tvr", V(0, 0, 0),
@@ -130,6 +131,8 @@ FUNCTION upfg_standard_initialise {
 		tgt_orb["velocity"],
 		tgt_orb["fpa"]
 	).
+	
+	set internal["vd_ix"] to vdot(internal["vd"], internal["ix"]).
 	
 	SET internal["vgo"] tO internal["vd"] - internal["v"].
 }
@@ -492,6 +495,8 @@ FUNCTION upfg {
 		SET internal["vd"] TO rodrigues(internal["iz"], internal["iy"], tgt_orb["fpa"]):NORMALIZED * rvline_vd.
 		SET internal["vd"] TO internal["vd"] + VCRS((constant:pi/43200) * v(0,0,1), internal["rd"]).
 		
+		set internal["vd_ix"] to vdot(internal["vd"], internal["ix"]).
+		
 		IF (internal["s_flyback"]) {
 			//for display, this value is unreliable before flyback
 			SET tgt_orb["rtls_cutv"] TO rvline_vd.
@@ -578,6 +583,8 @@ FUNCTION upfg {
 			tgt_orb["velocity"],
 			tgt_orb["fpa"]
 		).
+		
+		set internal["vd_ix"] to vdot(internal["vd"], internal["ix"]).
 	
 		SET dvgo TO (internal["vd"] - vp).
 	}
