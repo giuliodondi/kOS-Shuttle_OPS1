@@ -7,6 +7,7 @@ GLOBAL surfacestate IS  LEXICON(
 								"deltat", 0,
 								"MET",0,
 								"surfv", v(0,0,0),
+								"dwnrg_dst", 0,
 								"horiz_dwnrg_v", v(0,0,0),
 								"az",0,
 								"pitch",0,
@@ -419,6 +420,7 @@ FUNCTION update_navigation {
 	ELSE {set progv to SHIP:PROGRADE:VECTOR.}
 	
 	SET surfacestate["surfv"] TO SHIP:VELOCITY:SURFACE.
+	SET surfacestate["dwnrg_dst"] TO downrangedist(launchpad,SHIP:GEOPOSITION ).
 	SET surfacestate["horiz_dwnrg_v"] TO current_horiz_dwnrg_speed(SHIP:GEOPOSITION, SHIP:VELOCITY:SURFACE).
 	SET surfacestate["hdir"] TO compass_for(progv,SHIP:GEOPOSITION ).
 	SET surfacestate["vdir"] TO 90 - VANG(progv, SHIP:UP:VECTOR).

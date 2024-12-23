@@ -15,6 +15,7 @@ GLOBAL abort_modes IS LEXICON(
 					"cont_3eo_active", false,
 					"ssmes_out", list(),
 					"oms_dump",FALSE,
+					"oms_dump_complete",FALSE,
 					"et_sep_mode", "",
 					"rtls_tgt_site", "",
 					"tal_tgt_site", "",
@@ -446,7 +447,7 @@ function contingency_abort_region_determinator {
 				set abort_modes["2eo_cont_mode"] to "RTLS ORANGE".
 			} else if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE") and (surfacestate["eas"] > 7) {
 				set abort_modes["2eo_cont_mode"] to "RTLS GREEN".
-			} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") and (SHIP:VERTICALSPEED >= 0) {
+			} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") and (SHIP:VERTICALSPEED >= -40) {
 				set abort_modes["2eo_cont_mode"] to "RTLS RED".
 				//set abort_modes["intact_modes"]["2eo"]["rtls"] to true.
 			} 
@@ -933,8 +934,7 @@ FUNCTION RTLS_rvline {
 function RTLS_rvline_terminal_check {
 	parameter ppd_bias_f is false.
 	
-	LOCAL rng IS downrangedist(launchpad, SHIP:GEOPOSITION)*1000.
-	LOCAL tgtsurfvel IS RTLS_rvline(rng).
+	LOCAL tgtsurfvel IS RTLS_rvline(surfacestate["dwnrg_dst"]*1000).
 	
 	if (ppd_bias_f){
 	
@@ -948,7 +948,7 @@ function RTLS_rvline_terminal_check {
 		set tgtsurfvel to tgtsurfvel - ppd_dv_bias.
 	}
 	
-	return (abs(surfacestate["horiz_dwnrg_v"]) >= tgtsurfvel).
+	return RTLSAbort["flyback_flag"] and (-surfacestate["horiz_dwnrg_v"] >= tgtsurfvel).
 }
 
 FUNCTION RTLS_burnout_mass {
@@ -1567,8 +1567,15 @@ function cont_2eo_immediate_sep {
 function contingency_et_sep_alt {
 	
 	local et_sep_alt_ve is 61000 + 5.5*surfacestate["surfv"]:mag.
+	
+	local min_alt is 62484.
+	local max_alt is droop_min_alt().
+	
+	if (abort_modes["2eo_cont_mode"] = "RTLS ORANGE" or abort_modes["2eo_cont_mode"] = "RTLS GREEN" or abort_modes["2eo_cont_mode"] = "RTLS RED") {
+		set max_alt to min_alt.
+	}
 
-	return clamp(et_sep_alt_ve, 62484, droop_min_alt()).
+	return clamp(et_sep_alt_ve, min_alt, max_alt).
 }
 
 function contingency_2eo_blue_boundary {
@@ -1600,9 +1607,9 @@ function cont_2eo_yawsteer_off {
 function cont_2eo_outbound_theta {
 	parameter hdot_.
 	
-	local theta_ is vehicle["ssme_cant_angle"] + 86 - 0.13 * hdot_.
+	local theta_ is vehicle["ssme_cant_angle"] + 87 - 0.13 * hdot_.
 	
-	return clamp(theta_, 18, 90).
+	return clamp(theta_, 18, 88).
 }
 
 //implement pitch-up, yaw steering triggering and limitations 
@@ -1612,15 +1619,11 @@ function cont_2eo_steering {
 
 	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"])):normalized.
 	local normv is vcrs(cont_steerv, orbitstate["radius"]):normalized.
+
+	cont_2eo_theta_guidance().
 	
+	local theta_angle is  cont_2eo_abort["cont_theta_pitch"].
 	local yaw_steer_angle is 0.
-	local theta_angle is 0.
-	
-	if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
-		set theta_angle to cont_mode5_guidance().
-	} else {
-		set theta_angle to cont_2eo_abort["outbound_theta"].
-	}
 	
 	if (abort_modes["ecal_tgt_site"] <> "") {
 	
@@ -1656,7 +1659,7 @@ function setup_2eo_contingency {
 							"vi", orbitstate["velocity"]:mag,
 							"h", surfacestate["alt"],
 							"hdot", surfacestate["vs"],
-							"outbound_theta", cont_2eo_outbound_theta(surfacestate["vs"])
+							"cont_theta_pitch", cont_2eo_outbound_theta(surfacestate["vs"])
 	).
 }
 
@@ -1691,17 +1694,56 @@ function cont_2eo_terminal_condition {
 
 }
 
-function cont_mode5_guidance {
+//theta guidance for 2eo rtls red, don't alter the theta angle in any other case
+function cont_2eo_theta_guidance {
 
-	local one_eng_perf is veh_perf_estimator(build_engines_lex(droopInternal["n_ssme"])).
+	if (not abort_modes["2eo_cont_mode"] = "RTLS RED") {
+		return.
+	}
 
-	local delta_vs is upfgInternal["vd_ix"] - surfacestate["vs"].
+	local stg_ is get_stage().
+	local engines_lex is stg_["engines"].
 	
-	local theta_ is vehicle["ssme_cant_angle"] + 86 - 0.13 * hdot_.
+	local tgo is upfgInternal["tgo"].
 	
-	set theta_ to theta_ + vehicle["ssme_cant_angle"].
+	local atot is 0.5 * (engines_lex["thrust"]/stg_["m_initial"] + engines_lex["thrust"]/(stg_["m_initial"] - engines_lex["flow"] * tgo) ).
 	
-	return clamp(theta_, vehicle["ssme_cant_angle"], 75).
+	if (atot <= 0) {
+		return.
+	}
+	
+	//guidance scheme:
+	// in the approx of flat earth, constant average accel over tgo
+	// solve for tgo and pitch that satisfy RVline and vertical speed constraint
+	// minimum pitch for protection
+	
+	local ge is SHIP:ORBIT:BODY:MU / (orbitstate["radius"]:mag^2).
+	
+	local rvbar is RTLS_rvline(surfacestate["dwnrg_dst"]*1000).
+	
+	local A_coef is RTLS_rvline_coefs()[0].
+	
+	local theta_old is cont_2eo_abort["cont_theta_pitch"] - vehicle["ssme_cant_angle"].
+	
+	local ax is atot * cos(theta_old).
+	
+	local c1 is - A_coef * surfacestate["horiz_dwnrg_v"].
+	
+	local tgo is (-c1 - ax + sqrt( ax^2 + c1^2 + 2 * ax * A_coef * rvbar ))/( A_coef * ax ).
+	
+	local delta_vs is 230 - surfacestate["vs"].
+	
+	local theta_new is arcsin(limitarg((delta_vs/tgo + ge)/atot)).
+	
+	print "theta_new  " + theta_new at (0,30).
+	print "tgo  " + tgo at (0,31).
+	
+	set theta_new to theta_old + clamp(0.5 * (theta_new - theta_old), -5, 5).
+	
+	local theta_min is arcsin(ge/atot).
+	
+	set upfgInternal["tgo"] to tgo.
+	set cont_2eo_abort["cont_theta_pitch"] to clamp(theta_new + vehicle["ssme_cant_angle"], theta_min + vehicle["ssme_cant_angle"], 80).
 }
 
 //tal site with least crossrange and meco velocity

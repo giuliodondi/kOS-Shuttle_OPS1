@@ -726,7 +726,6 @@ function ops1_second_stage_contingency {
 	set droopInternal["s_cdroop"] to false.
 	
 	//flags for pre-meco attitude control
-	local cont_mode5_guid is false.
 	local active_steer_flag is false.
 	local pitchdown_mode_flag is false.
 	local rate_sep_flag is false.
@@ -740,10 +739,7 @@ function ops1_second_stage_contingency {
 	if (abort_modes["2eo_cont_mode"] = "BLUE" or abort_modes["2eo_cont_mode"] = "GREEN" or abort_modes["2eo_cont_mode"] = "RTLS BLUE" or abort_modes["2eo_cont_mode"] = "RTLS YELLOW" or abort_modes["2eo_cont_mode"] = "RTLS RED") {
 		set active_steer_flag to true.
 	}
-	
-	if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
-		set cont_mode5_guid to true.
-	}
+
 	
 	if (abort_modes["2eo_cont_mode"] = "RTLS GREEN" or abort_modes["2eo_cont_mode"] = "RTLS RED") {
 		set pitchdown_mode_flag to true.

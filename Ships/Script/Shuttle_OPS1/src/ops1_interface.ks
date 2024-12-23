@@ -176,7 +176,7 @@ FUNCTION log_telemetry {
 		SET loglex["Lat"] TO SHIP:GEOPOSITION:LAT.
 		SET loglex["Lng"] TO SHIP:GEOPOSITION:LNG.
 		SET loglex["Altitude"] TO SHIP:ALTITUDE/1000.
-		SET loglex["Dwnrg Dst"] TO downrangedist(launchpad,SHIP:GEOPOSITION ).
+		SET loglex["Dwnrg Dst"] TO surfacestate["dwnrg_dst"].	
 		SET loglex["Stage"] TO vehiclestate["cur_stg"].
 		SET loglex["Mass"] TO stg["m_initial"].
 		SET loglex["TWR"] TO get_TWR().

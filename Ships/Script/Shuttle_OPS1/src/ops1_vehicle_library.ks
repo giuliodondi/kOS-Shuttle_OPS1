@@ -1480,6 +1480,10 @@ FUNCTION start_oms_dump {
 	parameter fast_dump is false.
 
 	
+	if (abort_modes["oms_dump_complete"]) {
+		return.
+	}
+	
 	if (fast_dump) {
 		dap:set_rcs(TRUE).
 		SET SHIP:CONTROL:FORE TO 1.
@@ -1510,6 +1514,7 @@ FUNCTION stop_oms_dump {
 		}
 		addGUIMessage("OMS DUMP STOPPED").
 		SET abort_modes["oms_dump"] TO FALSE.
+		SET abort_modes["oms_dump_complete"] TO TRUE.
 	}
 	
 }
