@@ -1505,16 +1505,17 @@ FUNCTION stop_oms_dump {
 	IF (NOT abort_modes["oms_dump"]) {
 		RETURN.
 	}
+	
+	local prop_frac_flag is (get_oms_prop_fraction() <= ops1_parameters["OMS_prop_dump_frac"]).
 
-	IF (get_oms_prop_fraction() <= ops1_parameters["OMS_prop_dump_frac"]) OR (force) {
-
+	IF prop_frac_flag OR (force) {
 		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 		FOR oms IN get_oms_parts() {
 			oms:SHUTDOWN.
 		}
 		addGUIMessage("OMS DUMP STOPPED").
 		SET abort_modes["oms_dump"] TO FALSE.
-		SET abort_modes["oms_dump_complete"] TO TRUE.
+		SET abort_modes["oms_dump_complete"] TO prop_frac_flag.
 	}
 	
 }
