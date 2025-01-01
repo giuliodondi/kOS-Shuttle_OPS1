@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle OPS1 Ascent Guidance
-## Updated December 2024
+## Updated January 2025
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ops1_cover.png" width="700" >
@@ -441,13 +441,21 @@ This mode results invariably in bailout
 
 ### 2EO RTLS GREEN
 
-This mode generally results in bailout except very near the end where a low-energy RTLS landing might be possible
+This mode results invariably in bailout
 
-- Active after **2EO RTLS ORANGE**  until the **BLANK** region where single-engine RTLS completion is possible
-- The trajectory is stabilised and heading back to the launch site with considerable speed
+- Active after **2EO RTLS ORANGE**  until vertical speed is almost back to positive
+- The trajectory is stabilised and heading back to the launch site with moderate speed
 - Attitude is kept fixed like **2EO RTLS ORANGE**
 - Unlike the other 2EO modes, the ET sep sequence pitches down to prograde like normal RTLS, achieves MECO and then does an **ET Nominal Sep**
 
+### 2EO RTLS RED
+
+This mode should result in a landing back to the launch site
+
+- Active after **2EO RTLS GREEN** until the nominal RTLS MECO
+- The Shuttle is now able to stay above the contingency separation altitude and can complete the RTLS flyback on a single engine
+- Simplified guidance and steering scheme that targets the RTLS Range-Velocity line
+- A pitchdown like nominal RTLS and an **ET Nominal Sep** are performed
 
 </details>
 
@@ -482,10 +490,20 @@ Early 3EO Green aborts end in bailout, late aborts can lead to an ECAL/Bermuda l
 - high Q or Qbar during entry
 - highest risk of CG out of limits
 
-### 3EO TAL/ATO
+### 3EO TAL
 
-After you achieve a velocity of 6000m/s, the program will not hand over to OPS3 in contignency mode anymore because it's better to use regular TAL guidance. Nominal TAL velocity depends on distance to the site but it's usually 6900/7100 m/s, if you have a significant underspeed you will not reach the target and eventually bailout.  
-IF you're above the TAL velocity and actually closer to the ATO velocity, the mode will switch to ATO and the program will not invoke OPS3 at all, letting you do an OMS burn to try and circularise which is better than a high-energy TAL.
+When you are fast enough, the program will not hand over to OPS3 in contignency mode anymore because it's better to use regular TAL guidance. 
+The **3EO TAL** region is entered when you are less than 1000 m/s from the nominal TAL MECO velocity given the site with the least crossrange. It usually happens near 6200 m/s. The TAL window lasta until you are about 7400 m/s, actually above the TAL MECO velocity.
+
+- Regardless of the actual MECO velocity, OPS1 will transition to OPS3 in TAL mode
+- On the high end of the velocity range you can do a TAL reentry to the nominal TAL site, you might be high on energy but guidance should be able to handle it
+- On the mid end of the range you might be able to still make it to the TAL site with automatic OPS3 low-energy guidance, but you might fall short and have to bailout
+- On the low-end of the range you can't make the nominal TAL site. For KSC launches to ISS inclinations the High-energy Gander procedure can be used, which requires manual flying. In a nutshell, it's a very steep and high-energy TAL abort which may result in over-shooting, over-loading or burning up in the atmosphere.
+
+### 3EO ATO
+
+If you're above the TAL velocity and actually closer to the ATO MECO velocity, the mode will switch to ATO and the program will not invoke OPS3 at all.
+After MECO, you can plan and do an OMS burn to try and circularise or do an Abort-once-around, either would be better than a very high-energy TAL.
 
 </details>
 
