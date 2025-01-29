@@ -934,7 +934,8 @@ FUNCTION RTLS_rvline {
 function RTLS_rvline_terminal_check {
 	parameter ppd_bias_f is false.
 	
-	LOCAL tgtsurfvel IS RTLS_rvline(surfacestate["dwnrg_dst"]*1000).
+	local dwnrg_dst is surfacestate["dwnrg_dst"]*1000.
+	local ppd_dv_bias is 0.
 	
 	if (ppd_bias_f){
 	
@@ -945,10 +946,11 @@ function RTLS_rvline_terminal_check {
 		local engines_lex is stg_["engines"].
 		local ppd_dv_bias is engines_lex["isp"] * g0 * ln(stg_["m_initial"]/(stg_["m_initial"] - engines_lex["flow"] * vehicle["minThrottle"] * ppd_dt_margin)).
 
-		set tgtsurfvel to tgtsurfvel - ppd_dv_bias.
+		//bias the cutoff range assuming constant velocity
+		set dwnrg_dst to dwnrg_dst - (surfacestate["horiz_dwnrg_v"] + ppd_dv_bias / 2) * ppd_dt_margin.
 	}
 	
-	return RTLSAbort["flyback_flag"] and (-surfacestate["horiz_dwnrg_v"] >= tgtsurfvel).
+	return RTLSAbort["flyback_flag"] and (-surfacestate["horiz_dwnrg_v"] >= (RTLS_rvline(dwnrg_dst) - ppd_dv_bias)).
 }
 
 FUNCTION RTLS_burnout_mass {
@@ -1619,8 +1621,10 @@ function cont_2eo_steering {
 
 	local cont_steerv is vxcl(orbitstate["radius"], vecyz(surfacestate["surfv"])):normalized.
 	local normv is vcrs(cont_steerv, orbitstate["radius"]):normalized.
-
-	cont_2eo_theta_guidance().
+	
+	if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
+		cont_2eo_rtls_red_theta_guidance().
+	}
 	
 	local theta_angle is  cont_2eo_abort["cont_theta_pitch"].
 	local yaw_steer_angle is 0.
@@ -1687,7 +1691,7 @@ function cont_2eo_terminal_condition {
 	} else if (abort_modes["2eo_cont_mode"] = "RTLS GREEN") {
 		set terminal_flag to true.
 	} else if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
-		set terminal_flag to RTLS_rvline_terminal_check(true) or (upfgInternal["tgo"] <= 10).
+		set terminal_flag to RTLS_rvline_terminal_check(true) or (upfgInternal["tgo"] <=  upfgInternal["rtls_terminal_time"]).
 	}
 	
 	return terminal_flag.
@@ -1695,11 +1699,7 @@ function cont_2eo_terminal_condition {
 }
 
 //theta guidance for 2eo rtls red, don't alter the theta angle in any other case
-function cont_2eo_theta_guidance {
-
-	if (not abort_modes["2eo_cont_mode"] = "RTLS RED") {
-		return.
-	}
+function cont_2eo_rtls_red_theta_guidance {
 
 	local stg_ is get_stage().
 	local engines_lex is stg_["engines"].
@@ -1735,12 +1735,9 @@ function cont_2eo_theta_guidance {
 	
 	local theta_new is arcsin(limitarg((delta_vs/tgo + ge)/atot)).
 	
-	print "theta_new  " + theta_new at (0,30).
-	print "tgo  " + tgo at (0,31).
-	
 	set theta_new to theta_old + clamp(0.5 * (theta_new - theta_old), -5, 5).
 	
-	local theta_min is arcsin(ge/atot).
+	local theta_min is arcsin(limitarg(ge/atot)).
 	
 	set upfgInternal["tgo"] to tgo.
 	set cont_2eo_abort["cont_theta_pitch"] to clamp(theta_new + vehicle["ssme_cant_angle"], theta_min + vehicle["ssme_cant_angle"], 80).

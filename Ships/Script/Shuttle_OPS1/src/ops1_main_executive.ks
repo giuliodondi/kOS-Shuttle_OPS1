@@ -1124,7 +1124,10 @@ function ops1_termination {
 	} else if (abort_modes["rtls_active"]) {
 		RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
 	} else if (abort_modes["cont_2eo_active"] OR abort_modes["cont_3eo_active"]) {
-		if (abort_modes["ecal_tgt_site"] <> "") {
+	
+		if (abort_modes["2eo_cont_mode"] = "RTLS RED") {
+			RUN "0:/ops3"("grtls", abort_modes["rtls_tgt_site"]["site"]).
+		} else if (abort_modes["ecal_tgt_site"] <> "") {
 			RUN "0:/ops3"("ecal", abort_modes["ecal_tgt_site"]["site"]).
 		} else {
 			RUN "0:/ops3"("cont", abort_modes["rtls_tgt_site"]["site"]).
