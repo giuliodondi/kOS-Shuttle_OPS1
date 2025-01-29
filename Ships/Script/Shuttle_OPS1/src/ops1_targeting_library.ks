@@ -388,11 +388,11 @@ FUNCTION prepare_launch {
 
 
 function target_orbit_dump {
-	IF EXISTS("0:/upfg_dump.txt") {
-		DELETEPATH("0:/target_orbit_dump.txt").
+	IF EXISTS("0:/Shuttle_OPS1/LOGS/target_orbit_dump.txt") {
+		DELETEPATH("0:/Shuttle_OPS1/LOGS/target_orbit_dump.txt").
 	}
 	
-	log target_orbit:dump() to "0:/target_orbit_dump.txt".
+	log target_orbit:dump() to "0:/Shuttle_OPS1/LOGS/target_orbit_dump.txt".
 }
 
 

@@ -66,11 +66,11 @@ GLOBAL RTLSAbort IS LEXICON (
 ).
 
 function dump_abort {
-	IF EXISTS("0:/abort_modes_dump.txt") {
-		DELETEPATH("0:/abort_modes_dump.txt").
+	IF EXISTS("0:/Shuttle_OPS1/LOGS/abort_modes_dump.txt") {
+		DELETEPATH("0:/Shuttle_OPS1/LOGS/abort_modes_dump.txt").
 	}
 	
-	log abort_modes:dump() to "0:/abort_modes_dump.txt".
+	log abort_modes:dump() to "0:/Shuttle_OPS1/LOGS/abort_modes_dump.txt".
 }
 
 function abort_triggered {

@@ -174,10 +174,10 @@ FUNCTION debug_vehicle {
 
 FUNCTION dump_vehicle {
 	
-	IF EXISTS("0:/vehicledump.txt") {
-			DELETEPATH("0:/vehicledump.txt").
+	IF EXISTS("0:/Shuttle_OPS1/LOGS/vehicledump.txt") {
+			DELETEPATH("0:/Shuttle_OPS1/LOGS/vehicledump.txt").
 	}
-	log vehicle:dump() to "0:/vehicledump.txt".
+	log vehicle:dump() to "0:/Shuttle_OPS1/LOGS/vehicledump.txt".
 }
 
 
