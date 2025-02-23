@@ -1712,9 +1712,10 @@ function cont_2eo_rtls_red_theta_guidance {
 		return.
 	}
 	
-	//guidance scheme:
+	//new guidance scheme:
 	// in the approx of flat earth, constant average accel over tgo
-	// solve for tgo and pitch that satisfy RVline and vertical speed constraint
+	// solve for tgo and pitch that satisfy RVline and altitude constraint
+	// the solution is clamped so that at the end the vertical speed is neither negative nor too large
 	// minimum pitch for protection
 	
 	local ge is SHIP:ORBIT:BODY:MU / (orbitstate["radius"]:mag^2).
@@ -1731,9 +1732,11 @@ function cont_2eo_rtls_red_theta_guidance {
 	
 	local tgo is (-c1 - ax + sqrt( ax^2 + c1^2 + 2 * ax * A_coef * rvbar ))/( A_coef * ax ).
 	
-	local delta_vs is 230 - surfacestate["vs"].
+	local x_a is 2*((target_orbit["cutoff alt"] * 1000 - surfacestate["alt"])/tgo - surfacestate["vs"]).
+	local x_b is 198 - surfacestate["vs"].
+	local x_c is - surfacestate["vs"].
 	
-	local theta_new is arcsin(limitarg((delta_vs/tgo + ge)/atot)).
+	local theta_new is arcsin(limitarg((midval(x_a, x_b, x_c)/tgo + ge)/atot)).
 	
 	set theta_new to theta_old + clamp(0.5 * (theta_new - theta_old), -5, 5).
 	
