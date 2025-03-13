@@ -24,6 +24,9 @@ Uses Powered Explicit Guidance (also called UPFG) for vacuum guidance, adapted a
 - **[My OPS3 Shuttle entry program](https://github.com/giuliodondi/kOS-Shuttle-OPS3) required by RTLS and TAL aborts. Grab the latest version from its repo**
   - **no longer compatible with the older kOS-ShuttleEntrySim program**
  
+# Recommendations
+- **[(if you use Principia) my custom node executor](https://github.com/giuliodondi/kOS-principia_node_executor) to perform OMS burns in orbit.**
+ 
 ## Not compatible with SOCK, SpaceODY's original fork or any other Shuttle craft
 
 You will find one folder: 
@@ -33,7 +36,6 @@ Put the contents of the Script folder inside Ship/Script so that kOS can see all
 There are a few scripts you can run:
 - **ops1.ks** to setup a launch of the Shuttle from the launchpad according to specified mission parameters (read on to learn about mission setup).
 - **ops1_3a.ks** is an identical script with special parameters for Polar orbit launches from Vandenberg
-- **node.ks** a little manoeuvre node executor that I use to execute OMS burns in orbit, it takes care of the offset OMS thrust position (so it even works with a single OMS burn) and is compatible with nodes created with Principia
 
 
 # Setup  
@@ -46,8 +48,8 @@ There are a few scripts you can run:
 - **Check that the elevons, body flap and rudder are set as required by the Entry script README**
 - The ET must be a child part of some orbiter part (for the Space Shuttle System mod it's attached to the cargo bay by default)
 - Set fuel flow priority on the Orbiter lower than the External Tank, or else you won't have cryos for the fuel cells once you're in orbit
-- The SRB decouplers must be attached to the External Tank using the snap nodes, so that all SRB-related parts are children of the ET
-- The SRBs also attach to the decouplers using snap nodes
+- The SRB decouplers must be attached to the External Tank using the snap s, so that all SRB-related parts are children of the ET
+- The SRBs also attach to the decouplers using snap s
 - Any launch clamps/towers must be attached either to the ET or the SRBs, don't attach anything to the Orbiter
 - Don't place clamps on the opposite side to where the Orbiter is because the angled SSMEs will push the stack in that direction and you may have a collision
 - If you launch from Vandenberg, you need to switch the SRB type to the lighter 'Filament-wound casing' for extra performance
