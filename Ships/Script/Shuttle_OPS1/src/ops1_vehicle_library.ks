@@ -12,6 +12,7 @@ GLOBAL vehiclestate IS LEXICON(
 							),
 	"m_burn_left", 0,
 	"thr_vec", v(0,0,0),
+	"isp", 0,
 	"avg_thr", average_value_factory(3),
 	"q", 0
 ).
@@ -887,14 +888,14 @@ FUNCTION getState {
 	
 	LOCAL cur_stg IS get_stage().
 	
-	LOCAL x IS get_current_thrust_isp().
+	LOCAL engines_ IS get_current_thrust_isp().
 	
-	SET vehiclestate["thr_vec"] TO x[0].
+	SET vehiclestate["thr_vec"] TO engines_["thrvec"].
+	SET vehiclestate["isp"] TO engines_["isp"].
 	
 	vehiclestate["avg_thr"]:update(vehiclestate["thr_vec"]:MAG).
 	
 	LOCAL avg_thrust is vehiclestate["avg_thr"]:average().
-	LOCAL avg_isp is x[1].
 
 	IF NOT (vehiclestate["staging_in_progress"] OR vehicle["meco_flag"]) {
 		

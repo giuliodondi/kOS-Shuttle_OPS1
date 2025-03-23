@@ -216,6 +216,7 @@ function ops1_countdown{
 	}
 	
 	addGUIMessage("LIFT-OFF CONFIRMED").
+	getState().
 	set vehiclestate["major_mode"] TO 101.
 	
 	RETURN TRUE.
@@ -228,9 +229,7 @@ function ops1_first_stage {
 		
 	local steer_flag IS false.
 	local throt_flag IS false.
-	local roll_program_flag IS false.
-																			   
-	getState().
+	local roll_program_flag IS false.																	 
 	
 	WHEN (surfacestate["vs"] >= ops1_parameters["roll_v0"]) THEN {
 		addGUIMessage("ROLL PROGRAM").	

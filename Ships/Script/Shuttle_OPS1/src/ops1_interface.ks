@@ -20,26 +20,29 @@ FUNCTION dataViz {
 	
 	//gui update
 	
-	local roll_prog is get_roll_prograde().
-	local pitch_prog is get_pitch_prograde().
-	
-	
-	local thrvec is vehiclestate["thr_vec"]/1000.
-	
 	//predict 30 seconds into the future, 2 steps
 	//keep roll and pitch fixed 
 	LOCAL pred_simstate IS current_simstate().
 	LOCAL sim_dt IS 15.
-	
-	IF (vehiclestate["major_mode"] = 102) {
-		SET sim_dt TO 7.5.
-	} else IF (vehiclestate["major_mode"] <= 101) {
-		SET sim_dt TO 0.
+	IF (vehiclestate["major_mode"] >= 101) {
+		local roll_prog is get_roll_prograde().
+		local pitch_prog is get_pitch_prograde().
+		
+		local thrvec is vehiclestate["thr_vec"]/1000.
+		
+		IF (vehiclestate["major_mode"] = 102) {
+			SET sim_dt TO 10.
+		}
+		
+		FROM {local k is 1.} UNTIL k > 2 STEP {set k to k + 1.} DO { 
+			SET pred_simstate TO rk3(sim_dt,pred_simstate,LIST(pitch_prog,roll_prog), thrvec).
+			if (thrvec:mag > 0 and vehiclestate["isp"] > 0) {
+				local eng_md is thrvec:mag / (vehiclestate["isp"] * g0).
+				set pred_simstate["mass"] to pred_simstate["mass"] - sim_dt * eng_md.  
+			}
+		}	
 	}
 	
-	FROM {local k is 1.} UNTIL k > 2 STEP {set k to k + 1.} DO { 
-		SET pred_simstate TO rk3(sim_dt,pred_simstate,LIST(pitch_prog,roll_prog), thrvec).
-	}	
 	SET pred_simstate["altitude"] TO bodyalt(pred_simstate["position"]).
 	SET pred_simstate["surfvel"] TO surfacevel(pred_simstate["velocity"],pred_simstate["position"]).
 	SET pred_simstate["latlong"] TO shift_pos(pred_simstate["position"],pred_simstate["simtime"]).
