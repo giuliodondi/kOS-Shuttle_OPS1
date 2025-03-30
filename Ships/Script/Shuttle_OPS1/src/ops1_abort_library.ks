@@ -190,7 +190,8 @@ function setup_engine_failure {
 function intact_abort_region_determinator {
 
 	//intact modes are frozen if a contingency is active 
-	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) {
+	//also exit if we're in first stage 102
+	if (abort_modes["cont_2eo_active"]) or (abort_modes["cont_3eo_active"]) or (abort_modes["rtls_active"]) or (vehiclestate["major_mode"] < 103) {
 		return.
 	}
 	
@@ -1383,28 +1384,26 @@ FUNCTION setup_TAL{
 
 function get_ato_tgt_orbit {
 	
-	local ato_apoapsis is MIN(200, 0.8*target_orbit["apoapsis"]).
+	local ato_apoapsis is clamp(0.85*target_orbit["apoapsis"], 148.160, 194.460).
 	local ato_ap_radius is (ato_apoapsis * 1000 + SHIP:BODY:RADIUS).
 	
 	local ato_cutoff_alt is 0.98 * target_orbit["cutoff alt"].
 	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
 	
-	//230 m/s burn to circularise at apoapsis
 	local ato_ap_v is orbit_alt_vsat(ato_ap_radius) - ops1_parameters["ATO_circ_dv"].
 	
-	local ato_sma is 2/ato_cutoff_radius - ato_ap_v^2/BODY:MU.
+	local ato_sma is 2/ato_ap_radius - ato_ap_v^2/BODY:MU.
 	set ato_sma to 1/ato_sma.
 	
 	local ato_periapsis is (ato_sma - SHIP:BODY:RADIUS)/500 - ato_apoapsis.
 	
-	local sma_ is orbit_appe_sma(ato_apoapsis, ato_periapsis).
-	local ecc_ is orbit_appe_ecc(ato_apoapsis, ato_periapsis).
+	local ato_ecc_ is orbit_appe_ecc(ato_apoapsis, ato_periapsis).
 	
-	local eta_ is orbit_alt_eta(ato_cutoff_radius, sma_, ecc_).
+	local eta_ is orbit_alt_eta(ato_cutoff_radius, ato_sma, ato_ecc_).
 	
-	local ato_cutoff_vel is orbit_alt_vel(ato_cutoff_radius, sma_).
+	local ato_cutoff_vel is orbit_alt_vel(ato_cutoff_radius, ato_sma).
 	
-	local fpa_ is orbit_eta_fpa(eta_, sma_, ecc_).
+	local fpa_ is orbit_eta_fpa(eta_, ato_sma, ato_ecc_).
 	
 	local normvec is currentNormal().
 	local inclination_ is VANG(normvec,v(0,0,1)).
@@ -1421,8 +1420,8 @@ function get_ato_tgt_orbit {
 					"periapsis", ato_periapsis,
 					"cutoff_alt", ato_cutoff_alt,
 					"radius", ato_cutoff_radius,
-					"SMA", sma_,
-					"ecc", ecc_,
+					"SMA", ato_sma,
+					"ecc", ato_ecc_,
 					"eta", eta_,
 					"velocity", ato_cutoff_vel,
 					"fpa", fpa_,
