@@ -1747,6 +1747,9 @@ FUNCTION measure_update_engines {
 			
 		} 
 		
+		//force upfg unconverged 
+		set upfgInternal["s_conv"] to false.
+		
 	}
 	//latch flag until reset by the abort initialiser
 	set vehicle["ssme_out_detected"] to (vehicle["ssme_out_detected"] OR ssme_out_detected_flag).
