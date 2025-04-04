@@ -344,50 +344,6 @@ function intact_abort_region_determinator {
 		return.
 	}
 	
-	local ato_tgt_orbit is get_ato_tgt_orbit().
-	
-	LOCAL ato_dv IS (ato_tgt_orbit["velvec"] - orbitstate["velocity"]).
-	
-	if (NOT abort_modes["intact_modes"]["1eo"]["meco"]) {
-		local two_eng_ato_dv_excess is estimate_excess_deltav(
-												orbitstate["radius"],
-												orbitstate["velocity"],
-												ato_dv,
-												two_eng_perf
-		
-		).
-		
-		if (two_eng_ato_dv_excess > 0) {
-			if (not abort_modes["intact_modes"]["1eo"]["ato"]) {
-				addGUIMessage("PRESS TO ATO").
-				set abort_modes["intact_modes"]["1eo"]["ato"] to true.
-			}
-		}
-	}
-	
-	if (not abort_modes["intact_modes"]["2eo"]["meco"]) {
-	
-		local one_eng_ato_dv_excess is estimate_excess_deltav(
-												orbitstate["radius"],
-												orbitstate["velocity"],
-												ato_dv,
-												one_eng_perf
-		
-		).
-		
-		if (one_eng_ato_dv_excess > 0) {
-			if (not abort_modes["intact_modes"]["2eo"]["ato"]) {
-				addGUIMessage("SINGLE ENGINE PRESS TO ATO").
-				set abort_modes["intact_modes"]["2eo"]["ato"] to true.
-			}
-		}
-	}
-	
-	//if ato we don't want to calculate meco boundaries
-	if (abort_modes["ato_active"]) {
-		return.
-	}
-	
 	local meco_vel is cutoff_velocity_vector(
 										orbitstate["radius"],
 										-target_orbit["normal"],
@@ -397,7 +353,6 @@ function intact_abort_region_determinator {
 	
 	LOCAL meco_dv IS (meco_vel - orbitstate["velocity"]).
 	
-	
 	local two_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
@@ -406,14 +361,6 @@ function intact_abort_region_determinator {
 	
 	).
 	
-	if (two_eng_meco_dv_excess > 0) {
-		if (not abort_modes["intact_modes"]["1eo"]["meco"]) {
-			addGUIMessage("PRESS TO MECO").
-			set abort_modes["intact_modes"]["1eo"]["meco"] to true.
-			set abort_modes["intact_modes"]["1eo"]["ato"] to false.
-		}
-	} 
-	
 	local one_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
@@ -421,6 +368,36 @@ function intact_abort_region_determinator {
 											one_eng_perf
 	
 	).
+	
+	print "two_eng_meco_dv_excess " + two_eng_meco_dv_excess at (0,20).
+	print "one_eng_meco_dv_excess " + one_eng_meco_dv_excess at (0,21).
+	
+	if (two_eng_meco_dv_excess > - ops1_parameters["ATO_max_underspd"]) {
+		if (not abort_modes["intact_modes"]["1eo"]["ato"]) {
+			addGUIMessage("PRESS TO ATO").
+			set abort_modes["intact_modes"]["1eo"]["ato"] to true.
+		}
+	}
+	
+	if (one_eng_meco_dv_excess > - ops1_parameters["ATO_max_underspd"]) {
+		if (not abort_modes["intact_modes"]["2eo"]["ato"]) {
+			addGUIMessage("SINGLE ENGINE PRESS TO ATO").
+			set abort_modes["intact_modes"]["2eo"]["ato"] to true.
+		}
+	}
+	
+	//if ato we don't want to trigger meco boundaries
+	if (abort_modes["ato_active"]) {
+		return.
+	}
+	
+	if (two_eng_meco_dv_excess > 0) {
+		if (not abort_modes["intact_modes"]["1eo"]["meco"]) {
+			addGUIMessage("PRESS TO MECO").
+			set abort_modes["intact_modes"]["1eo"]["meco"] to true.
+			set abort_modes["intact_modes"]["1eo"]["ato"] to false.
+		}
+	} 
 	
 	if (one_eng_meco_dv_excess > 0) {
 		if (not abort_modes["intact_modes"]["2eo"]["meco"]) {
@@ -485,8 +462,8 @@ function contingency_abort_region_determinator {
 				set abort_modes["3eo_cont_mode"] to "BLUE". 
 			} else {
 				local vmag is orbitstate["velocity"]:mag.
-				local ato_tgt_orbit is get_ato_tgt_orbit().
-				LOCAL ato_dv IS vmag - ato_tgt_orbit["velvec"]:mag.
+
+				LOCAL ato_dv IS vmag - (target_orbit["velocity"] - ops1_parameters["ATO_max_underspd"]).
 				
 				local tal_3eo_vmag is get_3eo_tal_site_vel():mag.
 				local tal_dv is vmag - tal_3eo_vmag.
@@ -1382,7 +1359,7 @@ FUNCTION setup_TAL{
 // ATO functions
 
 
-function get_ato_tgt_orbit {
+function get_ato_tgt_orbit_old {
 	
 	local ato_apoapsis is clamp(0.85*target_orbit["apoapsis"], 148.160, 194.460).
 	local ato_ap_radius is (ato_apoapsis * 1000 + SHIP:BODY:RADIUS).
@@ -1432,6 +1409,81 @@ function get_ato_tgt_orbit {
 
 }
 
+function get_ato_tgt_orbit {
+	//new logic
+	//calculate underspeed wrt the nominal orbit
+	//shorten nom cutoff velocity vector, keep cutoff alt and fpa the same
+	//re-calculate ato apoapsis and periapsis
+
+	local meco_vel is cutoff_velocity_vector(
+										orbitstate["radius"],
+										-target_orbit["normal"],
+										target_orbit["velocity"],
+										target_orbit["fpa"]
+	).
+	
+	LOCAL meco_dv IS (meco_vel - orbitstate["velocity"]).
+	
+	//one or two engines?
+	local eng_perf_lex is lexicon().
+
+	if (get_engines_out() = 2) {
+		set eng_perf_lex to veh_perf_estimator(build_engines_lex(1)).
+	} else {
+		set eng_perf_lex to veh_perf_estimator(build_engines_lex(2)).
+	}
+	
+	local ato_underspd is estimate_excess_deltav(
+											orbitstate["radius"],
+											orbitstate["velocity"],
+											meco_dv,
+											eng_perf_lex
+	).
+	local ato_cutoff_vel is target_orbit["velocity"] + min(0, ato_underspd).
+	
+	local ato_cutoff_alt is target_orbit["cutoff alt"].
+	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
+	
+	local ato_sma is orbit_altvel_sma(ato_cutoff_radius, ato_cutoff_vel).
+	local ato_ecc is orbit_altvelfpa_ecc(ato_cutoff_radius, ato_cutoff_vel, target_orbit["fpa"]).
+	
+	local ato_ap is orbit_smaecc_ap(ato_sma, ato_ecc).
+	local ato_pe is orbit_smaecc_pe(ato_sma, ato_ecc).
+	
+	local eta_ is orbit_alt_eta(ato_cutoff_radius, ato_sma, ato_ecc).
+	
+	local normvec is currentNormal().
+	local inclination_ is VANG(normvec,v(0,0,1)).
+	
+	local velvec is cutoff_velocity_vector(
+										orbitstate["radius"],
+										- normvec,
+										ato_cutoff_vel,
+										target_orbit["fpa"]
+	).
+	
+	print "ato_cutoff_vel " + ato_cutoff_vel at (0,25).
+	print "ato_sma " + ato_sma at (0,26).
+	print "ato_ecc " + ato_ecc at (0,27).
+	print "ato_ap " + ato_ap at (0,28).
+	print "ato_pe " + ato_pe at (0,29).
+	
+	return lexicon(
+					"apoapsis", ato_ap,
+					"periapsis", ato_pe,
+					"cutoff_alt", ato_cutoff_alt,
+					"radius", ato_cutoff_radius,
+					"SMA", ato_sma,
+					"ecc", ato_ecc,
+					"eta", eta_,
+					"velocity", ato_cutoff_vel,
+					"fpa", target_orbit["fpa"],
+					"normvec", normvec,
+					"Inclination", inclination_,
+					"velvec", velvec
+	).
+}
+
 
 FUNCTION setup_ATO {
 	
@@ -1446,7 +1498,7 @@ FUNCTION setup_ATO {
 	SET target_orbit["radius"] TO ato_tgt_orbit["radius"].
 	//variable iy steering 
 	SET target_orbit["normal"] TO ato_tgt_orbit["normvec"].
-	SET target_orbit["Inclination"] TO VANG(target_orbit["normal"],v(0,0,1)).
+	SET target_orbit["Inclination"] TO ato_tgt_orbit["Inclination"].
 	
 	//force cutoff altitude, free true anomaly
 	SET target_orbit["mode"] TO 7.
