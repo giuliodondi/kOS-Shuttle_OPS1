@@ -369,9 +369,9 @@ function intact_abort_region_determinator {
 	
 	).
 	
-	print "ATO_max_underspd " + -ops1_parameters["ATO_max_underspd"] at (0,19).
-	print "two_eng_meco_dv_excess " + two_eng_meco_dv_excess at (0,20).
-	print "one_eng_meco_dv_excess " + one_eng_meco_dv_excess at (0,21).
+	//print "ATO_max_underspd " + -ops1_parameters["ATO_max_underspd"] at (0,19).
+	//print "two_eng_meco_dv_excess " + two_eng_meco_dv_excess at (0,20).
+	//print "one_eng_meco_dv_excess " + one_eng_meco_dv_excess at (0,21).
 	
 	if (two_eng_meco_dv_excess > - ops1_parameters["ATO_max_underspd"]) {
 		if (not abort_modes["intact_modes"]["1eo"]["ato"]) {
@@ -1360,56 +1360,6 @@ FUNCTION setup_TAL{
 // ATO functions
 
 
-function get_ato_tgt_orbit_old {
-	
-	local ato_apoapsis is clamp(0.85*target_orbit["apoapsis"], 148.160, 194.460).
-	local ato_ap_radius is (ato_apoapsis * 1000 + SHIP:BODY:RADIUS).
-	
-	local ato_cutoff_alt is 0.98 * target_orbit["cutoff alt"].
-	local ato_cutoff_radius is (ato_cutoff_alt * 1000 + SHIP:BODY:RADIUS).
-	
-	local ato_ap_v is orbit_alt_vsat(ato_ap_radius) - ops1_parameters["ATO_circ_dv"].
-	
-	local ato_sma is 2/ato_ap_radius - ato_ap_v^2/BODY:MU.
-	set ato_sma to 1/ato_sma.
-	
-	local ato_periapsis is (ato_sma - SHIP:BODY:RADIUS)/500 - ato_apoapsis.
-	
-	local ato_ecc_ is orbit_appe_ecc(ato_apoapsis, ato_periapsis).
-	
-	local eta_ is orbit_alt_eta(ato_cutoff_radius, ato_sma, ato_ecc_).
-	
-	local ato_cutoff_vel is orbit_alt_vel(ato_cutoff_radius, ato_sma).
-	
-	local fpa_ is orbit_eta_fpa(eta_, ato_sma, ato_ecc_).
-	
-	local normvec is currentNormal().
-	local inclination_ is VANG(normvec,v(0,0,1)).
-	
-	local velvec is cutoff_velocity_vector(
-										orbitstate["radius"],
-										- normvec,
-										ato_cutoff_vel,
-										fpa_
-	).
-	
-	return lexicon(
-					"apoapsis", ato_apoapsis,
-					"periapsis", ato_periapsis,
-					"cutoff_alt", ato_cutoff_alt,
-					"radius", ato_cutoff_radius,
-					"SMA", ato_sma,
-					"ecc", ato_ecc_,
-					"eta", eta_,
-					"velocity", ato_cutoff_vel,
-					"fpa", fpa_,
-					"normvec", normvec,
-					"Inclination", inclination_,
-					"velvec", velvec
-	).
-
-}
-
 //new logic
 //given underspeed wrt the nominal orbit
 //shorten nom cutoff velocity vector, scale apoapsis based on underspeed
@@ -1449,11 +1399,11 @@ function get_ato_tgt_orbit {
 										fpa_
 	).
 	
-	print "ato_cutoff_vel " + ato_cutoff_vel at (0,25).
-	print "ato_sma " + ato_sma at (0,26).
-	print "ato_ecc_ " + ato_ecc_ at (0,27).
-	print "ato_apoapsis " + ato_apoapsis at (0,28).
-	print "ato_periapsis " + ato_periapsis at (0,29).
+	//print "ato_cutoff_vel " + ato_cutoff_vel at (0,25).
+	//print "ato_sma " + ato_sma at (0,26).
+	//print "ato_ecc_ " + ato_ecc_ at (0,27).
+	//print "ato_apoapsis " + ato_apoapsis at (0,28).
+	//print "ato_periapsis " + ato_periapsis at (0,29).
 	
 	return lexicon(
 					"apoapsis", ato_apoapsis,
