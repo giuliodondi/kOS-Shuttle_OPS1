@@ -718,11 +718,13 @@ GLOBAL droopInternal IS LEXICON(
 						"min_droop_alt", 0,
 						"max_droop_alt", 0,
 						"alt_buf", 2000,
-						"alt_dbnd", 2000,
+						"alt_dbnd", 4000,
 						"tnew", 0,	//new droop predicted time
 						"t1new", 1000,	//saved droop time 
 						"rout", 0,	//droop radius
 						"vout", 0,	//vert speed at droop
+						"s_drp_hdot", FALSE,		//flag that we are descending
+						"s_hdot_latch", FALSE,		//latch that we are descending
 						"s_found", false,	//solution found
 						"s_drp_alt", false,	//latch that can achieve droop min alt
 						"s_min_alt", false,	//min altitude reached - droop off
@@ -770,13 +772,22 @@ function droop_control {
 	if (not droopInternal["s_min_alt"]) {
 		droop_state_params().
 		
-		set droopInternal["tv_vert"] to droopInternal["tv_max"] * sin(droopInternal["thr_att"]).
-		set droopInternal["tv_horiz"] to droopInternal["tv_max"] * cos(droopInternal["thr_att"]).
+		//modification - if droop has been activated and peg is ok, override thr_att so that we get a prediction of peg droop
+		local thr_pred is droopInternal["thr_att"].
+		if (droopInternal["s_peg_ok"] and droopInternal["s_drp_latch"]) {
+			set thr_pred to droopInternal["peg_att"].
+		}
+		set droopInternal["tv_vert"] to droopInternal["tv_max"] * sin(thr_pred).
+		set droopInternal["tv_horiz"] to droopInternal["tv_max"] * cos(thr_pred).
 		
 		droop_predictor().
 		
 		if droopInternal["s_found"] {
 			set droopInternal["t1new"] to droopInternal["tnew"].
+			
+			//measure if we're descending 
+			set droopInternal["s_drp_hdot"] to (droopInternal["vgdix"] < 0).
+			set droopInternal["s_hdot_latch"] to droopInternal["s_hdot_latch"] or droopInternal["s_drp_hdot"].
 			
 			//signal to the ard that we're in the droop region
 			set droopInternal["s_drp_alt"] to (droopInternal["s_drp_alt"] or (droopInternal["rout"] >= droopInternal["min_droop_alt"])).
@@ -785,7 +796,18 @@ function droop_control {
 			set droopInternal["s_peg_ok"] to (droopInternal["peg_att"] <= droopInternal["thr_att"]) and upfgInternal["s_conv"].
 			
 			//determine if min alt reached and droop guidance should stop commanding attitude
-			set droopInternal["s_min_alt"] to droopInternal["s_cdroop"] and ((droopInternal["t1new"] <=0) or (droopInternal["s_peg_ok"] and (droopInternal["rout"] > droopInternal["max_droop_alt"]))).
+			//modification - min alt reached when peg ok and we have the descending latch flag and we're presently climbing
+			set droopInternal["s_min_alt"] to droopInternal["s_cdroop"] and (
+																			(droopInternal["t1new"] <=0) or (
+																				droopInternal["s_peg_ok"] and (droopInternal["rout"] > droopInternal["max_droop_alt"]) and
+																				droopInternal["s_hdot_latch"] and (NOT droopInternal["s_drp_hdot"])
+																			)
+			).
+			
+			print droopInternal["rout"] at (0,29).
+			print droopInternal["t1new"] at (0,30).
+			print droopInternal["thr_att"] at (0,31).
+			print droopInternal["peg_att"] at (0,32).
 			
 			//activate droop steering - as soon as min_alt is on this will be off and this block is disabled
 			//add check on engines out or abort mode here???
