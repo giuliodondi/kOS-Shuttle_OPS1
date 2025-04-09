@@ -772,9 +772,9 @@ function droop_control {
 	if (not droopInternal["s_min_alt"]) {
 		droop_state_params().
 		
-		//modification - if droop has been activated and peg is ok, override thr_att so that we get a prediction of peg droop
+		//modification - if droop has been triggered and since deactivated and peg is ok, override thr_att so that we get a prediction of peg droop
 		local thr_pred is droopInternal["thr_att"].
-		if (droopInternal["s_peg_ok"] and droopInternal["s_drp_latch"]) {
+		if (droopInternal["s_peg_ok"] and (droopInternal["s_drp_latch"] and NOT droopInternal["s_cdroop"])) {
 			set thr_pred to droopInternal["peg_att"].
 		}
 		set droopInternal["tv_vert"] to droopInternal["tv_max"] * sin(thr_pred).
@@ -811,7 +811,8 @@ function droop_control {
 			
 			//activate droop steering - as soon as min_alt is on this will be off and this block is disabled
 			//add check on engines out or abort mode here???
-			set droopInternal["s_cdroop"] to (not droopInternal["s_min_alt"]) and (droopInternal["s_cdroop"] or droopInternal["s_drp_alt"]) and (vehicle["SSME"]["active"] = droopInternal["n_ssme"]).
+			//modification - add check on peg-ok false now that min_alt could be false while peg_ok could be true
+			set droopInternal["s_cdroop"] to (not droopInternal["s_min_alt"]) and (not droopInternal["s_peg_ok"]) and (droopInternal["s_cdroop"] or droopInternal["s_drp_alt"]) and (vehicle["SSME"]["active"] = droopInternal["n_ssme"]).
 
 		} else {
 			set droopInternal["s_cdroop"] to false.
