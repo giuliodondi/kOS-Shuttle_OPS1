@@ -799,11 +799,6 @@ function droop_control {
 			//modification - min alt reached when peg ok and we have the descending latch flag and we're presently climbing
 			set droopInternal["s_min_alt"] to droopInternal["s_peg_ok"] and (droopInternal["rout"] > droopInternal["max_droop_alt"]) and droopInternal["s_hdot_latch"] and (NOT droopInternal["s_drp_hdot"]).
 			
-			print droopInternal["rout"] at (0,29).
-			print droopInternal["t1new"] at (0,30).
-			print droopInternal["thr_att"] at (0,31).
-			print droopInternal["peg_att"] at (0,32).
-			
 			//activate droop steering - as soon as min_alt is on this will be off and this block is disabled
 			//add check on engines out or abort mode here???
 			//modification - add check on peg-ok false now that min_alt could be false while peg_ok could be true
