@@ -797,12 +797,7 @@ function droop_control {
 			
 			//determine if min alt reached and droop guidance should stop commanding attitude
 			//modification - min alt reached when peg ok and we have the descending latch flag and we're presently climbing
-			set droopInternal["s_min_alt"] to droopInternal["s_cdroop"] and (
-																			(droopInternal["t1new"] <=0) or (
-																				droopInternal["s_peg_ok"] and (droopInternal["rout"] > droopInternal["max_droop_alt"]) and
-																				droopInternal["s_hdot_latch"] and (NOT droopInternal["s_drp_hdot"])
-																			)
-			).
+			set droopInternal["s_min_alt"] to droopInternal["s_peg_ok"] and (droopInternal["rout"] > droopInternal["max_droop_alt"]) and droopInternal["s_hdot_latch"] and (NOT droopInternal["s_drp_hdot"]).
 			
 			print droopInternal["rout"] at (0,29).
 			print droopInternal["t1new"] at (0,30).
@@ -817,23 +812,23 @@ function droop_control {
 		} else {
 			set droopInternal["s_cdroop"] to false.
 		}
-	}
 	
-	//steering parameters - refactored
-	if (droopInternal["rout"] < droopInternal["min_droop_alt"]) {
-		set droopInternal["thr_att"] to droopInternal["thr_att"] + droopInternal["att_incr"].
-	} else if (droopInternal["rout"] > droopInternal["max_droop_alt"]) {
-		set droopInternal["thr_att"] to droopInternal["thr_att"] - droopInternal["att_incr"].
+		//steering parameters - refactored
+		if (droopInternal["rout"] < droopInternal["min_droop_alt"]) {
+			set droopInternal["thr_att"] to droopInternal["thr_att"] + droopInternal["att_incr"].
+		} else if (droopInternal["rout"] > droopInternal["max_droop_alt"]) {
+			set droopInternal["thr_att"] to droopInternal["thr_att"] - droopInternal["att_incr"].
+		}
+		set droopInternal["thr_att"] to midval(droopInternal["thr_att"], droopInternal["thr_min"], droopInternal["thr_max"]).
+		
+		if (droopInternal["s_cdroop"]) {
+			set droopInternal["s_drp_latch"] to true.
+			
+			//skip the droop_early stuff - it will done in the ARD
+			
+			set droopInternal["steering"] to droopInternal["ix"] * sin(droopInternal["thr_att"]) + droopInternal["iz"] * cos(droopInternal["thr_att"]).
+		}	
 	}
-	set droopInternal["thr_att"] to midval(droopInternal["thr_att"], droopInternal["thr_min"], droopInternal["thr_max"]).
-	
-	if (droopInternal["s_cdroop"]) {
-		set droopInternal["s_drp_latch"] to true.
-		
-		//skip the droop_early stuff - it will done in the ARD
-		
-		set droopInternal["steering"] to droopInternal["ix"] * sin(droopInternal["thr_att"]) + droopInternal["iz"] * cos(droopInternal["thr_att"]).
-	}	
 	
 	if (ops1_parameters["debug_mode"]) {
 		droop_dump(dump_overwrite).
