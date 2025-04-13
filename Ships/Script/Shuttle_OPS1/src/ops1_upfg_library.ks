@@ -1358,7 +1358,13 @@ FUNCTION upfg_own {
 		((NOT internal["s_init"]) AND (internal["tgo"] < (internal["constraint_release_t"] - 10))) {
 		//release cutoff position
 		IF (internal["s_alt"] OR internal["s_plane"]) {
-			SET internal["omega"] TO VCRS(internal["lambda"], internal["lambdadot"]).
+			local lam_ is internal["lambda"].
+			local lamd_ is internal["lambdadot"].
+			IF (NOT internal["s_plane"]) {
+				set lam_ to vxcl(internal["iy"], lam_).
+				set lamd_ to vxcl(internal["iy"], lamd_).
+			}
+			SET internal["omega"] TO VCRS(lam_, lamd_).
 			SET internal["s_plane"] TO FALSE.
 			SET internal["s_alt"] TO FALSE.
 		}
