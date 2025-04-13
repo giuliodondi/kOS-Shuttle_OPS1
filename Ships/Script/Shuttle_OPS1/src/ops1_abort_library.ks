@@ -374,14 +374,14 @@ function intact_abort_region_determinator {
 	//print "one_eng_meco_dv_excess " + one_eng_meco_dv_excess at (0,21).
 	
 	if (two_eng_meco_dv_excess > - ops1_parameters["ATO_max_underspd"]) {
-		if (not abort_modes["intact_modes"]["1eo"]["ato"]) {
+		if (not abort_modes["intact_modes"]["1eo"]["ato"]) and (not abort_modes["intact_modes"]["1eo"]["meco"]) {
 			addGUIMessage("PRESS TO ATO").
 			set abort_modes["intact_modes"]["1eo"]["ato"] to true.
 		}
 	}
 	
 	if (one_eng_meco_dv_excess > - ops1_parameters["ATO_max_underspd"]) {
-		if (not abort_modes["intact_modes"]["2eo"]["ato"]) {
+		if (not abort_modes["intact_modes"]["2eo"]["ato"]) and (not abort_modes["intact_modes"]["2eo"]["meco"]) {
 			addGUIMessage("SINGLE ENGINE PRESS TO ATO").
 			set abort_modes["intact_modes"]["2eo"]["ato"] to true.
 		}
