@@ -8,6 +8,7 @@ GLOBAL ops1_parameters is LEXICON(
 						"random_failures", false,
 						"control_loop_dt",0.15,	//DO NOT CHANGE
 						"launchTimeAdvance", 300,
+						"override_az_limit", false,
 						"preburn",5.1,
 						"roll_v0",35,
 						"pitch_v0",38.7,

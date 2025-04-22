@@ -365,6 +365,34 @@ FUNCTION prepare_launch {
 	SET vehicle["ign_t"] TO TIME:SECONDS + time2window. 
 	
 	set target_orbit["launch_az"] to launchAzimuth(target_orbit["inclination"], target_orbit["velocity"], (target_orbit["direction"]="south")).
+	
+	IF (NOT ops1_parameters["override_az_limit"]) {
+		//implement range azimuth limitation
+		//if the launchsite is within 50km of a known site
+		//apply its range restrictions
+		LOCAL site_azrange IS LEXICON(
+							"KSC",LEXICON(
+									"position",LATLNG(28.61938,-80.70092),
+									"min_az",35,
+									"max_az",120
+							),
+							"Vandenberg",LEXICON(
+									"position",LATLNG(34.67974,-120.53102),
+									"min_az",147,
+									"max_az",320
+							)
+		
+		).
+		
+		FOR s IN site_azrange:VALUES{
+			LOCAL sitepos IS s["position"].
+			
+			IF downrangedist(sitepos,SHIP:GEOPOSITION) < 50 {
+				SET target_orbit["launch_az"] TO CLAMP(target_orbit["launch_az"], s["min_az"], s["max_az"]).
+				BREAK.
+			}
+		}
+	}
 
 
 	//print target_orbit:dump.
