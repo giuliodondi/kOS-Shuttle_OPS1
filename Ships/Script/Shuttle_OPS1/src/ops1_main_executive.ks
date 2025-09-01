@@ -324,7 +324,8 @@ function ops1_first_stage {
 	if (_3eo_et_sep) {
 		addGUIMessage("EMERGENCY ET SEP").
 		dap:set_rcs(TRUE).
-		dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
+		local srb_sep_pitch_up_steer is rodrigues(surfacestate["surfv"]:NORMALIZED, -dap:cur_dir:starvector, 10).
+		dap:set_steer_tgt(srb_sep_pitch_up_steer).
 		set dap:thrust_corr to FALSE.
 		set dap:steer_freeze to false.
 	} else {
@@ -1021,7 +1022,7 @@ function ops1_et_sep {
 						
 						if (abort_modes["et_sep_mode"] <> "nominal") {
 							
-							set post_sep_pitch_up_steer to rodrigues(dap:steer_dir:forevector, -dap:steer_dir:starvector, 5).
+							set post_sep_pitch_up_steer to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, 5).
 							dap:set_steer_tgt(post_sep_pitch_up_steer).
 						}
 					}

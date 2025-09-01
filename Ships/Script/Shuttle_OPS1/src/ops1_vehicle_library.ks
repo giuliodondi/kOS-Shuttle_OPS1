@@ -236,6 +236,9 @@ FUNCTION first_stage_engout_lofting_bias {
 		set abort_t to abort_modes["ssmes_out"][0]["time"].
 		//(0.375 * engines_out + 0.625) * engines_out.
 		set engout_fac to 1.
+		if (engines_out > 2) {
+			set engout_fac to 2.5.
+		}
 	}
 	
 	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
@@ -672,18 +675,18 @@ function ascent_dap_factory {
 					set strmgr to midval(strmgr + abs(this:steer_pitch_delta) * 0.075 - 0.013, strmgr, 1.5).
 				}
 				
-				if (vehicle["meco_flag"]) {
-					set strmgr to 4.
-				} else {
-					if (this:serc_enabled) {
-						set strmgr to 0.15.
-					}
+				if (this:serc_enabled) {
+					set strmgr to 0.15.
 				}
 				
 				if (vehicle["pitchdown_flag"]) {
 					set strmgr to max(strmgr, 0.7).
 				}
 			}
+		}
+		
+		if (vehicle["meco_flag"]) {
+			set strmgr to 4.
 		}
 		
 		SET STEERINGMANAGER:MAXSTOPPINGTIME TO strmgr.
@@ -1257,7 +1260,7 @@ function srb_sep_thrust {
 	local engines_out is get_engines_out().
 	
 	if (engines_out = 3) {
-		return 500.
+		return 550.
 	}
 	
 	return 350/(1 + engines_out).
