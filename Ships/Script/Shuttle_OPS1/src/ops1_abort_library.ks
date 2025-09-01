@@ -1770,7 +1770,7 @@ function cont_2eo_rtls_red_theta_guidance {
 //tal site with least crossrange and meco velocity
 function get_3eo_tal_site_vel {
 
-	if (abort_modes["3eo_tal_site"]["site"] <> "") {
+	if (abort_modes["3eo_tal_site"] <> "") and (abort_modes["3eo_tal_site"]["site"] <> "") {
 		return tal_predict_meco_velocity(abort_modes["3eo_tal_site"]["site"], currentNormal(), target_orbit["radius"]).
 	}
 	
