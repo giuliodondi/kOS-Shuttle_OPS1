@@ -12,6 +12,7 @@ GLOBAL ops1_parameters is LEXICON(
 						"preburn",5.1,
 						"roll_v0",35,
 						"pitch_v0",38.7,
+						"pitch_vmatch",110,
 						"qbucketval", 0.28,
 						"yaw_steer_lim", 45,
 						"roll_headsup_vi", 3800,	//SET THIS TO >10000 TO INHIBIT
@@ -20,6 +21,7 @@ GLOBAL ops1_parameters is LEXICON(
 						"OMS_prop_dump_frac", 0.3,
 						"ATO_max_underspd", 235,
 						"ECAL_dz_lim", 40,
+						"pitch_abort_ss_lim", 84,
 						
 						"dummy", 0
 ).

@@ -54,6 +54,7 @@ function initialise_shuttle {
 						"ign_t", 0,
 						"trajectory_scale",0,
 						"roll",180,
+						"1st_stg_tgt_pch", 90,
 						"srb_sep_flag", FALSE,
 						"roll_heads_up_flag", FALSE,
 						"et_sep_flag", FALSE,
@@ -234,11 +235,11 @@ FUNCTION first_stage_engout_lofting_bias {
 	
 	if (engines_out > 0) {
 		set abort_t to abort_modes["ssmes_out"][0]["time"].
-		//(0.375 * engines_out + 0.625) * engines_out.
-		set engout_fac to 1.
-		if (engines_out > 2) {
-			set engout_fac to 2.5.
-		}
+		set engout_fac to (0.375 * engines_out + 0.625) * engines_out.
+		//set engout_fac to 1.
+		//if (engines_out > 2) {
+		//	set engout_fac to 2.5.
+		//}
 	}
 	
 	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
@@ -248,28 +249,24 @@ FUNCTION first_stage_engout_lofting_bias {
 //open-loop pitch profile for first stage ascent
 FUNCTION open_loop_pitch {
 	PARAMETER curv.	 
-
-	LOCAL v0 IS ops1_parameters["pitch_v0"].
 	
-	LOCAL v_match IS 110.
+	LOCAL vrel IS curv - ops1_parameters["pitch_v0"].
 	
 	LOCAL steep_fac IS vehicle["traj_steepness"].
 	
 	//bias trajectory in case of first-stage rtls
 	SET steep_fac TO steep_fac + first_stage_engout_lofting_bias().
 	
-	IF (curv<=v0) {
-		RETURN 90.
-	} ELSE {
+	local prograde_bias is FALSE.
 	
-		LOCAL vrel IS curv - v0.
+	local engines_out is get_engines_out().
 	
-		LOCAL pitch_prof IS 0.
-		
-		//quadratic matching to the pitch profile
-		IF (curv<=v_match) {
-			
-			LOCAL vrel_match IS v_match - v0.
+	if (engines_out < 2) {
+		IF (curv<=ops1_parameters["pitch_v0"]) {
+			SET vehicle["1st_stg_tgt_pch"] TO 90.
+		} ELSE IF (curv<=ops1_parameters["pitch_vmatch"]) {
+			//quadratic matching to the pitch profile
+			LOCAL vrel_match IS ops1_parameters["pitch_vmatch"] - ops1_parameters["pitch_v0"].
 			
 			LOCAL prof_match IS nominal_pitch_profile(vrel_match, steep_fac).
 			
@@ -279,29 +276,37 @@ FUNCTION open_loop_pitch {
 			local c_ is (2*(prof_match - 90) - dp_dv * vrel_match) / vrel_match^3.
 			local b_ is (-dp_dv/vrel_match - 3*c_*vrel_match)/2.
 			
-			SET pitch_prof tO 90 - (b_ + c_ * vrel) * vrel^2.
-			
+			SET vehicle["1st_stg_tgt_pch"] TO 90 - (b_ + c_ * vrel) * vrel^2.
 		} ELSE {
-			SET pitch_prof TO nominal_pitch_profile(vrel, steep_fac).
-			
-			local prog_p is get_surf_fpa().
-			
-			LOCAL bias IS pitch_prof - prog_p.
-		
-			LOCAL bias_gain IS CLAMP((curv - v_match)/ 200, 0, 0.5).
-			
-			LOCAL prof_corr IS ABS(bias_gain * bias).
-			
-			//don't deviate too much from prograde
-			LOCAL max_prograde_dev IS 12.
-			LOCAL max_prof_dev IS MAX(max_prograde_dev - ABS((bias_gain + 1) * bias), 0).
-			
-			set pitch_prof to pitch_prof + SIGN(bias) * MIN(max_prof_dev, prof_corr).
-			
+			SET vehicle["1st_stg_tgt_pch"] TO nominal_pitch_profile(vrel, steep_fac).
+			SET prograde_bias to TRUE.
 		}
-
-		RETURN CLAMP(pitch_prof, 0, 90).
+	} else {
+		SET vehicle["1st_stg_tgt_pch"] TO ops1_parameters["pitch_abort_ss_lim"] + MAX(0, 0.99*(vehicle["1st_stg_tgt_pch"] - ops1_parameters["pitch_abort_ss_lim"]) ).
+		SET prograde_bias to TRUE.
 	}
+	
+	LOCAL cmd_pch IS vehicle["1st_stg_tgt_pch"].
+	
+	if (prograde_bias) {
+		local prog_p is get_surf_fpa().
+		
+		LOCAL bias IS vehicle["1st_stg_tgt_pch"] - prog_p.
+	
+		LOCAL bias_gain IS CLAMP((curv - vrel)/ 200, 0, 0.5).
+		
+		LOCAL prof_corr IS ABS(bias_gain * bias).
+		
+		//don't deviate too much from prograde
+		LOCAL max_prograde_dev IS 12.
+		LOCAL max_prof_dev IS MAX(max_prograde_dev - ABS((bias_gain + 1) * bias), 0).
+		
+		set cmd_pch to cmd_pch + SIGN(bias) * MIN(max_prof_dev, prof_corr).
+	}
+
+	
+	
+	RETURN CLAMP(cmd_pch, 0, 90).
 }
 
 function first_stage_guidance {
