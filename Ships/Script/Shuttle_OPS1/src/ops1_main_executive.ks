@@ -384,9 +384,10 @@ function ops1_first_stage {
 		}
 	}
 	
-	//need this here so 2eo before srb sep works correctly
-	SET vehiclestate["major_mode"] TO 103.
-	
+	if (NOT _3eo_et_sep) {
+		//need this here so 2eo before srb sep works correctly
+		SET vehiclestate["major_mode"] TO 103.
+	}
 }
 
 
@@ -1065,31 +1066,35 @@ function ops1_et_sep {
 	
 	//after et sep set toggle serc off in the dap
 	dap:toggle_serc(false).
-	local forward_steerv is dap:cur_dir:forevector.
-	if (abort_modes["et_sep_mode"] <> "nominal") {
-		//do a re-orientation after et-sep since we might be in a weird attitude
-		//take component of steering along velocity, if negative, flip to the other side 
-		
-		local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
-		local normv_ is VCRS(dap:steer_refv, surfv_proj):normalized.
-		set forward_steerv to vxcl(normv_, forward_steerv).
-		
-		local steer_prog is vdot(forward_steerv, surfv_proj).
-		
-		if (steer_prog < 0) {
-			set forward_steerv to (forward_steerv + 2*abs(steer_prog) * surfv_proj):normalized.
-		}
-		
-		dap:set_steer_tgt(forward_steerv).
-		
-		if (ops1_parameters["debug_mode"]) {
-			clearvecdraws().
-			arrow_ship(forward_steerv,"steer").
-		}
-	}
 	
-	set vehicle["roll"] to 0.
-	set dap:steer_roll to 0.
+	//skip in case of 3eo first stage, stay heads-down
+	if (vehiclestate["major_mode"] <> 102) {
+		local forward_steerv is dap:cur_dir:forevector.
+		if (abort_modes["et_sep_mode"] <> "nominal") {
+			//do a re-orientation after et-sep since we might be in a weird attitude
+			//take component of steering along velocity, if negative, flip to the other side 
+			
+			local surfv_proj IS VXCL(dap:steer_refv, surfacestate["surfv"]):NORMALIZED.
+			local normv_ is VCRS(dap:steer_refv, surfv_proj):normalized.
+			set forward_steerv to vxcl(normv_, forward_steerv).
+			
+			local steer_prog is vdot(forward_steerv, surfv_proj).
+			
+			if (steer_prog < 0) {
+				set forward_steerv to (forward_steerv + 2*abs(steer_prog) * surfv_proj):normalized.
+			}
+			
+			dap:set_steer_tgt(forward_steerv).
+			
+			if (ops1_parameters["debug_mode"]) {
+				clearvecdraws().
+				arrow_ship(forward_steerv,"steer").
+			}
+		}
+	
+		set vehicle["roll"] to 0.
+		set dap:steer_roll to 0.
+	}
 	
 	wait 0.3.
 	
