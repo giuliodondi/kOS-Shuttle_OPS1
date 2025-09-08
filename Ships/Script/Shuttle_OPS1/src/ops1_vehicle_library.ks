@@ -235,11 +235,7 @@ FUNCTION first_stage_engout_lofting_bias {
 	
 	if (engines_out > 0) {
 		set abort_t to abort_modes["ssmes_out"][0]["time"].
-		set engout_fac to (0.375 * engines_out + 0.625) * engines_out.
-		//set engout_fac to 1.
-		//if (engines_out > 2) {
-		//	set engout_fac to 2.5.
-		//}
+		set engout_fac to 1 + 2^(engines_out - 1).
 	}
 	
 	RETURN max(engout_fac * 0.33*(1 - abort_t/122), 0).
@@ -261,7 +257,7 @@ FUNCTION open_loop_pitch {
 	
 	local engines_out is get_engines_out().
 	
-	if (engines_out < 2) {
+	if (engines_out < 3) {
 		IF (curv<=ops1_parameters["pitch_v0"]) {
 			SET vehicle["1st_stg_tgt_pch"] TO 90.
 		} ELSE IF (curv<=ops1_parameters["pitch_vmatch"]) {
