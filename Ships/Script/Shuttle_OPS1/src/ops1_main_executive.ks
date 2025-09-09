@@ -716,6 +716,8 @@ function ops1_second_stage_contingency {
 	
 	//preserve the major mode from wherever we came from
 	//for correct gui
+	//re-initialise 2eo, required for 2eo during first-stage
+	setup_2eo_contingency().
 	
 	set dap:steer_freeze to false.
 	dap:set_steer_tgt(dap:cur_dir:forevector).	
@@ -935,7 +937,7 @@ function ops1_et_sep {
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
 	} else if (abort_modes["et_sep_mode"] = "rate") {
-		set pre_sequence_t to 1.
+		set pre_sequence_t to 0.
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
 		set vehicle["pitchdown_flag"] to true.
@@ -970,12 +972,16 @@ function ops1_et_sep {
 			
 				if (NOT sequence_start) {
 					//set steering target to induce a pitch-down 
-					//separate when pitch rate is high enough for long enough
-				
 					set rate_sep_steer_tgt to rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
 					dap:set_steer_tgt(rate_sep_steer_tgt).
 					
-					if (not pitch_rate_flag) and ((dap:pitch_rate >= rate_sep_pitch_rate) or (surfacestate["time"] > sequence_trigger_t + rate_sep_wait_t)) {
+					//separate when pitch rate is high enough for long enough
+					//or when the wait timr is out, or when we pitch below the horizon
+					if (not pitch_rate_flag) and (
+							(dap:pitch_rate >= rate_sep_pitch_rate)
+							or (surfacestate["time"] > sequence_trigger_t + rate_sep_wait_t)
+							or (dap:cur_steer_pitch <= 0)
+					) {
 						set pitch_rate_flag to true.
 						set sequence_trigger_t to surfacestate["time"].
 					}
