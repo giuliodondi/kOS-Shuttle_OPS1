@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle OPS1 Ascent Guidance
-## Updated March 2025
+## Updated September 2025
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ops1_cover.png" width="700" >
@@ -472,12 +472,15 @@ This mode should result in a landing back to the launch site
 
 ### 3EO BLUE 
 
-This mode usually ends in bailout very close to the launch site
+This mode usually ends in bailout very close to the launch site, but it may also allow for a daring Split-S manoeuver and a return to the launch site
 
 - Active before the nominal SRB sep staging sequence is initiated
 - OMS dumping starts right away
+- Very aggressive lofting of the trajectory
 - When SRB thrust is low enough, the Shuttle pitches down close to prograde
 - When attitude is stable, **the Shuttle separates directly from the External Tank in an Immediate Sep**
+- The Orbiter will not re-orient itself after separation, this will happen automatically upon OPS3 transition
+- The split-S manoeuvre can only be done in CSS, keep heads-down 180° roll and follow the contingency pitch command
 
 
 ### 3EO GREEN
