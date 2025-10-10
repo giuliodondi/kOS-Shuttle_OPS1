@@ -257,7 +257,7 @@ function intact_abort_region_determinator {
 			}
 			
 			//test maximum az error 
-			if (abs(tal_delaz) < 35) {
+			if (abs(tal_delaz) < ops1_parameters["TAL_max_delaz"]) {
 			
 				local two_eng_tal_dv_excess is estimate_excess_deltav(
 														orbitstate["radius"],
