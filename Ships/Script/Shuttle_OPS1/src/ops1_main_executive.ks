@@ -844,7 +844,7 @@ function ops1_second_stage_contingency {
 		
 		local quit_pchdn_loop is false.
 		
-		local rate_sep_pitch_rate is 3.
+		local rate_sep_pitch_rate is 2.
 		
 		//wait 3 seconds to allow the dap time to update the flags
 		LOCAL sequence_trigger_t IS surfacestate["time"].
@@ -873,7 +873,8 @@ function ops1_second_stage_contingency {
 				local rate_sep_steer_tgt is rodrigues(dap:cur_dir:forevector, -dap:cur_dir:starvector, -45).
 				dap:set_steer_tgt(rate_sep_steer_tgt).
 				
-				set quit_pchdn_loop to (dap:pitch_rate >= rate_sep_pitch_rate) and t_loop_flag and (dap:cur_steer_pitch < 30).
+				//separate when pitch rate is high enough for long enough or when we pitch below the horizon
+				set quit_pchdn_loop to (t_loop_flag) and ((dap:pitch_rate >= rate_sep_pitch_rate) or (dap:cur_steer_pitch <= -vehicle["ssme_cant_angle"])).
 			} else if (pitchdown_mode_flag) {
 				dap:set_steer_tgt(surfacestate["surfv"]:NORMALIZED).
 				
@@ -980,7 +981,7 @@ function ops1_et_sep {
 					if (not pitch_rate_flag) and (
 							(dap:pitch_rate >= rate_sep_pitch_rate)
 							or (surfacestate["time"] > sequence_trigger_t + rate_sep_wait_t)
-							or (dap:cur_steer_pitch <= 0)
+							or (dap:cur_steer_pitch <= -vehicle["ssme_cant_angle"])
 					) {
 						set pitch_rate_flag to true.
 						set sequence_trigger_t to surfacestate["time"].
