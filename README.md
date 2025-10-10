@@ -1,5 +1,5 @@
 # Kerbal Space Program Space Shuttle OPS1 Ascent Guidance
-## Updated September 2025
+## Updated October 2025
 
 <p align="center">
   <img src="https://github.com/giuliodondi/kOS-Shuttle_OPS1/blob/master/Ships/Script/Shuttle_OPS1/images/ops1_cover.png" width="700" >
