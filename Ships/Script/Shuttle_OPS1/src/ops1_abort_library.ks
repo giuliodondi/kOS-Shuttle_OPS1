@@ -472,7 +472,7 @@ function contingency_abort_region_determinator {
 				local tal_3eo_v_flag is (tal_dv >= -1000).
 				local ato_3eo_v_flag is (ato_dv >= -100).
 				
-				if (ato_3eo_v_flag or (tal_3eo_v_flag and (abs(ato_dv) < abs(tal_dv)))) {
+				if (ato_3eo_v_flag or (tal_3eo_v_flag and (abs(ato_dv) < abs(tal_dv)))) and (NOT abort_modes["tal_active"])  {
 					set abort_modes["3eo_cont_mode"] to "ATO". 
 				} else if tal_3eo_v_flag	{
 					set abort_modes["3eo_cont_mode"] to "TAL". 
