@@ -203,7 +203,7 @@ In some regions, even a double engine failure will allow an intact abort. This i
 
 The above chart shows the intact abort modes and their boundaries:
 - **Return to launch site (RTLS)** is available from liftoff to about 2400 m/s surface-relative (the actual boundary depends on inclination). The boundary is called **Negative Return**
-- **Transoceanic Abort Landing (TAL)** is available from just before Negative Return until late in the ascent (until **Single-engine Press to ATO** is available)
+- **Transoceanic Abort Landing (TAL)** is available from some time after SRB sep until late in the ascent (until **Single-engine Press to ATO** is available)
 - **TAL** is also available for two-engine-out situations after the **Single Engine TAL** boundary and until **Single-engine Press to ATO**
 - The **Single Engine OPS3** boundary marks the earliest point where the Shuttle can reach a non-contingency MECO with the Droop procedure and do an OPS3 reentry. This also leads to a TAL abort.
 - **Abort to Orbit (ATO)** is available some time after Negative Return until **Press to MECO**
@@ -304,10 +304,11 @@ The Glide-RTLS phase, which starts after arrival on the RV line, is completely o
  
 The available TAL landing sites are taken from the landing sites defined in **Shuttle_OPS3/landing_sites.ks**, specifically those downrange of your launch trajectory. The program estimates continuously if there is enough delta-V to reach any of them accounting for gravity losses and crossrange. As soon as one is reachable, TAL becomes active. This is done for both the two- and one-engine case, gravity losses are higher in the latter case and this is why single-engine TAL is only available so late.
 
-In case of a manually-triggered abort, the TAL site chosen will be the one in the TAL site GUI selector. In case of an automatic abort, the site will be chosen at random among the sites within reach.  
-If the TAL abort downmodes to single-engine TAL because of a second engien failure, the site remains the one selected. In case of a sudden double engine failure, the chosen site is the one with the best delta-V margin.
+The automated TAL logic is to **delay** activation of the abort for some time, from 4m30 early on all the way down to zero. This is only done if the program detects some ECAL sites available, because staying on course for a while keeps you closer to these ECAL sites in the event of a second engine out. More on this in the contingency **ECAL** section.  
+
+Anyways, In case of an automatic abort, the site will be chosen at random among the sites within reach. In case of a manually-triggered abort, the TAL site chosen will be the one in the TAL site GUI selector. If the TAL abort downmodes to single-engine TAL because of a second engine failure, the site remains the one selected. In case of a sudden double engine failure, the chosen site is the one with the best delta-V margin.
  
-Either way, there isn't much difference from a normal ascent, save for the automatic OMS dump and the roll to heads-up attitude which happens earlier.   
+In any of these cases, there isn't much difference from a normal ascent, save for the automatic OMS dump and the roll to heads-up attitude which happens earlier.   
 After MECO and separation the Shuttle will be around 120km and about to descend. The script will quit itself and automatically call the **OPS3** reentry script.
 **Please read carefully the OPS3 documentation for more about TAL reentries**
 </details>
@@ -378,6 +379,8 @@ SERC is active in all 2EO scenarios.
 
 If you launch from KSC on inclinations 35° and above, you fly close enough to landmasses that may provide an emergency landing site. There are a few sites along the Eastern Seaboard plus Bermuda island. The ECAL site will be chosen in a 2 Engine-out case depending if the current velocity is within a set range. If there is an ECAL site available, the program will steer the Shuttle in that direction and you'll see a message **YAW STEER** on the TRAJ2 display. Yaw steering reduces crossrange a bit and it's disabled when you start descending to prepare for MECO.
 
+If you lose just one engine and have TAL available, the TAL will be delayed to keep you on the nominal course and closer to the ECAL sites. Activating TAL immediately would bring you away from the ECAL sites and you'd be in trouble if you then lost a second engine before DROOP.
+
 In RTLS contingency scenarios, ECAL is only available in **RTLS 2EO YELLOW** before powered-pitcharound.
 
 
@@ -405,7 +408,7 @@ If the two engines are lost before SRB sep, the Shuttle will have very little ve
 
 ### 2EO GREEN
 
-Early in this mode, a bailout is the only outcome. Later in the mode, an ECAL or Bermuda landing might be possible
+Early in this mode, a bailout is the only outcome. Later in the mode, an ECAL or Bermuda landing might be possible.
 
 - Active after **2EO BLUE** until either **2EO DROOP** or **Single-engine TAL**
 - The trajectory is less lofted and might already be descending for late aborts
