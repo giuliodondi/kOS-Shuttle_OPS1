@@ -73,6 +73,45 @@ function dump_abort {
 	log abort_modes:dump() to "0:/Shuttle_OPS1/LOGS/abort_modes_dump.txt".
 }
 
+function ecal_log {
+	parameter firstpass is true.
+	
+	local loglex is lexicon().
+	loglex:add("engines", get_running_ssmes():length).
+	loglex:add("alt", SHIP:ALTITUDE/1000).
+	loglex:add("surfv", surfacestate["surfv"]:mag).
+	loglex:add("vs", surfacestate["vs"]).
+	loglex:add("vi", orbitstate["velocity"]:mag).
+	
+	local cur_pos is vecyz(orbitstate["radius"]).
+	
+	for sname in abort_modes["ecal_candidates"] {
+		LOCAL site IS ldgsiteslex[sname].
+				
+		local rwypos is 0.
+		
+		IF (site:ISTYPE("LEXICON")) {
+			set rwypos to site["position"].
+		} ELSE IF (site:ISTYPE("LIST")) {
+			set rwypos to site[0]["position"].
+		}
+		
+		local ecal_rng is greatcircledist(cur_pos, rwypos).
+		
+		local ecal_delaz is az_error(
+							cur_pos,
+							rwypos,
+							surfacestate["surfv"]
+		).
+		
+		loglex:add(sname + "_rng", ecal_rng).
+		loglex:add(sname + "_dz", ecal_delaz).
+	}
+	
+	log_data(loglex,"./Shuttle_OPS1/LOGS/ecal_log", firstpass).
+
+}
+
 function abort_triggered {
 	return abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"] or abort_modes["cont_2eo_active"] or abort_modes["cont_3eo_active"].
 }
@@ -324,7 +363,8 @@ function intact_abort_region_determinator {
 		
 		
 		if (not (abort_modes["intact_modes"]["2eo"]["tal"])) {
-			if (tal_1e_dv:length > 0) { 
+			//no 2eo tal before droop available
+			if (abort_modes["intact_modes"]["2eo_droop"]) and (tal_1e_dv:length > 0) { 
 				addGUIMessage("SINGLE ENGINE TAL").
 				set abort_modes["intact_modes"]["2eo"]["tal"] to true.
 			} else if (lowest_dz_tal["delaz"] > 0) {
@@ -496,7 +536,8 @@ function abort_initialiser {
 	
 	//during forst stage only initialise 2eo and 2eo
 	//also don't intialise aborts during terminal count 
-	if ((vehiclestate["major_mode"] < 103) and (zero_engout or one_engout)) or vehicle["terminal_flag"] {
+	//also don't initialise if inhibited
+	if ((vehiclestate["major_mode"] < 103) and (zero_engout or one_engout)) or vehicle["terminal_flag"] or ops1_parameters["abort_inhibit"] {
 		return.
 	}
 
@@ -512,12 +553,12 @@ function abort_initialiser {
 		set abort_modes["abort_initialised"] to false.
 		
 		//the abort is triggered right now except in a 1eo case if tal is available (only mode which accepts manual input)
-		//we give 10 seconds for manual abort trigger
+		//we give 15 seconds for manual abort trigger
 		//but we shouldn't wait if an abort was already triggered
 		local abort_trigger_t is -0.2.
 		
 		if (one_engout) and (abort_modes["intact_modes"]["1eo"]["tal"]) and (NOT (abort_modes["rtls_active"] or abort_modes["tal_active"] or abort_modes["ato_active"])) {
-			set abort_trigger_t to 10.
+			set abort_trigger_t to delayed_tal_trigger(surfacestate["MET"]).
 		}
 		
 		set abort_modes["trigger_t"]	TO ssme_fail_t + abort_trigger_t.
@@ -950,7 +991,7 @@ FUNCTION RTLS_boundary{
 	
 	LOCAL boundary_vel IS RTLS_boundary_vel().
 
-	RETURN (dwnrg_speed > RTLS_boundary_vel()).
+	RETURN (dwnrg_speed > RTLS_boundary_vel()) or (surfacestate["MET"] > 300).
 }
 
 //compare current velocity with negative return boundary to see if we should flyback immediately
@@ -1108,6 +1149,21 @@ FUNCTION setup_RTLS {
 
 
 //	TAL functions
+
+//time delay for tal initiation to improve 2eo ecal windows
+//if there are ecal sites, function of the 1eo time
+function delayed_tal_trigger {
+	parameter t_1eo.
+	
+	parameter min_delay is 15.
+	parameter delay_t is min_delay.
+	
+	if (abort_modes["ecal_candidates"]:length > 0 ) {
+		set delay_t to 505.94 + t_1eo*(-1.6648 + 7e-05*t_1eo).
+	}
+	
+	return max(min_delay, delay_t).
+}
 
 //rv-line for TAL 
 //actually a 3rd degree curve 
@@ -1501,7 +1557,7 @@ FUNCTION setup_ATO {
 function ecal_rv_boundaries {
 	parameter rng.
 	
-	local upper_v is 1.85 * rng + 1005.
+	local upper_v is 2.4 * rng + 885.
 	local lower_v is 1.59 * rng + 905.
 
 	return list(lower_v, upper_v).
