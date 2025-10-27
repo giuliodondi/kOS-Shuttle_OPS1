@@ -131,16 +131,16 @@ function estimate_excess_deltav {
 	local tgt_dvh is vxcl(iz_, tgt_deltav):mag.
 	local tgt_dvv is vdot(iz_, tgt_deltav).
 	
-	local geff is BODY:MU / (r0m^2) - (v0h)^2 / r0m.
-	
 	//print geff at (0,0).
 
 	local m0 is perf["m_initial"].
 	local mdot is perf["engines"]["flow"].
 	local thrust_ is perf["engines"]["thrust"].
 	local vex is thrust_/mdot.
-	
 	local mbar is m0 - 0.5*mdot*perf["time"].
+	
+	local v0eff is v0h + vex*LN(m0/mbar).
+	local geff is BODY:MU / (r0m^2) - (v0eff)^2 / r0m.
 	
 	local tu0 is m0 * vex * (1 - CONSTANT:E^(- tgt_dvh/vex)).
 	local c_ is tgt_dvv * mbar / tu0.
