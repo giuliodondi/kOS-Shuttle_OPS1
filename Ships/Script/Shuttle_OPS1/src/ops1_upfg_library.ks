@@ -873,7 +873,7 @@ function droop_state_params {
 	set droopInternal["tnew"] to droopInternal["t1new"] - upfgInternal["dt"].
 	
 	//missing the single engine perfomance values
-	local one_eng_perf is veh_perf_estimator(build_engines_lex(droopInternal["n_ssme"])).	
+	local one_eng_perf is veh_perf_estimator(build_engines_lex(droopInternal["n_ssme"]), vehicle["maxThrottle"]).	
 	
 	set droopInternal["mdt"] to one_eng_perf["engines"]["flow"].
 	set droopInternal["tv_max"] to one_eng_perf["engines"]["thrust"].

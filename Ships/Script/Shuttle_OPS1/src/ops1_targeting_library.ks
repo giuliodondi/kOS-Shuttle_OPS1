@@ -183,7 +183,7 @@ function estimate_excess_deltav {
 	
 	local dvtot is sqrt(vgrav^2 + tgt_dvh^2).
 	
-	local dvbias is 20.
+	local dvbias is 10.
 	
 	return perf["deltav"] - dvtot - dvbias.
 
