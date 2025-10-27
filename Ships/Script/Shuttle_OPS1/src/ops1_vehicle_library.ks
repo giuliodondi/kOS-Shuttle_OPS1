@@ -854,9 +854,10 @@ FUNCTION get_TWR {
 }
 
 //needed for aborts 
-//given specified engines and assuming max throttle, calculate deltav and time to burn 
+//given specified engines and throttle value, calculate deltav and time to burn 
 function veh_perf_estimator {
 	parameter engines_lex.
+	parameter throtset.
 	
 	local prop_left is vehiclestate["m_burn_left"].
 	
@@ -866,14 +867,15 @@ function veh_perf_estimator {
 	
 	local deltav_ is ve_*ln(m_initial/(m_initial - prop_left)).
 	
-	local burnt is ((m_initial * ve_) / engines_lex["thrust"] * vehicle["maxThrottle"]) * (1 - CONSTANT:E^(- deltav_/ve_)).
+	local burnt is ((m_initial * ve_) / (engines_lex["thrust"] * throtset)) * (1 - CONSTANT:E^(- deltav_/ve_)).
 	
 	
 	return lexicon(
 					"m_initial", m_initial,
 					"time", burnt,
 					"deltav", deltav_,
-					"engines", engines_lex
+					"engines", engines_lex,
+					"throt", throtset
 	
 	).
 

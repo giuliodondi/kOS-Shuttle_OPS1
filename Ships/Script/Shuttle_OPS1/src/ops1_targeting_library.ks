@@ -135,7 +135,7 @@ function estimate_excess_deltav {
 
 	local m0 is perf["m_initial"].
 	local mdot is perf["engines"]["flow"].
-	local thrust_ is perf["engines"]["thrust"].
+	local thrust_ is perf["engines"]["thrust"]*perf["throt"].
 	local vex is thrust_/mdot.
 	local mbar is m0 - 0.5*mdot*perf["time"].
 	
@@ -144,7 +144,7 @@ function estimate_excess_deltav {
 	
 	local tu0 is m0 * vex * (1 - CONSTANT:E^(- tgt_dvh/vex)).
 	local c_ is tgt_dvv * mbar / tu0.
-	local b_ is geff / (perf["engines"]["thrust"]/mbar).
+	local b_ is geff / (thrust_/mbar).
 	
 	local y_ is 1 + c_^2 - b_^2.
 	
@@ -172,7 +172,7 @@ function estimate_excess_deltav {
 		//print x_1  at (0,5).
 		//print x_2  at (0,6).
 		
-		local dt1 is tu0/(perf["engines"]["thrust"] * sqrt(1 - x_^2) ).
+		local dt1 is tu0/(thrust_ * sqrt(1 - x_^2) ).
 		set dt1 to min(dt1, perf["time"]).
 		
 		//print arcsin(x_)  at (0,7).
@@ -183,7 +183,9 @@ function estimate_excess_deltav {
 	
 	local dvtot is sqrt(vgrav^2 + tgt_dvh^2).
 	
-	return perf["deltav"] - dvtot.
+	local dvbias is 20.
+	
+	return perf["deltav"] - dvtot - dvbias.
 
 }
 

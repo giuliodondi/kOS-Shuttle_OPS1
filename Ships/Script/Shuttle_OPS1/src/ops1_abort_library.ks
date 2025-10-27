@@ -257,8 +257,8 @@ function intact_abort_region_determinator {
 	local two_eng_lex is build_engines_lex(2).
 	local one_eng_lex is build_engines_lex(1).
 	
-	local two_eng_perf is veh_perf_estimator(two_eng_lex).
-	local one_eng_perf is veh_perf_estimator(one_eng_lex).
+	local two_eng_perf is veh_perf_estimator(two_eng_lex, vehicle["nominalThrottle"]).
+	local one_eng_perf is veh_perf_estimator(one_eng_lex, vehicle["maxThrottle"]).
 	
 	LOCAL tal_2e_dv is list(). 
 	LOCAL tal_1e_dv is list(). 
@@ -1009,11 +1009,11 @@ FUNCTION setup_RTLS {
 	
 	local engines_out is get_engines_out().
 	
-	local throt_val is vehicle["maxThrottle"].
-	local upfg_throt is 0.96 * vehicle["maxThrottle"].
+	local throt_val is vehicle["nominalThrottle"].
+	local upfg_throt is 0.96 * vehicle["nominalThrottle"].
 	
 	if (engines_out < 1) {
-		set throt_val to 0.7 * vehicle["maxThrottle"].
+		set throt_val to 0.7 * vehicle["nominalThrottle"].
 		set upfg_throt to throt_val.
 	}
 	
