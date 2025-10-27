@@ -1494,9 +1494,7 @@ FUNCTION start_oms_dump {
 		SET SHIP:CONTROL:FORE TO 1.
 		SET SHIP:CONTROL:TOP TO 1.
 	}
-	FOR oms IN get_oms_parts() {
-		oms:ACTIVATE.
-	}
+	toggle_oms(true).
 	
 	if (NOT abort_modes["oms_dump"]) {
 		addGUIMessage("OMS DUMP STARTED").
@@ -1515,14 +1513,23 @@ FUNCTION stop_oms_dump {
 
 	IF prop_frac_flag OR (force) {
 		SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-		FOR oms IN get_oms_parts() {
-			oms:SHUTDOWN.
-		}
+		toggle_oms(false).
 		addGUIMessage("OMS DUMP STOPPED").
 		SET abort_modes["oms_dump"] TO FALSE.
 		SET abort_modes["oms_dump_complete"] TO prop_frac_flag.
 	}
+}
+
+function toggle_oms {
+	parameter turn_on.
 	
+	FOR oms IN get_oms_parts() {
+		if (turn_on) {
+			oms:ACTIVATE.
+		} else {
+			oms:SHUTDOWN.
+		}
+	}
 }
 
 //check that the three ssme are present and the same type, calculate all the parameters needed

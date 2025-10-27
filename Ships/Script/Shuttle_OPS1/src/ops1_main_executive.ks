@@ -1063,6 +1063,7 @@ function ops1_et_sep {
 	if (not post_meco_dump) {
 		LOCK THROTTLE to 0.
 		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+		toggle_oms(true).
 	}
 	
 	//for good measure 
