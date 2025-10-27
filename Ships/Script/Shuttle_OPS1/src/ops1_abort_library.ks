@@ -940,7 +940,8 @@ FUNCTION RTLS_rvline_coefs {
 	//RETURN LIST(0.00242, 768.72).		//this is the original from the rtls traj-shaping paper 
 	//RETURN LIST(0.0031, 559.49).		//this was lifted from the sts-1 abort analysis paper 
 	//RETURN LIST(0.004, 234).			//this worked before ops3
-	RETURN LIST(0.0035, 370).
+	//RETURN LIST(0.0035, 370).			//this worked for ops3 until i changed the gains in nzhold in sep 2025
+	RETURN LIST(0.0035, 420).
 }
 
 //calculate the desired RV-line velocity  (DISTANCE IN METRES)
@@ -982,7 +983,7 @@ FUNCTION RTLS_burnout_mass {
 }
 
 FUNCTION RTLS_boundary_vel {
-	RETURN (2930 - 7.8 * ABS(target_orbit["inclination"])).
+	RETURN (2890 - 7.8 * ABS(target_orbit["inclination"])).
 }
 
 FUNCTION RTLS_boundary{
@@ -1557,7 +1558,7 @@ FUNCTION setup_ATO {
 function ecal_rv_boundaries {
 	parameter rng.
 	
-	local upper_v is 2.4 * rng + 885.
+	local upper_v is 1.85 * rng + 1005.
 	local lower_v is 1.59 * rng + 905.
 
 	return list(lower_v, upper_v).
