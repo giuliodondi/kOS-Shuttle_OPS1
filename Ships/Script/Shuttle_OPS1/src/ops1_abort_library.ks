@@ -1495,9 +1495,9 @@ FUNCTION setup_ATO {
 	local eng_perf_lex is lexicon().
 
 	if (get_engines_out() = 2) {
-		set eng_perf_lex to veh_perf_estimator(build_engines_lex(1)).
+		set eng_perf_lex to veh_perf_estimator(build_engines_lex(1), vehicle["maxThrottle"]).
 	} else {
-		set eng_perf_lex to veh_perf_estimator(build_engines_lex(2)).
+		set eng_perf_lex to veh_perf_estimator(build_engines_lex(2), vehicle["nominalThrottle"]).
 	}
 	
 	local ato_underspd is estimate_excess_deltav(
