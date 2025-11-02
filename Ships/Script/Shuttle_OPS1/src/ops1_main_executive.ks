@@ -938,8 +938,8 @@ function ops1_et_sep {
 		set pre_sep_t to 0.3.
 		set translation_t to 10.
 	} else if (abort_modes["et_sep_mode"] = "rate") {
-		set pre_sequence_t to 0.
-		set pre_sep_t to 0.3.
+		set pre_sequence_t to 1.
+		set pre_sep_t to 1.
 		set translation_t to 10.
 		set vehicle["pitchdown_flag"] to true.
 	}
