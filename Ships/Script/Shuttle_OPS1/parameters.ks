@@ -22,7 +22,7 @@ GLOBAL ops1_parameters is LEXICON(
 						"OMS_prop_dump_frac", 0.3,
 						"TAL_max_delaz", 8.5,
 						"ATO_max_underspd", 235,
-						"ECAL_dz_lim", 40,
+						"ECAL_dz_lim", 25,
 						"pitch_abort_ss_lim", 84,
 						
 						"dummy", 0
