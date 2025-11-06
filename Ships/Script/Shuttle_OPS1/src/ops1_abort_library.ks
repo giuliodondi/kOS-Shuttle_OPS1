@@ -280,6 +280,7 @@ function intact_abort_region_determinator {
 		
 			local tal_meco_v is tal_predict_meco_velocity(s, current_normal, target_orbit["radius"]).
 			
+			LOCAL tal_dr IS (target_orbit["radius"]:mag - orbitstate["radius"]:mag).
 			LOCAL dv2site IS (tal_meco_v - orbitstate["velocity"]).
 			
 			local tal_delaz is signed_angle(
@@ -301,6 +302,7 @@ function intact_abort_region_determinator {
 				local two_eng_tal_dv_excess is estimate_excess_deltav(
 														orbitstate["radius"],
 														orbitstate["velocity"],
+														tal_dr,
 														dv2site,
 														two_eng_perf
 				).
@@ -323,6 +325,7 @@ function intact_abort_region_determinator {
 				local one_eng_tal_dv_excess is estimate_excess_deltav(
 														orbitstate["radius"],
 														orbitstate["velocity"],
+														tal_dr,
 														dv2site,
 														one_eng_perf
 				).
@@ -391,11 +394,13 @@ function intact_abort_region_determinator {
 										target_orbit["fpa"]
 	).
 	
+	LOCAL meco_dr IS (target_orbit["radius"]:mag - orbitstate["radius"]:mag).
 	LOCAL meco_dv IS (meco_vel - orbitstate["velocity"]).
 	
 	local two_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
+											meco_dr,
 											meco_dv,
 											two_eng_perf
 	
@@ -404,6 +409,7 @@ function intact_abort_region_determinator {
 	local one_eng_meco_dv_excess is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
+											meco_dr,
 											meco_dv,
 											one_eng_perf
 	
@@ -1489,6 +1495,7 @@ FUNCTION setup_ATO {
 										target_orbit["fpa"]
 	).
 	
+	LOCAL meco_dr IS (target_orbit["radius"]:mag - orbitstate["radius"]:mag).
 	LOCAL meco_dv IS (meco_vel - orbitstate["velocity"]).
 	
 	//one or two engines?
@@ -1503,6 +1510,7 @@ FUNCTION setup_ATO {
 	local ato_underspd is estimate_excess_deltav(
 											orbitstate["radius"],
 											orbitstate["velocity"],
+											meco_dr,
 											meco_dv,
 											eng_perf_lex
 	).

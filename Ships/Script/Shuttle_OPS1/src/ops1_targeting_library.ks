@@ -120,18 +120,18 @@ function cutoff_velocity_vector {
 function estimate_excess_deltav {
 	parameter r0.
 	parameter v0.
+	parameter tgt_dr.
 	parameter tgt_deltav.
 	parameter perf.
 	
 	local iz_ is r0:normalized.
 	
 	local v0h is vxcl(iz_, v0):mag.
+	local v0v is vdot(iz_, v0).
 	local r0m is r0:mag.
 	
 	local tgt_dvh is vxcl(iz_, tgt_deltav):mag.
 	local tgt_dvv is vdot(iz_, tgt_deltav).
-	
-	//print geff at (0,0).
 
 	local m0 is perf["m_initial"].
 	local mdot is perf["engines"]["flow"].
@@ -144,20 +144,26 @@ function estimate_excess_deltav {
 	
 	local tu0 is m0 * vex * (1 - CONSTANT:E^(- tgt_dvh/vex)).
 	local c_ is tgt_dvv * mbar / tu0.
-	local b_ is geff / (thrust_/mbar).
+	local abar is thrust_/mbar.
+	local b_ is geff / abar.
 	
 	local y_ is 1 + c_^2 - b_^2.
 	
+	//wait 0.1.
+	//clearscreen.
 	//print tgt_dvv at (0,1).
 	//print tgt_dvh at (0,2).
 	
-	//print b_  at (0,3).
-	//print c_  at (0,4).
+	//print "b_ " + b_  at (0,3).
+	//print "geff " + geff  at (0,4).
 	
-	local dvtot is 0.
+	local tb_tot is 0.
+	local av_eff is 0.
 	
 	if (y_ <= 0) {
-		set vgrav to geff * perf["time"].
+		set tb_tot to perf["time"].
+		set vgrav to geff * tb_tot.
+		set av_eff to -geff.
 	} else {
 		local x_1 is (b_ + c_ * sqrt(y_))/(1 + c_^2).
 		local x_2 is (b_ - c_ * sqrt(y_))/(1 + c_^2).
@@ -173,13 +179,27 @@ function estimate_excess_deltav {
 		//print x_2  at (0,6).
 		
 		local dt1 is tu0/(thrust_ * sqrt(1 - x_^2) ).
-		set dt1 to min(dt1, perf["time"]).
+		set tb_tot to midval(dt1, perf["time"], 10).
 		
 		//print arcsin(x_)  at (0,7).
-		//print dt1  at (0,8).
+		//print tb_tot  at (0,8).
 		
-		set vgrav to x_ * vex * ln(m0/(m0 - mdot*dt1)).
+		set vgrav to x_ * vex * ln(m0/(m0 - mdot*tb_tot)).
+		set av_eff to abar*x_ - geff.
 	}
+	
+	//print "av_eff " + av_eff  at (0,9).
+	
+	//estimate the change in radius due to thrusting and gravity
+	//calculate vgrav correction to null out the dr error 
+	local dr_thr is tb_tot*(v0v + 0.5*av_eff*tb_tot).
+	local dv_dr is (tgt_dr - dr_thr)/tb_tot.
+	
+	//print "tgt_dr " + tgt_dr  + "    "  at (0,10).
+	//print "dr_thr " + dr_thr  + "    "  at (0,11).
+	//print "dv_dr " + dv_dr  + "    "  at (0,12).
+	//print "vgrav " + vgrav  + "    "  at (0,13).
+	set vgrav to vgrav + dv_dr.
 	
 	local dvtot is sqrt(vgrav^2 + tgt_dvh^2).
 	
