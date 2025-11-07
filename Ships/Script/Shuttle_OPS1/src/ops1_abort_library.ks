@@ -418,6 +418,7 @@ function intact_abort_region_determinator {
 	//print "ATO_max_underspd " + -ops1_parameters["ATO_max_underspd"] at (0,19).
 	//print "two_eng_meco_dv_excess " + two_eng_meco_dv_excess at (0,20).
 	//print "one_eng_meco_dv_excess " + one_eng_meco_dv_excess at (0,21).
+	//print "ATO_max_underspd " + ops1_parameters["ATO_max_underspd"] at (0,22).
 	
 	if (two_eng_meco_dv_excess > - ops1_parameters["ATO_max_underspd"]) {
 		if (not abort_modes["intact_modes"]["1eo"]["ato"]) and (not abort_modes["intact_modes"]["1eo"]["meco"]) {
@@ -824,6 +825,22 @@ function et_sep_mode_determinator {
 }
 
 
+//the tfail logic - assume that an engine will fail to force UPFG lofting
+//active only if 3 engines are running 
+//returns tfail - MET i.e. the seconds left before the mock engine failure
+function engfail_assumption_remanining_time {
+	local tfail is 210.
+
+	//the parameters flag will be unset by the failure detector function
+	//the check on abort triggered should be unnecessary but just in case
+	if (not ops1_parameters["tfail_enabled"]) or (abort_triggered()) {
+		set tfail to -1.
+	}
+
+	return max(-1, tfail - surfacestate["MET"]).
+}
+
+
 //	RTLS functions
 
 //to be called before launch, will fin the closest landing site 
@@ -1038,7 +1055,8 @@ FUNCTION setup_RTLS {
 						current_m,
 						m_final,
 						engines_lex,
-						throt_val
+						throt_val,
+						-1
 	).
 	reset_stage().
 	

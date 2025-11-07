@@ -119,8 +119,6 @@ function initialise_shuttle {
 	
 	//prepare stages list
 	
-	LOCAL engines_lex IS build_engines_lex().
-	
 	//zeroth stage 
 	vehicle["stages"]:ADD(0).
 	
@@ -132,7 +130,7 @@ function initialise_shuttle {
 	set new_stg_1["glim"] to vehicle["glim"].
 	set new_stg_1["Throttle"] to vehicle["nominalThrottle"].
 	set new_stg_1["Tstage"] to srb_time.
-	set new_stg_1["engines"] to engines_lex.
+	set new_stg_1["engines"] to build_engines_lex(vehicle["SSME"]["active"]).
 	set new_stg_1["mode"] to 1.
 	SET new_stg_1["staging"]["type"] TO "time".
 	
@@ -146,8 +144,10 @@ function initialise_shuttle {
 	setup_shuttle_stages(
 						new_stg_1["m_final"],
 						vehicle["stack_empty_mass"],
-						engines_lex,
-						vehicle["nominalThrottle"]
+						vehicle["SSME"]["active"],
+						vehicle["OMS"]["active"],
+						vehicle["nominalThrottle"],
+						engfail_assumption_remanining_time() - srb_time
 	).
 	
 	SET vehicle["traj_steepness"] TO vehicle_traj_steepness().
@@ -948,7 +948,9 @@ FUNCTION getState {
 FUNCTION update_stage2 {
 	PARAMETER m_initial.
 	PARAMETER res_left.
-	PARAMETER stg2 IS vehicle["stages"][2].
+	PARAMETER stg_idx IS 2.
+	
+	local stg2 IS vehicle["stages"][stg_idx].
 
 	SET stg2["m_initial"] TO m_initial.
 	SET stg2["m_burn"] TO res_left.
@@ -979,19 +981,21 @@ FUNCTION update_stage2 {
 		
 		LOCAL stg3_m_burn IS res_left - stg2["m_burn"].
 		
-		update_stage3(stg3_m_initial, stg3_m_burn).
-	} ELSE IF (stg2["staging"]["type"]="time") {
-		//only ever entered during aborts 
+		update_stage3(stg3_m_initial, stg3_m_burn, stg_idx+1).
+	} ELSE IF (stg2["staging"]["type"]="tfail") {
+		//this is the t-fail stage, the following stages have n-1 engines running
+		//the burn time is determined by t_fail - MET 
 		
+		local tfail is max(0, engfail_assumption_remanining_time()).
+		SET stg2["Tstage"] TO tfail. 
 		SET stg2["m_final"] TO const_f_dt_mfinal(stg2).
 		SET stg2["m_burn"] TO stg2["m_initial"] - stg2["m_final"].
 		
-		IF (vehicle["stages"]:LENGTH > 3) {
-			LOCAL stg3_m_initial IS stg2["m_final"].
-			LOCAL stg3_m_burn IS MAX(0, res_left - stg2["m_burn"]).
-			
-			update_stage3(stg3_m_initial, stg3_m_burn).
-		}
+		//assume the following stages mock a failed engine
+		LOCAL stg2_fail_m_initial IS stg2["m_final"].
+		LOCAL stg2_fail_m_burn IS res_left - stg2["m_burn"].
+		
+		update_stage2(stg2_fail_m_initial, stg2_fail_m_burn, stg_idx+1).
 	}
 
 }
@@ -1001,7 +1005,9 @@ FUNCTION update_stage2 {
 FUNCTION update_stage3 {
 	PARAMETER m_initial.
 	PARAMETER res_left.
-	PARAMETER stg3 IS vehicle["stages"][3].
+	PARAMETER stg_idx IS 3.
+	
+	local stg3 IS vehicle["stages"][stg_idx].
 	
 	SET stg3["m_initial"] TO m_initial.
 	SET stg3["m_burn"] TO res_left.
@@ -1027,7 +1033,7 @@ FUNCTION update_stage3 {
 			SET stg3["m_burn"] TO m_initial - x[1].
 			LOCAL stg4_m_burn IS res_left - stg3["m_burn"].
 
-			update_stage4(stg4_m_initial, stg4_m_burn).
+			update_stage4(stg4_m_initial, stg4_m_burn, stg_idx+1).
 			
 		}
 	}
@@ -1037,7 +1043,9 @@ FUNCTION update_stage3 {
 FUNCTION update_stage4 {
 	PARAMETER m_initial.
 	PARAMETER res_left.
-	PARAMETER stg4 IS vehicle["stages"][4].
+	PARAMETER stg_idx IS 4.
+	
+	local stg4 IS vehicle["stages"][stg_idx].
 	
 	//assume it's a depletion stage
 	
@@ -1094,7 +1102,7 @@ FUNCTION ssme_staging {
 //returns true when we're close to depletion at minimum throttle on three engines
 FUNCTION ssme_low_level {
 	
-	local three_eng_lex is build_engines_lex(3, 0).
+	local three_eng_lex is build_engines_lex(3).
 
 	local prop_left is vehicle["SSME_prop"].
 	
@@ -1117,18 +1125,45 @@ FUNCTION ssme_low_level {
 function setup_shuttle_stages {
 	parameter initial_mass.
 	parameter stack_empty_mass.
-	parameter engines_lex.
+	parameter n_ssme.
+	parameter n_oms.
 	parameter max_throtval.
+	parameter t_fail.
+	
+	local engines_lex is build_engines_lex(n_ssme, n_oms).
 	
 	local stg_1 is vehicle["stages"][1].
+	set stg_1["engines"] to engines_lex.
+	
+	LOCAL stage2InitialMass IS initial_mass.
+	
+	local new_stg_2_tfail is empty_stg_template().
+	local enable_tfail is (t_fail > 0).
+	
+	if (enable_tfail) {
+		// pre-determined time stage 
+		SET new_stg_2_tfail["staging"]["type"] TO "tfail".
+		set new_stg_2_tfail["m_initial"] to initial_mass.
+		SET new_stg_2_tfail["Tstage"] TO t_fail.
+		set new_stg_2_tfail["glim"] to vehicle["glim"].
+		set new_stg_2_tfail["Throttle"] to max_throtval.
+		set new_stg_2_tfail["engines"] to build_engines_lex(n_ssme, n_oms).
+		set new_stg_2_tfail["mode"] to 1.
+		
+		SET new_stg_2_tfail["m_final"] TO const_f_dt_mfinal(new_stg_2_tfail).
+		set new_stg_2_tfail["m_burn"] to new_stg_2_tfail["m_initial"] - new_stg_2_tfail["m_final"].
+		set stage2InitialMass to new_stg_2_tfail["m_final"].
+		
+		set engines_lex to build_engines_lex(n_ssme - 1, n_oms).
+	}
 	
 	// ssme constant F stage
 	
 	local new_stg_2 is empty_stg_template().
 	
-	set new_stg_2["m_initial"] to initial_mass.
+	set new_stg_2["m_initial"] to stage2InitialMass.
 	set new_stg_2["m_final"] to stack_empty_mass.
-	set new_stg_2["m_burn"] to initial_mass - stack_empty_mass.
+	set new_stg_2["m_burn"] to stage2InitialMass - stack_empty_mass.
 	set new_stg_2["glim"] to vehicle["glim"].
 	set new_stg_2["Throttle"] to max_throtval.
 	set new_stg_2["engines"] to engines_lex.
@@ -1215,14 +1250,25 @@ function setup_shuttle_stages {
 	set new_stg_4["staging"]["type"] TO "depletion".
 	SET new_stg_4["Tstage"] TO const_f_t(new_stg_4).
 	
-	set vehicle["stages"] to list(
-									0,
-									stg_1,
-									new_stg_2,
-									new_stg_3,
-									new_stg_4
-	).
-
+	if (enable_tfail) {
+		set vehicle["stages"] to list(
+										0,
+										stg_1,
+										new_stg_2_tfail,
+										new_stg_2,
+										new_stg_3,
+										new_stg_4
+		).
+	} else {
+		set vehicle["stages"] to list(
+										0,
+										stg_1,
+										new_stg_2,
+										new_stg_3,
+										new_stg_4
+		).
+	
+	}
 }
 
 function empty_stg_template {
@@ -1673,7 +1719,7 @@ FUNCTION parse_oms {
 }
 
 FUNCTION build_engines_lex {
-	parameter ssme_active is vehicle["SSME"]["active"].
+	parameter ssme_active.
 	parameter oms_active is vehicle["OMS"]["active"].
 
 	LOCAL tot_ssme_thrust IS ssme_active*vehicle["SSME"]["thrust"].
@@ -1778,18 +1824,21 @@ FUNCTION measure_update_engines {
 	
 	SET vehicle["OMS"]["active"] TO OMScount.
 	
-	LOCAL cur_stg IS get_stage().
-	SET cur_stg["engines"] TO build_engines_lex().
-	
-	if (ssme_out_detected_flag) {
+	//tfail is disabled here if the timer goes to negative or there's an actual failure
+	if (ssme_out_detected_flag or
+			(ops1_parameters["tfail_enabled"] and (engfail_assumption_remanining_time() <= 0))
+	) {
+		set ops1_parameters["tfail_enabled"] to FALSE.
 		LOCAL current_m IS SHIP:MASS*1000.
 		local res_left IS get_shuttle_res_left().
 		
 		setup_shuttle_stages(
 							current_m,
 							current_m - res_left,
-							cur_stg["engines"],
-							vehicle["maxThrottle"]
+							vehicle["SSME"]["active"],
+							vehicle["OMS"]["active"],
+							vehicle["maxThrottle"],
+							-1
 		).
 		reset_stage().
 	}

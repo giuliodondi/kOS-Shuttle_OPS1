@@ -18,10 +18,11 @@ GLOBAL ops1_parameters is LEXICON(
 						"yaw_steer_lim", 45,
 						"roll_headsup_vi", 3800,	//SET THIS TO >10000 TO INHIBIT
 						"low_level_burnt", 10,
+						"tfail_enabled", false,
 						"RTLS_prop_frac", 0.01,
 						"OMS_prop_dump_frac", 0.3,
 						"TAL_max_delaz", 8.5,
-						"ATO_max_underspd", 235,
+						"ATO_max_underspd", 120,
 						"ECAL_dz_lim", 25,
 						"pitch_abort_ss_lim", 84,
 						
