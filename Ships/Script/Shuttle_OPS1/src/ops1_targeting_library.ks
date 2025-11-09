@@ -120,73 +120,75 @@ function cutoff_velocity_vector {
 function estimate_excess_deltav {
 	parameter r0.
 	parameter v0.
-	parameter tgt_deltav.
+	parameter rtgt.
+	parameter vtgt.
 	parameter perf.
+	parameter simple_model is true.
 	
 	local iz_ is r0:normalized.
-	
-	local v0h is vxcl(iz_, v0):mag.
+	local v0x is vxcl(iz_, v0):mag.
+	local v0y is vdot(iz_, v0):mag.
 	local r0m is r0:mag.
 	
-	local tgt_dvh is vxcl(iz_, tgt_deltav):mag.
-	local tgt_dvv is vdot(iz_, tgt_deltav).
+	local izf_ is rtgt:normalized.
+	local vtgtx is vxcl(izf_, vtgt):mag.
+	local vtgty is vdot(izf_, vtgt):mag.
+	local rtgtm is rtgt:mag.
 	
-	//print geff at (0,0).
+	local tgt_dvx is vtgtx - v0x.
+	local tgt_dvy is vtgty - v0y.
+	local tgt_dr is rtgtm - r0m.
 
+	local tb_ is perf["tb"].
 	local m0 is perf["m_initial"].
-	local mdot is perf["engines"]["flow"].
-	local thrust_ is perf["engines"]["thrust"]*perf["throt"].
+	local mdot is perf["md"].
+	local thrust_ is perf["thrust"].
+	local tu0 is perf["tu_"].
 	local vex is thrust_/mdot.
-	local mbar is m0 - 0.5*mdot*perf["time"].
+	local mbar is m0 - 0.5*mdot*tb_.
+	
+	local Lint is perf["Lint"].
+	local Jint is perf["Jint"].
+	local Sint is perf["Sint"].
+	local Qint is perf["Qint"].
 	
 	local v0eff is v0h + vex*LN(m0/mbar).
-	local geff is BODY:MU / (r0m^2) - (v0eff)^2 / r0m.
+	local reff is (rtgtm + r0m)/2
+	local geff is BODY:MU / (reff^2) - (v0eff)^2 / reff.
 	
-	local tu0 is m0 * vex * (1 - CONSTANT:E^(- tgt_dvh/vex)).
-	local c_ is tgt_dvv * mbar / tu0.
-	local b_ is geff / (thrust_/mbar).
+	//print geff at (0,0).
 	
-	local y_ is 1 + c_^2 - b_^2.
+	local dvx is 0.
 	
-	//print tgt_dvv at (0,1).
-	//print tgt_dvh at (0,2).
+	local nu is tgt_dvy + geff*tb_.
+	local rho is tgt_dr - tb_*(v0y - 0.5*geff*tb_).
 	
-	//print b_  at (0,3).
-	//print c_  at (0,4).
+	if (simple_model) {
+		local sinth is nu/Lint.
+		set sinth to midval(sinth, -1, 1).
+		local costh is sqrt(1 - sinth^2).
+		set dvx to  Lint*costh.
 	
-	local dvtot is 0.
-	
-	if (y_ <= 0) {
-		set vgrav to geff * perf["time"].
 	} else {
-		local x_1 is (b_ + c_ * sqrt(y_))/(1 + c_^2).
-		local x_2 is (b_ - c_ * sqrt(y_))/(1 + c_^2).
+		local chi is max(1, Lint*Qint - Jint*Sint).
 		
-		local x_ is 0.
-		if (abs(x_1) < 1) {
-			set x_ to x_1.
-		} else {
-			set x_ to x_2.
-		}
+		local a_theta is (Qint*nu - Jint*rho)/chi.
+        local b_theta is (-Sint*nu + Lint*rho)/chi.
 		
-		//print x_1  at (0,5).
-		//print x_2  at (0,6).
+		local cosath is cos(rad2deg(a_theta)).
+		local sinath is sin(rad2deg(a_theta)).
 		
-		local dt1 is tu0/(thrust_ * sqrt(1 - x_^2) ).
-		set dt1 to min(dt1, perf["time"]).
+		local lnR is Lint/vex.
+		local mb is mdot * tb_.
+        local Kx is cosath + sinath * ((mb - m0 * lnR) / lnR) * b_theta/mdot.
+        local Ky is sinath - cosath * ((mb - m0 * lnR) / lnR) * b_theta/mdot.
 		
-		//print arcsin(x_)  at (0,7).
-		//print dt1  at (0,8).
-		
-		set vgrav to x_ * vex * ln(m0/(m0 - mdot*dt1)).
+		set dvx to  Lint*Kx.
 	}
 	
-	local dvtot is sqrt(vgrav^2 + tgt_dvh^2).
-	
+	local vfinal is sqrt(vtgty^2 + (v0x + dvx)^2).
 	local dvbias is 10.
-	
-	return perf["deltav"] - dvtot - dvbias.
-
+	return vfinal - vtgt:mag - dvbias.
 }
 
 //only called if hastarget=true

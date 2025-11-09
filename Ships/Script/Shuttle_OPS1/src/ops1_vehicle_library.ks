@@ -860,23 +860,31 @@ function veh_perf_estimator {
 	parameter throtset.
 	
 	local prop_left is vehiclestate["m_burn_left"].
-	
 	local m_initial is vehicle["stack_empty_mass"] + prop_left.
 	
 	LOCAL ve_ IS engines_lex["isp"] * g0.
+	local thrust_ is engines_lex["thrust"] * throtset.
+	local md_ is thrust_/ve_.
+	local tu_ is m_initial / md_.
+	local tb is prop_left / engines_lex["flow"].
 	
-	local deltav_ is ve_*ln(m_initial/(m_initial - prop_left)).
-	
-	local burnt is ((m_initial * ve_) / (engines_lex["thrust"] * throtset)) * (1 - CONSTANT:E^(- deltav_/ve_)).
-	
+	local vtb is  vex_*tb.
+	local Lint is ve_ * ln(tu_/(tu_ - tb)).
+	local Jint is L_int*tu_ - vtb.
+	local Sint is -J_int + L_int*tb.
+	local Qint is S_int*(tu_ + tb) - 0.5*vtb*tb.
 	
 	return lexicon(
 					"m_initial", m_initial,
-					"time", burnt,
-					"deltav", deltav_,
+					"tb", tb,
+					"thrust", thrust_,
+					"md", md_,
+					"tu_", tu_,
 					"engines", engines_lex,
-					"throt", throtset
-	
+					"Lint", Lint,
+					"Jint", Jint,
+					"Sint", Sint,
+					"Qint", Qint,
 	).
 
 }
