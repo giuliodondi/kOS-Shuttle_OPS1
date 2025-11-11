@@ -608,7 +608,8 @@ FUNCTION upfg {
 	
 	local tgo_conv_flag is (ABS(tgo_expected - internal["tgo"]) < internal["tgo_conv"]).
 	local steer_conv_flag is (VANG(steering_prev, internal["steering"]) < internal["steer_conv"]).
-	local steer_dwnrng_flag is (vdot(internal["iz"], internal["steering"]) > 0).
+	local iz_cur is VCRS(internal["r_cur"], internal["iy"]):NORMALIZED.
+	local steer_dwnrng_flag is (vdot(iz_cur, internal["steering"]) > 0).
 	
 	local stg_change_flag is (n_stg_p <> internal["n_stg"]).
 		
